@@ -39,7 +39,8 @@ import {
   Brightness4 as DarkIcon,
   Brightness7 as LightIcon,
   ExitToApp as LogoutIcon,
-  AccountCircle as ProfileIcon
+  AccountCircle as ProfileIcon,
+  Group as EmployeeListIcon
 } from '@mui/icons-material';
 import { logout } from '../redux/store';
 
@@ -135,6 +136,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
 
   const managerLinks = [
     { text: 'Team Dashboard', icon: <DashboardIcon />, path: '/manager/dashboard' },
+    { text: 'Employee List', icon: <EmployeeListIcon />, path: '/manager/employees' },
     { text: 'Task Management', icon: <TaskIcon />, path: '/manager/tasks' },
     { text: 'Work Reports', icon: <ReportIcon />, path: '/manager/reports' },
     { text: 'Employee Monitor', icon: <MonitoringIcon />, path: '/manager/monitoring' }
@@ -145,9 +147,23 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
   // Render navigation menu
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Toolbar sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-          <MonitoringIcon /> WFH Tracker
+      <Toolbar sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', px: 3, py: 2.5 }}>
+        <Typography variant="h6" sx={{
+          fontWeight: 800,
+          fontSize: '1.25rem',
+          fontFamily: "'Inter', sans-serif",
+          letterSpacing: '-0.025em',
+          background: isDarkMode
+            ? 'linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%)'
+            : '#0038a8',
+          WebkitBackgroundClip: isDarkMode ? 'text' : undefined,
+          WebkitTextFillColor: isDarkMode ? 'transparent' : undefined,
+          color: isDarkMode ? undefined : '#0038a8'
+        }}>
+          WorkforceOS
+        </Typography>
+        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, mt: -0.2 }}>
+          Enterprise Management
         </Typography>
       </Toolbar>
       <Divider />
@@ -155,7 +171,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
         {links.map((link) => {
           const isActive = location.pathname === link.path;
           return (
-            <ListItem key={link.text} disablePadding sx={{ mb: 1 }}>
+            <ListItem key={link.text} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
                 onClick={() => {
                   navigate(link.path);
@@ -163,17 +179,48 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
                 }}
                 sx={{
                   borderRadius: 2,
-                  bgcolor: isActive ? 'primary.light' : 'transparent',
-                  color: isActive ? 'primary.contrastText' : 'text.primary',
+                  mx: 1,
+                  position: 'relative',
+                  background: isActive
+                    ? isDarkMode
+                      ? 'linear-gradient(135deg, rgba(79, 142, 247, 0.18) 0%, rgba(167, 139, 250, 0.12) 100%)'
+                      : 'rgba(0, 56, 168, 0.08)'
+                    : 'transparent',
+                  color: isActive
+                    ? isDarkMode ? '#7aaeff' : '#0038a8'
+                    : 'text.primary',
+                  border: isActive && isDarkMode
+                    ? '1px solid rgba(255, 255, 255, 0.12)'
+                    : '1px solid transparent',
+                  boxShadow: isActive && isDarkMode
+                    ? '0 0 10px rgba(255, 255, 255, 0.06)'
+                    : 'none',
                   '&:hover': {
-                    bgcolor: isActive ? 'primary.light' : 'action.hover'
+                    background: isActive
+                      ? isDarkMode
+                        ? 'linear-gradient(135deg, rgba(79, 142, 247, 0.25) 0%, rgba(167, 139, 250, 0.18) 100%)'
+                        : 'rgba(0, 56, 168, 0.14)'
+                      : isDarkMode
+                        ? 'rgba(79, 142, 247, 0.08)'
+                        : 'action.hover'
                   }
                 }}
               >
-                <ListItemIcon sx={{ color: isActive ? 'primary.contrastText' : 'text.secondary' }}>
+                <ListItemIcon sx={{
+                  color: isActive
+                    ? isDarkMode ? '#7aaeff' : '#0038a8'
+                    : 'text.secondary',
+                  minWidth: 40
+                }}>
                   {link.icon}
                 </ListItemIcon>
-                <ListItemText primary={link.text} primaryTypographyProps={{ fontWeight: isActive ? 600 : 500 }} />
+                <ListItemText
+                  primary={link.text}
+                  primaryTypographyProps={{
+                    fontSize: '0.9rem',
+                    fontWeight: isActive ? 700 : 500
+                  }}
+                />
               </ListItemButton>
             </ListItem>
           );
@@ -182,13 +229,26 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
       <Divider />
       <List sx={{ px: 1, py: 1 }}>
         <ListItem disablePadding>
-          <ListItemButton onClick={() => navigate('/profile')} sx={{ borderRadius: 2 }}>
+          <ListItemButton
+            onClick={() => navigate('/profile')}
+            sx={{
+              borderRadius: 2,
+              '&:hover': isDarkMode ? { bgcolor: 'rgba(79, 142, 247, 0.08)' } : {}
+            }}
+          >
             <ListItemIcon><ProfileIcon /></ListItemIcon>
             <ListItemText primary="My Profile" />
           </ListItemButton>
         </ListItem>
         <ListItem disablePadding>
-          <ListItemButton onClick={() => dispatch(logout())} sx={{ borderRadius: 2, color: 'error.main' }}>
+          <ListItemButton
+            onClick={() => dispatch(logout())}
+            sx={{
+              borderRadius: 2,
+              color: 'error.main',
+              '&:hover': isDarkMode ? { bgcolor: 'rgba(248, 113, 113, 0.08)' } : {}
+            }}
+          >
             <ListItemIcon sx={{ color: 'error.main' }}><LogoutIcon /></ListItemIcon>
             <ListItemText primary="Logout" />
           </ListItemButton>

@@ -6,14 +6,34 @@ import { Box, Button, Typography, Alert, Paper } from '@mui/material';
 import { CameraAlt as CameraIcon, Monitor as MonitorIcon } from '@mui/icons-material';
 
 function ScreenshotCapturer({ isCheckedIn }) {
-  const { token, isAuthenticated, user } = useSelector((state) => state.auth);
+  const { token, isAuthenticated, user, onBreak } = useSelector((state) => state.auth);
   const [stream, setStream] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [isCapturing, setIsCapturing] = useState(false);
+  const [productivity, setProductivity] = useState(100);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
+  const fetchProductivity = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/monitoring/my-activity`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setProductivity(res.data.productivityPercentage);
+    } catch (err) {
+      console.warn('Could not fetch productivity score.');
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && token && isCheckedIn && !onBreak) {
+      fetchProductivity();
+      const interval = setInterval(fetchProductivity, 60000); // refresh every minute
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, token, isCheckedIn, onBreak]);
 
   // Request display media for capturing screenshots
   const startScreenCapture = async () => {
@@ -41,6 +61,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
 
   // Perform actual screenshot capture and upload
   const captureAndUpload = async () => {
+    if (onBreak) return;
     try {
       let imageData = '';
 
@@ -120,6 +141,8 @@ function ScreenshotCapturer({ isCheckedIn }) {
           { headers: { Authorization: `Bearer ${token}` } }
         );
         console.log('Screenshot uploaded successfully.');
+        // Refresh local productivity state after logging a new screenshot
+        fetchProductivity();
       }
     } catch (err) {
       console.error('Failed to capture and upload screenshot:', err.message);
@@ -135,8 +158,8 @@ function ScreenshotCapturer({ isCheckedIn }) {
 
   // Periodic capture loop
   useEffect(() => {
-    if (!isAuthenticated || !token || user?.role !== 'Employee' || !isCheckedIn) {
-      // Clean up stream if checked out
+    if (!isAuthenticated || !token || user?.role !== 'Employee' || !isCheckedIn || onBreak) {
+      // Clean up stream if checked out or on break
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
         setStream(null);
@@ -150,25 +173,39 @@ function ScreenshotCapturer({ isCheckedIn }) {
       captureAndUpload();
     }, 5000);
 
-    // Repeat every 2 minutes for testing (usually 15 mins in production)
+    // Repeat every 5 minutes (300000ms)
     const interval = setInterval(() => {
       captureAndUpload();
-    }, 120000); // 2 minutes
+    }, 300000);
 
     return () => {
       clearTimeout(initialTimeout);
       clearInterval(interval);
     };
-  }, [isAuthenticated, token, user, isCheckedIn, isCapturing, stream]);
+  }, [isAuthenticated, token, user, isCheckedIn, onBreak, isCapturing, stream]);
 
   if (!isAuthenticated || user?.role !== 'Employee') return null;
 
   return (
     <Paper sx={{ p: 2, mt: 3, border: '1px solid', borderColor: 'divider' }}>
       <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
-        Visual Screenshot Telemetry
+        Visual Screenshot Telemetry (5 min Interval)
       </Typography>
       
+      {isCheckedIn && (
+        <Box sx={{ mb: 2 }}>
+          {productivity >= 70 ? (
+            <Alert severity="success" sx={{ py: 0.5, borderRadius: 2, mb: 1 }}>
+              🛡️ <strong>Privacy Protection Active</strong>: Screenshots older than 1 hour are auto-deleted because your productivity is <strong>{productivity}%</strong> (Target &gt;= 70%).
+            </Alert>
+          ) : (
+            <Alert severity="warning" sx={{ py: 0.5, borderRadius: 2, mb: 1 }}>
+              ⚠️ <strong>Full Audit Active</strong>: Screenshots are retained due to low/idle productivity (<strong>{productivity}%</strong>). Maintain active work to enable 1-hour privacy auto-deletion.
+            </Alert>
+          )}
+        </Box>
+      )}
+
       {errorMsg && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {errorMsg}

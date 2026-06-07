@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+**/node_modules/
+
+# build output
+frontend/build/
+
+# uploads and runtime files
+backend/uploads/
+frontend/uploads/
+
+# local env files
+.env
+.env.*.local
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+
+# OS files
+.DS_Store

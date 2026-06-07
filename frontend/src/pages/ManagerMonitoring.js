@@ -30,6 +30,7 @@ function ManagerMonitoring() {
   const [summary, setSummary] = useState(null);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -37,31 +38,35 @@ function ManagerMonitoring() {
     const fetchStatus = async () => {
       try {
         setLoading(true);
+        setError('');
         const authHeader = { headers: { Authorization: `Bearer ${token}` } };
         const res = await axios.get(`${API_URL}/api/monitoring/summary`, authHeader);
         setSummary(res.data);
 
         // Fetch user records to list all employees
-        const reportsRes = await axios.get(`${API_URL}/api/reports`, authHeader);
-        
-        const employeeMap = new Map();
-        reportsRes.data.forEach(r => {
-          if (r.employee) employeeMap.set(r.employee._id || r.employee.id, r.employee);
-        });
-        res.data.liveCheckins.forEach(c => {
-          if (c.employee) employeeMap.set(c.employee._id || c.employee.id, c.employee);
-        });
-        
-        let list = Array.from(employeeMap.values());
-        if (list.length === 0) {
-          list = [
-            { _id: 'e1', name: 'Alice Green', email: 'employee1@wfh.com', department: 'Engineering' },
-            { _id: 'e2', name: 'John Smith', email: 'employee2@wfh.com', department: 'Design' }
-          ];
+        try {
+          const reportsRes = await axios.get(`${API_URL}/api/reports`, authHeader);
+          const employeeMap = new Map();
+          reportsRes.data.forEach(r => {
+            if (r.employee) employeeMap.set(r.employee._id || r.employee.id, r.employee);
+          });
+          res.data.liveCheckins?.forEach(c => {
+            if (c.employee) employeeMap.set(c.employee._id || c.employee.id, c.employee);
+          });
+          const list = Array.from(employeeMap.values());
+          setEmployees(list);
+        } catch (reportsErr) {
+          // Reports fetch failed - still show page with empty list
+          const employeeMap = new Map();
+          res.data.liveCheckins?.forEach(c => {
+            if (c.employee) employeeMap.set(c.employee._id || c.employee.id, c.employee);
+          });
+          setEmployees(Array.from(employeeMap.values()));
         }
-        setEmployees(list);
       } catch (err) {
-        console.error(err.message);
+        console.error('Monitoring load error:', err.message);
+        setError(err.response?.data?.message || 'Failed to load monitoring data.');
+        setSummary({ onlineEmployees: 0, offlineEmployees: 0, productivityScore: 0, liveCheckins: [] });
       } finally {
         setLoading(false);
       }
@@ -70,7 +75,7 @@ function ManagerMonitoring() {
     fetchStatus();
   }, [token]);
 
-  if (loading || !summary) {
+  if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
         <CircularProgress />

@@ -29,14 +29,15 @@ import ManagerTasks from './pages/ManagerTasks';
 import ManagerReports from './pages/ManagerReports';
 import ManagerMonitoring from './pages/ManagerMonitoring';
 import EmployeeMonitoring from './pages/EmployeeMonitoring';
+import EmployeeList from './pages/EmployeeList';
 
 function App() {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   
-  // Dark mode setting in local storage
+  // Dark mode setting in local storage - default to false (light mode)
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('wfh_dark_mode');
-    return saved ? JSON.parse(saved) : true;
+    return saved ? JSON.parse(saved) : false;
   });
 
   // Persist dark mode preference
@@ -50,22 +51,32 @@ function App() {
     palette: {
       mode: isDarkMode ? 'dark' : 'light',
       primary: {
-        main: '#38bdf8', // sky-400
-        light: '#e0f2fe',
-        dark: '#0284c7',
-        contrastText: isDarkMode ? '#0f172a' : '#ffffff'
+        main: isDarkMode ? '#4f8ef7' : '#0038a8', // Vivid electric blue in dark, deep royal blue in light
+        light: isDarkMode ? '#7aaeff' : '#e0e7ff',
+        dark: isDarkMode ? '#2563eb' : '#002672',
+        contrastText: '#ffffff'
       },
       secondary: {
-        main: '#fb7185' // rose-400
+        main: isDarkMode ? '#a78bfa' : '#818cf8' // Bright violet in dark, indigo in light
+      },
+      error: {
+        main: isDarkMode ? '#f87171' : '#ef4444'
+      },
+      warning: {
+        main: isDarkMode ? '#fbbf24' : '#f59e0b'
+      },
+      success: {
+        main: isDarkMode ? '#34d399' : '#10b981'
       },
       background: {
-        default: isDarkMode ? '#0f172a' : '#f8fafc',
-        paper: isDarkMode ? '#1e293b' : '#ffffff'
+        default: isDarkMode ? '#0a0a0a' : '#f1f5f9', // Pure dark black
+        paper: isDarkMode ? '#111111' : '#ffffff'    // Dark charcoal panels
       },
       text: {
-        primary: isDarkMode ? '#f8fafc' : '#0f172a',
-        secondary: isDarkMode ? '#94a3b8' : '#475569'
-      }
+        primary: isDarkMode ? '#e2e8f0' : '#0f172a',
+        secondary: isDarkMode ? '#7c94b6' : '#475569'
+      },
+      divider: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0'
     },
     typography: {
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
@@ -75,16 +86,77 @@ function App() {
       }
     },
     shape: {
-      borderRadius: 12
+      borderRadius: 16
     },
     components: {
       MuiCard: {
         styleOverrides: {
           root: {
             backgroundImage: 'none',
-            boxShadow: isDarkMode 
-              ? '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3)' 
-              : '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05)'
+            background: isDarkMode
+              ? 'linear-gradient(145deg, #181818 0%, #1c1c1c 100%)'
+              : '#ffffff',
+            border: isDarkMode
+              ? '1px solid rgba(255, 255, 255, 0.07)'
+              : '1px solid #e2e8f0',
+            boxShadow: isDarkMode
+              ? '0 8px 32px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.04)'
+              : '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
+          }
+        }
+      },
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: 10
+          },
+          containedPrimary: {
+            background: isDarkMode
+              ? 'linear-gradient(135deg, #2563eb 0%, #4f8ef7 100%)'
+              : undefined,
+            boxShadow: isDarkMode
+              ? '0 4px 14px rgba(79, 142, 247, 0.35)'
+              : undefined,
+            '&:hover': isDarkMode ? {
+              background: 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)',
+              boxShadow: '0 6px 20px rgba(79, 142, 247, 0.45)'
+            } : undefined
+          }
+        }
+      },
+      MuiDrawer: {
+        styleOverrides: {
+          paper: {
+            background: isDarkMode
+              ? '#0f0f0f'
+              : '#ffffff',
+            borderRight: isDarkMode
+              ? '1px solid rgba(255, 255, 255, 0.06)'
+              : '1px solid #e2e8f0'
+          }
+        }
+      },
+      MuiAppBar: {
+        styleOverrides: {
+          root: {
+            background: isDarkMode ? '#0f0f0f' : '#ffffff',
+            borderBottom: isDarkMode
+              ? '1px solid rgba(255, 255, 255, 0.06)'
+              : '1px solid #e2e8f0'
+          }
+        }
+      },
+      MuiChip: {
+        styleOverrides: {
+          root: {
+            fontWeight: 600
+          }
+        }
+      },
+      MuiPaper: {
+        styleOverrides: {
+          root: {
+            backgroundImage: 'none'
           }
         }
       }
@@ -179,6 +251,12 @@ function App() {
           <Route path="/manager/monitoring/:employeeId" element={
             <ProtectedRoute allowedRoles={['Manager']}>
               <EmployeeMonitoring />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/manager/employees" element={
+            <ProtectedRoute allowedRoles={['Manager']}>
+              <EmployeeList />
             </ProtectedRoute>
           } />
 

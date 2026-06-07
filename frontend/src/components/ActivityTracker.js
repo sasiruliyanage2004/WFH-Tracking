@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 import axios from 'axios';
 
 function ActivityTracker() {
-  const { token, isAuthenticated, user } = useSelector((state) => state.auth);
+  const { token, isAuthenticated, user, onBreak } = useSelector((state) => state.auth);
   
   const mouseCount = useRef(0);
   const keyboardCount = useRef(0);
@@ -15,8 +15,8 @@ function ActivityTracker() {
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
-    // Only track if authenticated employee
-    if (!isAuthenticated || !token || user?.role !== 'Employee') return;
+    // Only track if authenticated employee and not on break
+    if (!isAuthenticated || !token || user?.role !== 'Employee' || onBreak) return;
 
     // Interaction handlers
     const handleMouseMove = () => {
@@ -78,7 +78,7 @@ function ActivityTracker() {
       clearInterval(secondInterval);
       clearInterval(syncInterval);
     };
-  }, [isAuthenticated, token, user, API_URL]);
+  }, [isAuthenticated, token, user, onBreak, API_URL]);
 
   return null; // Silent telemetry tracking component
 }

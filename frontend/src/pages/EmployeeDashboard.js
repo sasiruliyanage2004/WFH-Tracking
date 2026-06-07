@@ -1,7 +1,8 @@
 // frontend/src/pages/EmployeeDashboard.js
 import React, { useState, useEffect, useRef } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
+import { setBreakStart, setBreakEnd } from '../redux/store';
 import {
   Box,
   Button,
@@ -28,7 +29,8 @@ import {
   Select,
   FormControl,
   InputLabel,
-  Slider
+  Slider,
+  Backdrop
 } from '@mui/material';
 import {
   PlayArrow as CheckInIcon,
@@ -39,12 +41,15 @@ import {
   Send as SendIcon,
   TaskAlt as CheckIcon,
   HourglassEmpty as PendingIcon,
-  CancelOutlined as RejectIcon
+  CancelOutlined as RejectIcon,
+  TrendingUp as TrendingUpIcon,
+  AccessTime as AccessTimeIcon
 } from '@mui/icons-material';
 import ScreenshotCapturer from '../components/ScreenshotCapturer';
 
 function EmployeeDashboard() {
   const { token, user } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
 
   // States
   const [attendance, setAttendance] = useState(null);
@@ -53,6 +58,12 @@ function EmployeeDashboard() {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState('');
   const [liveHours, setLiveHours] = useState('00:00:00');
+  const [breakTimeStr, setBreakTimeStr] = useState('00:00');
+  const [productivity, setProductivity] = useState(100);
+
+  // Other Break Dialog
+  const [otherBreakOpen, setOtherBreakOpen] = useState(false);
+  const [otherBreakNote, setOtherBreakNote] = useState('');
 
   // Webcam States
   const [webcamOpen, setWebcamOpen] = useState(false);
@@ -87,13 +98,27 @@ function EmployeeDashboard() {
       const authHeader = { headers: { Authorization: `Bearer ${token}` } };
       
       const attendanceRes = await axios.get(`${API_URL}/api/attendance/status`, authHeader);
-      setAttendance(attendanceRes.data.attendance);
+      const att = attendanceRes.data.attendance;
+      setAttendance(att);
+      if (att && att.onBreak) {
+        dispatch(setBreakStart(att.currentBreakType));
+      } else {
+        dispatch(setBreakEnd());
+      }
 
       const tasksRes = await axios.get(`${API_URL}/api/tasks`, authHeader);
       setTasks(tasksRes.data);
 
       const reportsRes = await axios.get(`${API_URL}/api/reports`, authHeader);
       setReports(reportsRes.data);
+
+      // Fetch productivity score
+      try {
+        const prodRes = await axios.get(`${API_URL}/api/monitoring/my-activity`, authHeader);
+        setProductivity(prodRes.data.productivityPercentage);
+      } catch (err) {
+        console.warn('Could not fetch productivity score on load.');
+      }
     } catch (err) {
       console.error('Fetch dashboard data error:', err.message);
     } finally {
@@ -104,6 +129,29 @@ function EmployeeDashboard() {
   useEffect(() => {
     fetchData();
   }, [token]);
+
+  // Break overlay ticking timer
+  useEffect(() => {
+    if (!attendance || !attendance.onBreak) {
+      setBreakTimeStr('00:00');
+      return;
+    }
+
+    const currentBreak = attendance.breaks[attendance.breaks.length - 1];
+    if (!currentBreak) return;
+
+    const tick = () => {
+      const diffMs = Date.now() - new Date(currentBreak.startTime);
+      const minutes = Math.floor(diffMs / 60000);
+      const seconds = Math.floor((diffMs % 60000) / 1000);
+      const pad = (num) => String(num).padStart(2, '0');
+      setBreakTimeStr(`${pad(minutes)}:${pad(seconds)}`);
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [attendance]);
 
   // Live Timer ticker for checked in session
   useEffect(() => {
@@ -168,6 +216,8 @@ function EmployeeDashboard() {
 
   // Webcam trigger setup
   const openWebcam = async () => {
+    // Automatically trigger GPS trapping under the hood when camera is opened
+    requestGPS();
     setWebcamOpen(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -200,6 +250,41 @@ function EmployeeDashboard() {
       setWebcamStream(null);
     }
     setWebcamOpen(false);
+  };
+
+  // Break Event Handlers
+  const handleStartBreak = async (breakType, note = '') => {
+    try {
+      const res = await axios.post(
+        `${API_URL}/api/attendance/break/start`,
+        { breakType, note },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setAttendance(res.data.attendance);
+      dispatch(setBreakStart(breakType));
+    } catch (err) {
+      console.error(err.response?.data?.message || err.message);
+    }
+  };
+
+  const handleStartOtherBreak = async () => {
+    await handleStartBreak('Other', otherBreakNote);
+    setOtherBreakOpen(false);
+    setOtherBreakNote('');
+  };
+
+  const handleEndBreak = async () => {
+    try {
+      const res = await axios.post(
+        `${API_URL}/api/attendance/break/end`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setAttendance(res.data.attendance);
+      dispatch(setBreakEnd());
+    } catch (err) {
+      console.error(err.response?.data?.message || err.message);
+    }
   };
 
   const captureSelfie = () => {
@@ -345,90 +430,122 @@ function EmployeeDashboard() {
   }
 
   const isCheckedIn = attendance && !attendance.checkOutTime;
+  const loginTimeStr = attendance ? new Date(attendance.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
   return (
     <Box>
+      {/* Top Greeting and GPS Status Banner matching Image 3 */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.025em' }}>
+            Good Morning, {user?.name.split(' ')[0]}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, mt: 0.5 }}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} • Hybrid Workspace
+          </Typography>
+        </Box>
+        {attendance && (
+          <Paper
+            variant="outlined"
+            sx={{
+              px: 2,
+              py: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              borderRadius: 3,
+              borderColor: 'success.light',
+              bgcolor: 'success.light',
+              color: 'success.dark',
+              fontWeight: 600,
+              fontSize: '0.85rem'
+            }}
+          >
+            🛡️ GPS STATUS: Verified {attendance.location?.address.includes('Home') ? 'Home Office' : 'Remote Location'}
+          </Paper>
+        )}
+      </Box>
+
       <Grid container spacing={3}>
         {/* Row 1: Attendance Check-In Dashboard Console */}
         <Grid item xs={12} md={7}>
-          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRadius: 3 }}>
+          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRadius: 4, p: 1 }}>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }} color="text.primary">
-                Daily Check-In Portal
-              </Typography>
-              
-              <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid item xs={12} sm={6}>
-                  <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', borderRadius: 2 }}>
-                    <Typography variant="caption" color="text.secondary">CHECK-IN STATUS</Typography>
-                    {attendance ? (
-                      <Typography variant="h6" sx={{ mt: 1, fontWeight: 700 }} color={isCheckedIn ? 'success.main' : 'warning.main'}>
-                        {isCheckedIn ? 'Active Session' : 'Logged Out / Finished'}
-                      </Typography>
-                    ) : (
-                      <Typography variant="h6" sx={{ mt: 1, fontWeight: 700 }} color="error.main">
-                        Not Checked-In
-                      </Typography>
-                    )}
-                  </Paper>
-                </Grid>
-                
-                <Grid item xs={12} sm={6}>
-                  <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', borderRadius: 2 }}>
-                    <Typography variant="caption" color="text.secondary">SESSION TIME</Typography>
-                    <Typography variant="h4" sx={{ mt: 0.5, fontFamily: 'monospace', fontWeight: 800 }}>
-                      {liveHours}
-                    </Typography>
-                  </Paper>
-                </Grid>
-              </Grid>
+              {/* Status Header */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Shift Logging Console
+                </Typography>
+                <Chip
+                  label={isCheckedIn ? 'ON-CLOCK' : 'OFF-CLOCK'}
+                  color={isCheckedIn ? 'primary' : 'default'}
+                  sx={{ fontWeight: 700, borderRadius: 2, fontSize: '0.75rem', height: 26 }}
+                />
+              </Box>
 
-              {/* GPS & Webcam configuration options */}
+              {/* Total Time Today Clock Widget */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, bgcolor: 'action.hover', p: 3, borderRadius: 3 }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+                    TOTAL TIME TODAY
+                  </Typography>
+                  <Typography variant="h3" sx={{ fontFamily: 'monospace', fontWeight: 800, color: 'text.primary', letterSpacing: -1 }}>
+                    {liveHours}
+                  </Typography>
+                </Box>
+                {/* Simulated workspace visual component from Image 3 */}
+                <Box
+                  sx={{
+                    width: 100,
+                    height: 80,
+                    borderRadius: 2,
+                    bgcolor: 'primary.main',
+                    display: { xs: 'none', sm: 'flex' },
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'primary.contrastText',
+                    boxShadow: 2,
+                    backgroundImage: 'linear-gradient(135deg, #0038a8 0%, #002266 100%)'
+                  }}
+                >
+                  <AccessTimeIcon sx={{ fontSize: 40 }} />
+                </Box>
+              </Box>
+
+              {/* GPS & Webcam configuration options with auto-GPS capture */}
               {!attendance && (
                 <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Verification Steps:</Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Button
-                        variant={gpsData.latitude ? "contained" : "outlined"}
-                        color={gpsError ? "error" : "primary"}
-                        fullWidth
-                        startIcon={gpsLoading ? <CircularProgress size={20} /> : <GPSIcon />}
-                        onClick={requestGPS}
-                      >
-                        {gpsData.latitude ? 'GPS Captured' : 'Verify Location'}
-                      </Button>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Button
-                        variant={capturedPhoto ? "contained" : "outlined"}
-                        fullWidth
-                        startIcon={<CameraIcon />}
-                        onClick={openWebcam}
-                      >
-                        {capturedPhoto ? 'Selfie Captured' : 'Camera Selfie'}
-                      </Button>
-                    </Grid>
-                  </Grid>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>Verification Step:</Typography>
+                  <Button
+                    variant={capturedPhoto ? "contained" : "outlined"}
+                    fullWidth
+                    startIcon={gpsLoading ? <CircularProgress size={20} color="inherit" /> : <CameraIcon />}
+                    onClick={openWebcam}
+                    sx={{ py: 1.2, borderRadius: 2 }}
+                  >
+                    {capturedPhoto 
+                      ? (gpsData.latitude ? 'Selfie & Location Captured' : 'Selfie Captured (Resolving GPS...)') 
+                      : 'Capture Verification Selfie'}
+                  </Button>
 
                   {gpsData.address && (
-                    <Typography variant="caption" display="block" sx={{ mt: 1.5, color: 'success.main' }}>
-                      Location Verified: {gpsData.address}
+                    <Typography variant="caption" display="block" sx={{ mt: 1.5, color: 'success.main', fontWeight: 500 }}>
+                      📍 Location Verified: {gpsData.address}
                     </Typography>
                   )}
                   {gpsError && (
-                    <Typography variant="caption" display="block" sx={{ mt: 1.5, color: 'error.main' }}>
-                      {gpsError}
+                    <Typography variant="caption" display="block" sx={{ mt: 1.5, color: 'warning.main', fontWeight: 500 }}>
+                      ⚠️ {gpsError}
                     </Typography>
                   )}
 
                   {capturedPhoto && (
-                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                    <Box sx={{ mt: 2.5, display: 'flex', justifyContent: 'center' }}>
                       <Box
                         component="img"
                         src={capturedPhoto}
                         alt="selfie"
-                        sx={{ width: 120, height: 90, borderRadius: 2, objectFit: 'cover', border: '2px solid', borderColor: 'primary.main' }}
+                        sx={{ width: 160, height: 120, borderRadius: 3, objectFit: 'cover', border: '3px solid', borderColor: 'primary.main', boxShadow: 3 }}
                       />
                     </Box>
                   )}
@@ -436,33 +553,106 @@ function EmployeeDashboard() {
               )}
 
               {/* Action Buttons */}
-              <Box sx={{ display: 'flex', gap: 2 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {!attendance && (
                   <Button
                     variant="contained"
-                    color="success"
+                    color="primary"
                     size="large"
                     fullWidth
-                    disabled={!gpsData.latitude || !capturedPhoto}
+                    disabled={!capturedPhoto || gpsLoading}
                     startIcon={<CheckInIcon />}
                     onClick={handleCheckIn}
-                    sx={{ py: 1.5, borderRadius: 2 }}
+                    sx={{ py: 1.8, borderRadius: 3, fontWeight: 700, fontSize: '1rem', bgcolor: '#0038a8' }}
                   >
                     Start Work Shift (Check-In)
                   </Button>
+                )}
+
+                {isCheckedIn && (
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>Shift Break Controls</Typography>
+                    <Grid container spacing={1}>
+                      <Grid item xs={6}>
+                        <Button
+                          variant="outlined"
+                          color="warning"
+                          fullWidth
+                          size="small"
+                          onClick={() => handleStartBreak('Breakfast')}
+                        >
+                          ☕ Breakfast
+                        </Button>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Button
+                          variant="outlined"
+                          color="warning"
+                          fullWidth
+                          size="small"
+                          onClick={() => handleStartBreak('Lunch')}
+                        >
+                          🍔 Lunch Break
+                        </Button>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Button
+                          variant="outlined"
+                          color="warning"
+                          fullWidth
+                          size="small"
+                          onClick={() => handleStartBreak('Dinner')}
+                        >
+                          🍽️ Dinner
+                        </Button>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Button
+                          variant="outlined"
+                          color="warning"
+                          fullWidth
+                          size="small"
+                          onClick={() => handleStartBreak('Washroom')}
+                        >
+                          🚽 Washroom
+                        </Button>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Button
+                          variant="outlined"
+                          color="warning"
+                          fullWidth
+                          size="small"
+                          onClick={() => handleStartBreak('Outgoing')}
+                        >
+                          🚗 Outgoing
+                        </Button>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Button
+                          variant="outlined"
+                          color="secondary"
+                          fullWidth
+                          size="small"
+                          onClick={() => setOtherBreakOpen(true)}
+                        >
+                          📝 Other
+                        </Button>
+                      </Grid>
+                    </Grid>
+                  </Box>
                 )}
                 
                 {isCheckedIn && (
                   <Button
                     variant="contained"
-                    color="error"
                     size="large"
                     fullWidth
                     startIcon={<CheckOutIcon />}
                     onClick={handleCheckOut}
-                    sx={{ py: 1.5, borderRadius: 2 }}
+                    sx={{ py: 1.8, borderRadius: 3, fontWeight: 700, fontSize: '1rem', bgcolor: '#0038a8', '&:hover': { bgcolor: '#002672' } }}
                   >
-                    End Work Shift (Check-Out)
+                    Check-Out
                   </Button>
                 )}
 
@@ -473,49 +663,73 @@ function EmployeeDashboard() {
                     size="large"
                     fullWidth
                     disabled
-                    sx={{ py: 1.5, borderRadius: 2 }}
+                    sx={{ py: 1.8, borderRadius: 3 }}
                   >
                     Shift Completed Today
                   </Button>
                 )}
               </Box>
+
+              {attendance && (
+                <Typography variant="caption" display="block" align="center" color="text.secondary" sx={{ mt: 2, fontWeight: 500, mb: 1 }}>
+                  Logged in today at <strong>{loginTimeStr}</strong>
+                </Typography>
+              )}
+
+              {/* Integration of screenshot tracking element */}
+              <ScreenshotCapturer isCheckedIn={isCheckedIn} />
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Row 1, Column 2: Shift summary statistics */}
+        {/* Right Column: Dynamic metrics widgets matching Image 3 */}
         <Grid item xs={12} md={5}>
-          <Card sx={{ height: '100%', borderRadius: 3 }}>
-            <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-                Shift Summary logs
-              </Typography>
-              
-              <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <span>Daily Progress</span>
-                    <span>8 hrs Target</span>
-                  </Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={isCheckedIn ? Math.min(100, (parseFloat(liveHours.split(':')[0]) / 8) * 100) : 0}
-                    sx={{ height: 10, borderRadius: 5 }}
-                  />
-                </Box>
-
-                <Box sx={{ mt: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Active Hours Today</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {attendance ? (isCheckedIn ? 'Tracking live details...' : 'Ended. Check status logs') : 'Logs start at Check-In.'}
-                  </Typography>
-                </Box>
-
-                {/* Integration of screenshot tracking element */}
-                <ScreenshotCapturer isCheckedIn={isCheckedIn} />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, height: '100%' }}>
+            {/* 1. Productivity Score */}
+            <Card sx={{ borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, flexGrow: 1 }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
+                  Productivity Score
+                </Typography>
+                <Typography variant="h3" sx={{ fontWeight: 800, mt: 0.5, color: 'text.primary' }}>
+                  {productivity}%
+                </Typography>
               </Box>
-            </CardContent>
-          </Card>
+              <Box sx={{ width: 56, height: 56, borderRadius: 3, bgcolor: 'primary.light', color: '#0038a8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <TrendingUpIcon sx={{ fontSize: 28 }} />
+              </Box>
+            </Card>
+
+            {/* 2. Active Time */}
+            <Card sx={{ borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, flexGrow: 1 }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
+                  Active Time
+                </Typography>
+                <Typography variant="h3" sx={{ fontWeight: 800, mt: 0.5, fontFamily: 'monospace', color: 'text.primary' }}>
+                  {liveHours}
+                </Typography>
+              </Box>
+              <Box sx={{ width: 56, height: 56, borderRadius: 3, bgcolor: '#f5f3ff', color: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <AccessTimeIcon sx={{ fontSize: 28 }} />
+              </Box>
+            </Card>
+
+            {/* 3. Tasks Completed */}
+            <Card sx={{ borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, flexGrow: 1 }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
+                  Tasks Completed
+                </Typography>
+                <Typography variant="h3" sx={{ fontWeight: 800, mt: 0.5, color: 'text.primary' }}>
+                  {tasks.filter(t => t.status === 'Completed').length} / {tasks.length}
+                </Typography>
+              </Box>
+              <Box sx={{ width: 56, height: 56, borderRadius: 3, bgcolor: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <TaskIcon sx={{ fontSize: 28 }} />
+              </Box>
+            </Card>
+          </Box>
         </Grid>
 
         {/* Row 2: Tabs (Tasks & Daily Reports) */}
@@ -832,6 +1046,126 @@ function EmployeeDashboard() {
           <Button onClick={handleCreateTask} variant="contained" color="success">Create</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Other Break Dialog */}
+      <Dialog open={otherBreakOpen} onClose={() => { setOtherBreakOpen(false); setOtherBreakNote(''); }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>📝 Other Break</DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Please add a note describing the reason for this break.
+          </Typography>
+          <TextField
+            label="Reason / Note"
+            placeholder="e.g. Doctor's appointment, personal errand..."
+            fullWidth
+            multiline
+            rows={3}
+            value={otherBreakNote}
+            onChange={(e) => setOtherBreakNote(e.target.value)}
+            autoFocus
+            inputProps={{ maxLength: 200 }}
+            helperText={`${otherBreakNote.length}/200`}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={() => { setOtherBreakOpen(false); setOtherBreakNote(''); }} color="inherit">Cancel</Button>
+          <Button
+            onClick={handleStartOtherBreak}
+            variant="contained"
+            color="secondary"
+            disabled={!otherBreakNote.trim()}
+          >
+            Start Break
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Break Mode Glassmorphic Backdrop Page Lock */}
+      <Backdrop
+        sx={{
+          color: '#fff',
+          zIndex: (theme) => theme.zIndex.drawer + 999,
+          backdropFilter: 'blur(15px)',
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 3,
+          p: 4,
+          textAlign: 'center'
+        }}
+        open={Boolean(attendance && attendance.onBreak)}
+      >
+        <Box
+          sx={{
+            p: 4,
+            borderRadius: 4,
+            bgcolor: 'background.paper',
+            border: '1px solid',
+            borderColor: 'divider',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.5)',
+            maxWidth: 450,
+            width: '100%',
+            color: 'text.primary'
+          }}
+        >
+          <Typography variant="h4" sx={{ fontWeight: 800, mb: 1, color: 'warning.main' }}>
+            Shift Paused
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary" sx={{ mb: attendance?.currentBreakNote ? 1 : 3 }}>
+            You are currently on a <strong>{attendance?.currentBreakType} Break</strong>.
+          </Typography>
+
+          {/* Show note if it exists (for Other break) */}
+          {attendance?.currentBreakNote && (
+            <Box sx={{
+              mb: 3,
+              px: 2,
+              py: 1.5,
+              borderRadius: 2,
+              bgcolor: 'action.hover',
+              border: '1px solid',
+              borderColor: 'divider',
+              textAlign: 'left'
+            }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                📝 Note
+              </Typography>
+              <Typography variant="body2" color="text.primary" sx={{ mt: 0.5, fontStyle: 'italic' }}>
+                "{attendance.currentBreakNote}"
+              </Typography>
+            </Box>
+          )}
+
+          <Box
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              bgcolor: 'action.selected',
+              mb: 4,
+              border: '1px dashed',
+              borderColor: 'divider'
+            }}
+          >
+            <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>
+              Break Elapsed Time
+            </Typography>
+            <Typography variant="h3" sx={{ fontFamily: 'monospace', fontWeight: 800, mt: 1, color: 'text.primary' }}>
+              {breakTimeStr}
+            </Typography>
+          </Box>
+
+          <Button
+            variant="contained"
+            color="success"
+            size="large"
+            fullWidth
+            onClick={handleEndBreak}
+            sx={{ py: 1.5, borderRadius: 2, fontWeight: 700 }}
+          >
+            Resume Work Shift
+          </Button>
+        </Box>
+      </Backdrop>
     </Box>
   );
 }

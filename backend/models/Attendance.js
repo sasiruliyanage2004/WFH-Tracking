@@ -35,6 +35,25 @@ const AttendanceSchema = new mongoose.Schema({
   webcamImage: {
     type: String,
     default: ''
+  },
+  breaks: [{
+    breakType: { type: String, required: true },
+    note: { type: String, default: '' },
+    startTime: { type: Date, required: true },
+    endTime: { type: Date },
+    durationMinutes: { type: Number, default: 0 }
+  }],
+  onBreak: {
+    type: Boolean,
+    default: false
+  },
+  currentBreakType: {
+    type: String,
+    default: null
+  },
+  currentBreakNote: {
+    type: String,
+    default: ''
   }
 }, { timestamps: true });
 

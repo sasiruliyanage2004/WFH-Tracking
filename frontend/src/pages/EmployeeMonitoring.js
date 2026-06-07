@@ -21,13 +21,18 @@ import {
   TableRow,
   Dialog,
   DialogContent,
-  IconButton
+  DialogTitle,
+  DialogActions,
+  IconButton,
+  Chip,
+  Checkbox
 } from '@mui/material';
 import {
   ArrowBack as BackIcon,
   MyLocation as MapIcon,
   Schedule as TimeIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 
 function EmployeeMonitoring() {
@@ -42,6 +47,38 @@ function EmployeeMonitoring() {
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
+
+  // Deletion selection states
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteSelected = async () => {
+    try {
+      setDeleteLoading(true);
+      const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+      await axios.post(`${API_URL}/api/monitoring/screenshots/delete-bulk`, { ids: selectedIds }, authHeader);
+      
+      // Update local screenshots list
+      setScreenshots((prev) => prev.filter((ss) => !selectedIds.includes(ss._id || ss.id)));
+      
+      // Reset state
+      setSelectedIds([]);
+      setIsSelectMode(false);
+      setDeleteConfirmOpen(false);
+    } catch (err) {
+      console.error('Failed to delete screenshots:', err.message);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -90,6 +127,10 @@ function EmployeeMonitoring() {
   const latitude = latestCheckin?.location?.latitude || 40.7128;
   const longitude = latestCheckin?.location?.longitude || -74.0060;
   const mapAddress = latestCheckin?.location?.address || 'No location logged';
+
+  // Get productivity score for today
+  const todayActivity = activity.length > 0 ? activity[0] : null;
+  const prodScore = todayActivity ? todayActivity.productivityPercentage : 100;
 
   // Embeddable Google Map URL without API Key
   const googleMapEmbedUrl = `https://maps.google.com/maps?q=${latitude},${longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
@@ -182,9 +223,74 @@ function EmployeeMonitoring() {
         <Grid item xs={12}>
           <Card sx={{ borderRadius: 3 }}>
             <CardContent>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
-                Screen Capture Logs (Every 15 mins)
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  Screen Capture Logs (Every 5 mins)
+                </Typography>
+                
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                  {prodScore >= 70 ? (
+                    <Chip
+                      label={`🛡️ Privacy Enabled: 1h Auto-Delete Active (${prodScore}% Productivity)`}
+                      color="success"
+                      variant="outlined"
+                      sx={{ fontWeight: 600 }}
+                    />
+                  ) : (
+                    <Chip
+                      label={`🔍 Full Audit: All Retained (${prodScore}% Productivity)`}
+                      color="warning"
+                      variant="outlined"
+                      sx={{ fontWeight: 600 }}
+                    />
+                  )}
+
+                  {screenshots.length > 0 && (
+                    <>
+                      {!isSelectMode ? (
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          startIcon={<DeleteIcon />}
+                          onClick={() => {
+                            setIsSelectMode(true);
+                            setSelectedIds([]);
+                          }}
+                          sx={{ borderRadius: 2, fontWeight: 700 }}
+                        >
+                          Delete Captures
+                        </Button>
+                      ) : (
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            variant="contained"
+                            color="error"
+                            size="small"
+                            startIcon={<DeleteIcon />}
+                            onClick={() => setDeleteConfirmOpen(true)}
+                            disabled={selectedIds.length === 0}
+                            sx={{ borderRadius: 2, fontWeight: 700 }}
+                          >
+                            Delete Selected ({selectedIds.length})
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => {
+                              setIsSelectMode(false);
+                              setSelectedIds([]);
+                            }}
+                            sx={{ borderRadius: 2, color: 'text.secondary', borderColor: 'divider' }}
+                          >
+                            Cancel
+                          </Button>
+                        </Box>
+                      )}
+                    </>
+                  )}
+                </Box>
+              </Box>
               <Divider sx={{ mb: 3 }} />
 
               {screenshots.length === 0 ? (
@@ -193,31 +299,71 @@ function EmployeeMonitoring() {
                 </Typography>
               ) : (
                 <Grid container spacing={2}>
-                  {screenshots.map((ss) => (
-                    <Grid item xs={6} sm={4} md={3} key={ss._id || ss.id}>
-                      <Paper
-                        variant="outlined"
-                        sx={{
-                          p: 1,
-                          cursor: 'pointer',
-                          '&:hover': { borderColor: 'primary.main', transform: 'scale(1.02)' },
-                          transition: 'all 0.2s ease-in-out',
-                          borderRadius: 2
-                        }}
-                        onClick={() => setSelectedImage(ss.screenshotUrl.startsWith('/uploads') ? `${API_URL}${ss.screenshotUrl}` : ss.screenshotUrl)}
-                      >
-                        <Box
-                          component="img"
-                          src={ss.screenshotUrl.startsWith('/uploads') ? `${API_URL}${ss.screenshotUrl}` : ss.screenshotUrl}
-                          alt="screen capture log"
-                          sx={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 1 }}
-                        />
-                        <Typography variant="caption" display="block" align="center" sx={{ mt: 1, fontWeight: 500 }}>
-                          {new Date(ss.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  ))}
+                  {screenshots.map((ss) => {
+                    const isSelected = selectedIds.includes(ss._id || ss.id);
+                    return (
+                      <Grid item xs={6} sm={4} md={3} key={ss._id || ss.id}>
+                        <Paper
+                          variant="outlined"
+                          sx={{
+                            p: 1,
+                            cursor: 'pointer',
+                            position: 'relative',
+                            borderColor: isSelected ? 'error.main' : 'divider',
+                            borderWidth: isSelected ? '2px' : '1px',
+                            boxShadow: isSelected ? '0 0 10px rgba(239, 68, 68, 0.25)' : 'none',
+                            '&:hover': { 
+                              borderColor: isSelectMode ? (isSelected ? 'error.dark' : 'primary.main') : 'primary.main', 
+                              transform: 'scale(1.02)' 
+                            },
+                            transition: 'all 0.2s ease-in-out',
+                            borderRadius: 2
+                          }}
+                          onClick={() => {
+                            if (isSelectMode) {
+                              toggleSelect(ss._id || ss.id);
+                            } else {
+                              setSelectedImage(ss.screenshotUrl.startsWith('/uploads') ? `${API_URL}${ss.screenshotUrl}` : ss.screenshotUrl);
+                            }
+                          }}
+                        >
+                          {isSelectMode && (
+                            <Box sx={{ position: 'absolute', top: 4, left: 4, zIndex: 10 }}>
+                              <Checkbox
+                                size="small"
+                                color="error"
+                                checked={isSelected}
+                                onChange={() => toggleSelect(ss._id || ss.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                sx={{
+                                  p: 0.5,
+                                  color: 'rgba(255,255,255,0.7)',
+                                  bgcolor: 'rgba(0,0,0,0.5)',
+                                  borderRadius: 1,
+                                  '&.Mui-checked': {
+                                    color: 'error.main',
+                                    bgcolor: 'rgba(0,0,0,0.7)',
+                                  },
+                                  '&:hover': {
+                                    bgcolor: 'rgba(0,0,0,0.8)',
+                                  }
+                                }}
+                              />
+                            </Box>
+                          )}
+                          <Box
+                            component="img"
+                            src={ss.screenshotUrl.startsWith('/uploads') ? `${API_URL}${ss.screenshotUrl}` : ss.screenshotUrl}
+                            alt="screen capture log"
+                            sx={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 1 }}
+                          />
+                          <Typography variant="caption" display="block" align="center" sx={{ mt: 1, fontWeight: 500 }}>
+                            {new Date(ss.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                    );
+                  })}
                 </Grid>
               )}
             </CardContent>
@@ -290,6 +436,33 @@ function EmployeeMonitoring() {
             />
           </DialogContent>
         </Box>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, color: 'error.main' }}>⚠️ Delete Screenshots</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            Are you sure you want to delete the <strong>{selectedIds.length}</strong> selected screen capture{selectedIds.length > 1 ? 's' : ''}?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            This action cannot be undone. The selected screenshots will be permanently deleted from the system and server storage.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={() => setDeleteConfirmOpen(false)} color="inherit" disabled={deleteLoading}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteSelected}
+            variant="contained"
+            color="error"
+            disabled={deleteLoading}
+            startIcon={deleteLoading ? <CircularProgress size={20} color="inherit" /> : <DeleteIcon />}
+          >
+            {deleteLoading ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

@@ -13,7 +13,9 @@ const authSlice = createSlice({
     user,
     isAuthenticated: !!token,
     loading: false,
-    error: null
+    error: null,
+    onBreak: false,
+    currentBreakType: null
   },
   reducers: {
     authStart: (state) => {
@@ -49,11 +51,19 @@ const authSlice = createSlice({
     updateProfileSuccess: (state, action) => {
       state.user = action.payload;
       localStorage.setItem('wfh_user', JSON.stringify(action.payload));
+    },
+    setBreakStart: (state, action) => {
+      state.onBreak = true;
+      state.currentBreakType = action.payload;
+    },
+    setBreakEnd: (state) => {
+      state.onBreak = false;
+      state.currentBreakType = null;
     }
   }
 });
 
-export const { authStart, authSuccess, authFail, logout, updateProfileSuccess } = authSlice.actions;
+export const { authStart, authSuccess, authFail, logout, updateProfileSuccess, setBreakStart, setBreakEnd } = authSlice.actions;
 
 export const store = configureStore({
   reducer: {

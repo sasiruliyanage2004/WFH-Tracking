@@ -18,6 +18,7 @@ const WorkReport = require('./models/WorkReport');
 const Screenshot = require('./models/Screenshot');
 const ActivityLog = require('./models/ActivityLog');
 const Notification = require('./models/Notification');
+const { sendWarningEmail } = require('./utils/email');
 
 // Middleware
 const { authenticate, authorize } = require('./middleware/auth');
@@ -121,6 +122,54 @@ const saveBase64Image = (base64String, folder, filename) => {
 };
 
 // --- API ROUTES ---
+
+// 0. EMPLOYEE LIST ROUTES (Manager only)
+app.get('/api/users/employees', authenticate, authorize('Manager'), async (req, res) => {
+  try {
+    const employees = await User.find({ role: 'Employee' })
+      .select('-password')
+      .sort({ createdAt: -1 });
+
+    const today = new Date().toISOString().split('T')[0];
+
+    // Enrich with today's attendance status
+    const enriched = await Promise.all(employees.map(async (emp) => {
+      const att = await Attendance.findOne({ employee: emp._id, date: today });
+      return {
+        _id: emp._id,
+        name: emp.name,
+        email: emp.email,
+        department: emp.department,
+        role: emp.role,
+        profilePic: emp.profilePic,
+        createdAt: emp.createdAt,
+        todayStatus: att
+          ? att.checkOutTime
+            ? 'Checked Out'
+            : att.onBreak
+              ? `On Break (${att.currentBreakType})`
+              : 'Active'
+          : 'Absent'
+      };
+    }));
+
+    res.json(enriched);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.delete('/api/users/employees/:id', authenticate, authorize('Manager'), async (req, res) => {
+  try {
+    const emp = await User.findById(req.params.id);
+    if (!emp) return res.status(404).json({ message: 'Employee not found.' });
+    if (emp.role === 'Manager') return res.status(403).json({ message: 'Cannot delete a Manager account.' });
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Employee deleted successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 // 1. AUTH ROUTES
 app.post('/api/auth/register', async (req, res) => {
@@ -290,6 +339,81 @@ app.post('/api/attendance/checkout', authenticate, async (req, res) => {
     await sendNotification(req.user.id, 'Remember to submit your Daily Work Report before logging off.', 'report');
 
     res.json({ message: 'Checked out successfully.', attendance });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/attendance/break/start', authenticate, async (req, res) => {
+  const { breakType, note } = req.body;
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    const attendance = await Attendance.findOne({ employee: req.user.id, date: today });
+    if (!attendance) {
+      return res.status(400).json({ message: 'You must check in before taking a break.' });
+    }
+    if (attendance.checkOutTime) {
+      return res.status(400).json({ message: 'You have already checked out.' });
+    }
+    if (attendance.onBreak) {
+      return res.status(400).json({ message: 'You are already on a break.' });
+    }
+
+    attendance.onBreak = true;
+    attendance.currentBreakType = breakType;
+    attendance.currentBreakNote = note || '';
+    attendance.breaks.push({
+      breakType,
+      note: note || '',
+      startTime: new Date()
+    });
+
+    await attendance.save();
+
+    // Alert Managers
+    const managers = await User.find({ role: 'Manager' });
+    const notifMsg = note
+      ? `${req.user.name} went on a ${breakType} break. Note: "${note}"`
+      : `${req.user.name} went on a ${breakType} break.`;
+    for (let mgr of managers) {
+      await sendNotification(mgr._id, notifMsg, 'break');
+    }
+
+    res.json({ message: `Started ${breakType} break.`, attendance });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/attendance/break/end', authenticate, async (req, res) => {
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    const attendance = await Attendance.findOne({ employee: req.user.id, date: today });
+    if (!attendance) {
+      return res.status(400).json({ message: 'Attendance record not found.' });
+    }
+    if (!attendance.onBreak) {
+      return res.status(400).json({ message: 'You are not currently on a break.' });
+    }
+
+    const lastBreak = attendance.breaks[attendance.breaks.length - 1];
+    if (lastBreak && !lastBreak.endTime) {
+      lastBreak.endTime = new Date();
+      const diffMs = lastBreak.endTime - lastBreak.startTime;
+      lastBreak.durationMinutes = Math.round((diffMs / 60000) * 10) / 10;
+    }
+
+    attendance.onBreak = false;
+    attendance.currentBreakType = null;
+    await attendance.save();
+
+    // Alert Managers
+    const managers = await User.find({ role: 'Manager' });
+    for (let mgr of managers) {
+      await sendNotification(mgr._id, `${req.user.name} returned from their break.`, 'break');
+    }
+
+    res.json({ message: 'Break ended. Resumed work shift.', attendance });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -511,7 +635,47 @@ app.post('/api/monitoring/screenshot', authenticate, async (req, res) => {
     });
 
     await screenshotRecord.save();
-    res.status(201).json({ message: 'Screenshot logged.', screenshotRecord });
+
+    // Auto-delete logic: Check today's productivity score
+    const today = new Date().toISOString().split('T')[0];
+    const activityLog = await ActivityLog.findOne({ employee: req.user.id, date: today });
+    
+    let deletedCount = 0;
+    let autoDeleted = false;
+    if (activityLog && activityLog.productivityPercentage >= 70) {
+      autoDeleted = true;
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const oldScreenshots = await Screenshot.find({
+        employee: req.user.id,
+        timestamp: { $lt: oneHourAgo }
+      });
+
+      for (let ss of oldScreenshots) {
+        if (ss.screenshotUrl.startsWith('/uploads/')) {
+          const absolutePath = path.join(__dirname, ss.screenshotUrl);
+          if (fs.existsSync(absolutePath)) {
+            try {
+              fs.unlinkSync(absolutePath);
+            } catch (err) {
+              console.error('Failed to delete physical screenshot file:', err.message);
+            }
+          }
+        }
+      }
+
+      const deleteResult = await Screenshot.deleteMany({
+        employee: req.user.id,
+        timestamp: { $lt: oneHourAgo }
+      });
+      deletedCount = deleteResult.deletedCount;
+    }
+
+    res.status(201).json({ 
+      message: 'Screenshot logged.', 
+      screenshotRecord, 
+      retentionStatus: autoDeleted ? 'High Productivity: 1h auto-delete active' : 'Standard Audit: All retained',
+      deletedCount
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -523,6 +687,38 @@ app.get('/api/monitoring/screenshots/:employeeId', authenticate, authorize('Mana
       .sort({ timestamp: -1 })
       .limit(100);
     res.json(list);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/monitoring/screenshots/delete-bulk', authenticate, authorize('Manager'), async (req, res) => {
+  const { ids } = req.body;
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ message: 'No screenshot IDs provided.' });
+  }
+
+  try {
+    const screenshots = await Screenshot.find({ _id: { $in: ids } });
+    
+    for (let ss of screenshots) {
+      if (ss.screenshotUrl.startsWith('/uploads/')) {
+        const absolutePath = path.join(__dirname, ss.screenshotUrl);
+        if (fs.existsSync(absolutePath)) {
+          try {
+            fs.unlinkSync(absolutePath);
+          } catch (err) {
+            console.error('Failed to delete physical screenshot file:', err.message);
+          }
+        }
+      }
+    }
+
+    const deleteResult = await Screenshot.deleteMany({ _id: { $in: ids } });
+    res.json({ 
+      message: 'Screenshots deleted successfully.', 
+      deletedCount: deleteResult.deletedCount 
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -559,8 +755,25 @@ app.post('/api/monitoring/activity', authenticate, async (req, res) => {
       log.productivityPercentage = 100;
     }
 
+    // Trigger warning email if productivity drops to 50% or below and warning has not been sent today
+    if (log.productivityPercentage <= 50 && !log.warningEmailSent) {
+      log.warningEmailSent = true;
+      // Trigger email asynchronously
+      sendWarningEmail(req.user, log.productivityPercentage);
+    }
+
     await log.save();
     res.json({ message: 'Activity log updated.', log });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/monitoring/my-activity', authenticate, async (req, res) => {
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    const log = await ActivityLog.findOne({ employee: req.user.id, date: today });
+    res.json(log || { activeMinutes: 0, idleMinutes: 0, keyboardCount: 0, mouseCount: 0, productivityPercentage: 100 });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -583,10 +796,12 @@ app.get('/api/monitoring/summary', authenticate, authorize('Manager'), async (re
     
     // Find who checked in today
     const checkinsToday = await Attendance.find({ date: today }).populate('employee', 'name email department');
-    const checkedInUserIds = checkinsToday.map(c => c.employee._id.toString());
+    const checkedInUserIds = checkinsToday
+      .filter(c => c.employee)
+      .map(c => c.employee._id.toString());
     
-    const onlineEmployees = checkinsToday.filter(c => !c.checkOutTime).length;
-    const offlineEmployees = totalEmployees - onlineEmployees;
+    const onlineEmployees = checkinsToday.filter(c => c.employee && !c.checkOutTime).length;
+    const offlineEmployees = Math.max(0, totalEmployees - onlineEmployees);
 
     const pendingReportsCount = await WorkReport.countDocuments({ approvalStatus: 'Pending' });
 

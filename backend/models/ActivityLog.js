@@ -30,6 +30,10 @@ const ActivityLogSchema = new mongoose.Schema({
   productivityPercentage: {
     type: Number,
     default: 100
+  },
+  warningEmailSent: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 

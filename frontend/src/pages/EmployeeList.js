@@ -1,0 +1,397 @@
+// frontend/src/pages/EmployeeList.js
+import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Avatar,
+  Chip,
+  Grid,
+  TextField,
+  InputAdornment,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Divider,
+  IconButton,
+  Tooltip,
+  Paper
+} from '@mui/material';
+import {
+  Search as SearchIcon,
+  People as PeopleIcon,
+  Monitor as MonitorIcon,
+  Delete as DeleteIcon,
+  Email as EmailIcon,
+  Business as DepartmentIcon,
+  CalendarToday as JoinedIcon,
+  FiberManualRecord as StatusDotIcon,
+  FilterList as FilterIcon
+} from '@mui/icons-material';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
+// Status color mapping
+const statusConfig = {
+  'Active': { color: 'success', dot: '#22c55e', label: 'Active' },
+  'Checked Out': { color: 'default', dot: '#94a3b8', label: 'Checked Out' },
+  'Absent': { color: 'error', dot: '#ef4444', label: 'Absent' },
+};
+const getStatusConfig = (status) => {
+  if (status?.startsWith('On Break')) return { color: 'warning', dot: '#f59e0b', label: status };
+  return statusConfig[status] || { color: 'default', dot: '#94a3b8', label: status };
+};
+
+function EmployeeList() {
+  const { token } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
+
+  const [employees, setEmployees] = useState([]);
+  const [filtered, setFiltered] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [deptFilter, setDeptFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [selectedEmp, setSelectedEmp] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  const fetchEmployees = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(`${API_URL}/api/users/employees`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setEmployees(res.data);
+      setFiltered(res.data);
+    } catch (err) {
+      console.error('Failed to fetch employees:', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmployees();
+  }, [token]);
+
+  // Filter logic
+  useEffect(() => {
+    let result = [...employees];
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter(e =>
+        e.name.toLowerCase().includes(q) ||
+        e.email.toLowerCase().includes(q) ||
+        e.department?.toLowerCase().includes(q)
+      );
+    }
+    if (deptFilter !== 'All') {
+      result = result.filter(e => e.department === deptFilter);
+    }
+    if (statusFilter !== 'All') {
+      if (statusFilter === 'On Break') {
+        result = result.filter(e => e.todayStatus?.startsWith('On Break'));
+      } else {
+        result = result.filter(e => e.todayStatus === statusFilter);
+      }
+    }
+    setFiltered(result);
+  }, [search, deptFilter, statusFilter, employees]);
+
+  const departments = ['All', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean)))];
+
+  const handleDelete = async () => {
+    try {
+      await axios.delete(`${API_URL}/api/users/employees/${deleteConfirm._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setDeleteConfirm(null);
+      fetchEmployees();
+    } catch (err) {
+      console.error('Delete failed:', err.message);
+    }
+  };
+
+  // Summary stats
+  const totalActive = employees.filter(e => e.todayStatus === 'Active').length;
+  const totalAbsent = employees.filter(e => e.todayStatus === 'Absent').length;
+  const totalOnBreak = employees.filter(e => e.todayStatus?.startsWith('On Break')).length;
+  const totalCheckedOut = employees.filter(e => e.todayStatus === 'Checked Out').length;
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  return (
+    <Box>
+      {/* Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.025em' }}>
+            Employee Directory
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 500 }}>
+            {employees.length} registered employees · Live status as of today
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<PeopleIcon />}
+          onClick={fetchEmployees}
+          sx={{ borderRadius: 2 }}
+        >
+          Refresh List
+        </Button>
+      </Box>
+
+      {/* Summary Stats Row */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        {[
+          { label: 'Total Employees', value: employees.length, color: 'primary.main', bg: 'primary.light' },
+          { label: 'Active Now', value: totalActive, color: '#22c55e', bg: '#dcfce7' },
+          { label: 'On Break', value: totalOnBreak, color: '#f59e0b', bg: '#fef3c7' },
+          { label: 'Absent Today', value: totalAbsent, color: '#ef4444', bg: '#fee2e2' },
+        ].map(({ label, value, color, bg }) => (
+          <Grid item xs={6} sm={3} key={label}>
+            <Card sx={{ borderRadius: 3, p: 2 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.7rem' }}>
+                {label}
+              </Typography>
+              <Typography variant="h4" sx={{ fontWeight: 800, color, mt: 0.5 }}>
+                {value}
+              </Typography>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* Filters Bar */}
+      <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+        <FilterIcon color="action" sx={{ display: { xs: 'none', sm: 'block' } }} />
+        <TextField
+          placeholder="Search name, email, department..."
+          size="small"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+          sx={{ minWidth: 260, flexGrow: 1 }}
+        />
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>Department</InputLabel>
+          <Select value={deptFilter} label="Department" onChange={(e) => setDeptFilter(e.target.value)}>
+            {departments.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
+          </Select>
+        </FormControl>
+        <FormControl size="small" sx={{ minWidth: 140 }}>
+          <InputLabel>Status</InputLabel>
+          <Select value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value)}>
+            <MenuItem value="All">All Statuses</MenuItem>
+            <MenuItem value="Active">Active</MenuItem>
+            <MenuItem value="On Break">On Break</MenuItem>
+            <MenuItem value="Checked Out">Checked Out</MenuItem>
+            <MenuItem value="Absent">Absent</MenuItem>
+          </Select>
+        </FormControl>
+      </Paper>
+
+      {/* Employee Cards Grid */}
+      {filtered.length === 0 ? (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <PeopleIcon sx={{ fontSize: 56, color: 'text.disabled', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary">No employees found</Typography>
+          <Typography variant="body2" color="text.disabled" sx={{ mt: 1 }}>Try adjusting filters or search terms</Typography>
+        </Box>
+      ) : (
+        <Grid container spacing={2.5}>
+          {filtered.map((emp) => {
+            const sc = getStatusConfig(emp.todayStatus);
+            return (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={emp._id}>
+                <Card
+                  sx={{
+                    borderRadius: 3,
+                    height: '100%',
+                    cursor: 'pointer',
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                    '&:hover': { transform: 'translateY(-3px)', boxShadow: 6 }
+                  }}
+                  onClick={() => setSelectedEmp(emp)}
+                >
+                  <CardContent sx={{ p: 3 }}>
+                    {/* Avatar + Name */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar
+                        src={emp.profilePic || ''}
+                        alt={emp.name}
+                        sx={{ width: 52, height: 52, bgcolor: 'primary.main', fontSize: '1.2rem', fontWeight: 700 }}
+                      >
+                        {emp.name.charAt(0).toUpperCase()}
+                      </Avatar>
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }} noWrap>
+                          {emp.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+                          {emp.email}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Department chip */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                      <Chip
+                        icon={<DepartmentIcon sx={{ fontSize: '14px !important' }} />}
+                        label={emp.department || 'N/A'}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontSize: '0.72rem', height: 24 }}
+                      />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <StatusDotIcon sx={{ fontSize: 10, color: sc.dot }} />
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: sc.dot, fontSize: '0.72rem' }}>
+                          {sc.label}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Divider sx={{ my: 1.5 }} />
+
+                    {/* Action buttons */}
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<MonitorIcon />}
+                        onClick={(e) => { e.stopPropagation(); navigate(`/manager/monitoring/${emp._id}`); }}
+                        sx={{ flex: 1, fontSize: '0.72rem', py: 0.5 }}
+                      >
+                        Monitor
+                      </Button>
+                      <Tooltip title="Delete Employee">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={(e) => { e.stopPropagation(); setDeleteConfirm(emp); }}
+                          sx={{ border: '1px solid', borderColor: 'error.light', borderRadius: 1.5 }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            );
+          })}
+        </Grid>
+      )}
+
+      {/* Employee Detail Dialog */}
+      <Dialog
+        open={Boolean(selectedEmp)}
+        onClose={() => setSelectedEmp(null)}
+        maxWidth="sm"
+        fullWidth
+      >
+        {selectedEmp && (
+          <>
+            <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
+              Employee Details
+            </DialogTitle>
+            <DialogContent>
+              {/* Profile header */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3, p: 3, borderRadius: 3, bgcolor: 'action.hover' }}>
+                <Avatar
+                  src={selectedEmp.profilePic || ''}
+                  alt={selectedEmp.name}
+                  sx={{ width: 72, height: 72, bgcolor: 'primary.main', fontSize: '1.8rem', fontWeight: 700 }}
+                >
+                  {selectedEmp.name.charAt(0).toUpperCase()}
+                </Avatar>
+                <Box>
+                  <Typography variant="h5" sx={{ fontWeight: 800 }}>{selectedEmp.name}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                    <StatusDotIcon sx={{ fontSize: 10, color: getStatusConfig(selectedEmp.todayStatus).dot }} />
+                    <Typography variant="body2" sx={{ color: getStatusConfig(selectedEmp.todayStatus).dot, fontWeight: 600 }}>
+                      {getStatusConfig(selectedEmp.todayStatus).label}
+                    </Typography>
+                  </Box>
+                  <Chip label={selectedEmp.role} size="small" color="primary" sx={{ mt: 1, fontWeight: 700, fontSize: '0.72rem' }} />
+                </Box>
+              </Box>
+
+              {/* Detail rows */}
+              {[
+                { icon: <EmailIcon fontSize="small" />, label: 'Email', value: selectedEmp.email },
+                { icon: <DepartmentIcon fontSize="small" />, label: 'Department', value: selectedEmp.department || 'N/A' },
+                { icon: <JoinedIcon fontSize="small" />, label: 'Member Since', value: new Date(selectedEmp.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) },
+              ].map(({ icon, label, value }) => (
+                <Box key={label} sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+                  <Box sx={{ color: 'text.secondary', display: 'flex' }}>{icon}</Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.68rem' }}>
+                      {label}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>{value}</Typography>
+                  </Box>
+                </Box>
+              ))}
+            </DialogContent>
+            <DialogActions sx={{ p: 2.5, gap: 1 }}>
+              <Button onClick={() => setSelectedEmp(null)} color="inherit">Close</Button>
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={() => { setDeleteConfirm(selectedEmp); setSelectedEmp(null); }}
+              >
+                Delete Employee
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<MonitorIcon />}
+                onClick={() => { setSelectedEmp(null); navigate(`/manager/monitoring/${selectedEmp._id}`); }}
+              >
+                View Monitor
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
+      {/* Delete Confirm Dialog */}
+      <Dialog open={Boolean(deleteConfirm)} onClose={() => setDeleteConfirm(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, color: 'error.main' }}>⚠️ Delete Employee</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            Are you sure you want to delete <strong>{deleteConfirm?.name}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            This action cannot be undone. All associated data will remain in the system.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={() => setDeleteConfirm(null)} color="inherit">Cancel</Button>
+          <Button onClick={handleDelete} variant="contained" color="error">Delete</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}
+
+export default EmployeeList;

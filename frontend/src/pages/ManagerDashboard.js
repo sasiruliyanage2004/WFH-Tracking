@@ -57,7 +57,7 @@ import {
   Search as SearchIcon
 } from '@mui/icons-material';
 
-const COLORS = ['#38bdf8', '#fb7185', '#34d399', '#fbbf24'];
+const COLORS = ['#0038a8', '#818cf8', '#34d399', '#fbbf24'];
 
 function ManagerDashboard() {
   const navigate = useNavigate();
@@ -429,9 +429,13 @@ function ManagerDashboard() {
                           <TableCell>{rec.employee?.department}</TableCell>
                           <TableCell>{new Date(rec.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</TableCell>
                           <TableCell>
-                            {rec.checkOutTime 
-                              ? new Date(rec.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-                              : <Chip label="Working" color="success" size="small" />}
+                            {rec.checkOutTime ? (
+                              new Date(rec.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            ) : rec.onBreak ? (
+                              <Chip label={`On Break (${rec.currentBreakType})`} color="warning" size="small" />
+                            ) : (
+                              <Chip label="Working" color="success" size="small" />
+                            )}
                           </TableCell>
                           <TableCell sx={{ fontWeight: 600 }}>{rec.durationHours || '--'} hrs</TableCell>
                           <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
