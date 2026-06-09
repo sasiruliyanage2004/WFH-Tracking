@@ -45,6 +45,7 @@ function EmployeeMonitoring() {
   const [attendance, setAttendance] = useState([]);
   const [screenshots, setScreenshots] = useState([]);
   const [activity, setActivity] = useState([]);
+  const [appUsage, setAppUsage] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
 
@@ -112,6 +113,10 @@ function EmployeeMonitoring() {
         const actRes = await axios.get(`${API_URL}/api/monitoring/activity/${employeeId}`, authHeader);
         setActivity(actRes.data);
 
+        // Get app usage logs
+        const usageRes = await axios.get(`${API_URL}/api/monitoring/usage/${employeeId}`, authHeader);
+        setAppUsage(usageRes.data);
+
       } catch (err) {
         console.error('Failed to load employee details:', err.message);
       } finally {
@@ -142,6 +147,28 @@ function EmployeeMonitoring() {
 
   // Embeddable Google Map URL without API Key
   const googleMapEmbedUrl = `https://maps.google.com/maps?q=${latitude},${longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+
+  // App usage stats calculations
+  const totalUsageMins = appUsage.reduce((sum, item) => sum + Number(item.duration_minutes || 0), 0);
+  const productiveMins = appUsage.filter(item => item.type === 'Productive').reduce((sum, item) => sum + Number(item.duration_minutes || 0), 0);
+  const unproductiveMins = appUsage.filter(item => item.type === 'Unproductive').reduce((sum, item) => sum + Number(item.duration_minutes || 0), 0);
+  const neutralMins = appUsage.filter(item => item.type === 'Neutral').reduce((sum, item) => sum + Number(item.duration_minutes || 0), 0);
+
+  const productivePct = totalUsageMins > 0 ? (productiveMins / totalUsageMins) * 100 : 0;
+  const unproductivePct = totalUsageMins > 0 ? (unproductiveMins / totalUsageMins) * 100 : 0;
+  const neutralPct = totalUsageMins > 0 ? (neutralMins / totalUsageMins) * 100 : 0;
+
+  const formatDuration = (mins) => {
+    if (mins < 1) {
+      const secs = Math.round(mins * 60);
+      return `${secs} sec${secs !== 1 ? 's' : ''}`;
+    }
+    if (mins >= 60) {
+      const hrs = mins / 60;
+      return `${hrs.toFixed(1)} hr${hrs !== 1 ? 's' : ''}`;
+    }
+    return `${Math.round(mins)} min${Math.round(mins) !== 1 ? 's' : ''}`;
+  };
 
   return (
     <Box sx={{ pb: 5 }}>
@@ -414,6 +441,109 @@ function EmployeeMonitoring() {
                     );
                   })}
                 </Grid>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Application & Website Usage Telemetry Logs */}
+        <Grid item xs={12}>
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+                Application & Website Usage Logs (Active Window)
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+
+              {appUsage.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 4 }}>
+                  No application usage telemetry logged from the desktop agent.
+                </Typography>
+              ) : (
+                <Box>
+                  {/* Segmented Progress bar */}
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                    Productivity Breakdown
+                  </Typography>
+                  <Box sx={{ display: 'flex', height: 16, borderRadius: 8, overflow: 'hidden', mb: 2, bgcolor: 'action.hover', border: '1px solid', borderColor: 'divider' }}>
+                    {productiveMins > 0 && (
+                      <Box 
+                        sx={{ width: `${productivePct}%`, bgcolor: 'success.main', transition: 'width 0.3s ease' }} 
+                        title={`Productive: ${productivePct.toFixed(1)}%`} 
+                      />
+                    )}
+                    {neutralMins > 0 && (
+                      <Box 
+                        sx={{ width: `${neutralPct}%`, bgcolor: 'action.disabledBackground', transition: 'width 0.3s ease' }} 
+                        title={`Neutral: ${neutralPct.toFixed(1)}%`} 
+                      />
+                    )}
+                    {unproductiveMins > 0 && (
+                      <Box 
+                        sx={{ width: `${unproductivePct}%`, bgcolor: 'error.main', transition: 'width 0.3s ease' }} 
+                        title={`Unproductive: ${unproductivePct.toFixed(1)}%`} 
+                      />
+                    )}
+                  </Box>
+
+                  {/* Legend row */}
+                  <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mb: 4 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'success.main' }} />
+                      <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                        Productive: <strong>{formatDuration(productiveMins)}</strong> ({productivePct.toFixed(0)}%)
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'action.disabled' }} />
+                      <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                        Neutral: <strong>{formatDuration(neutralMins)}</strong> ({neutralPct.toFixed(0)}%)
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'error.main' }} />
+                      <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                        Unproductive: <strong>{formatDuration(unproductiveMins)}</strong> ({unproductivePct.toFixed(0)}%)
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* App logs table */}
+                  <TableContainer component={Paper} variant="outlined" sx={{ border: 'none' }}>
+                    <Table>
+                      <TableHead sx={{ bgcolor: 'action.hover' }}>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 600 }}>Application</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Focused Window Title</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }} align="right">Time Spent</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {appUsage.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell sx={{ fontWeight: 500 }}>{item.app_name}</TableCell>
+                            <TableCell sx={{ color: 'text.secondary', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {item.window_title || '--'}
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                size="small"
+                                label={item.type}
+                                color={item.type === 'Productive' ? 'success' : item.type === 'Unproductive' ? 'error' : 'default'}
+                                variant="outlined"
+                                sx={{ fontWeight: 600 }}
+                              />
+                            </TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600 }}>
+                              {formatDuration(item.duration_minutes)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
               )}
             </CardContent>
           </Card>
