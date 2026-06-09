@@ -1,6 +1,6 @@
 // backend/middleware/auth.js
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const supabase = require('../utils/supabase');
 
 const authenticate = async (req, res, next) => {
   try {
@@ -12,12 +12,28 @@ const authenticate = async (req, res, next) => {
     const token = authHeader.replace('Bearer ', '');
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretkey123');
     
-    const user = await User.findById(decoded.id).select('-password');
-    if (!user) {
+    // Query Supabase users table
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, name, email, role, department, profile_pic, created_at')
+      .eq('id', decoded.id)
+      .maybeSingle();
+
+    if (error || !user) {
       return res.status(401).json({ message: 'User not found, authorization denied.' });
     }
 
-    req.user = user;
+    // Map db field profile_pic to camelCase profilePic for app compatibility
+    req.user = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      department: user.department,
+      profilePic: user.profile_pic,
+      createdAt: user.created_at
+    };
+    
     next();
   } catch (err) {
     console.error('Authentication Error:', err.message);

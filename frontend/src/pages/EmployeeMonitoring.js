@@ -60,6 +60,14 @@ function EmployeeMonitoring() {
     );
   };
 
+  const handleSelectAll = () => {
+    if (selectedIds.length === screenshots.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(screenshots.map((ss) => ss._id || ss.id));
+    }
+  };
+
   const handleDeleteSelected = async () => {
     try {
       setDeleteLoading(true);
@@ -219,6 +227,39 @@ function EmployeeMonitoring() {
           </Card>
         </Grid>
 
+        {/* Today's Breaks Card */}
+        <Grid item xs={12}>
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TimeIcon color="primary" /> Today's Breaks & Pauses
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              {latestCheckin?.breaks && latestCheckin.breaks.length > 0 ? (
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {latestCheckin.breaks.map((b, i) => {
+                    const start = new Date(b.startTime);
+                    const end = b.endTime ? new Date(b.endTime) : new Date();
+                    const diffMins = Math.round((end - start) / 60000);
+                    return (
+                      <Chip 
+                        key={i} 
+                        label={`${b.breakType}: ${diffMins}m ${b.note ? `"${b.note}"` : ''}`} 
+                        variant="outlined"
+                        color="secondary"
+                      />
+                    );
+                  })}
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No breaks taken today.
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
         {/* Screenshot monitoring logs viewer */}
         <Grid item xs={12}>
           <Card sx={{ borderRadius: 3 }}>
@@ -264,6 +305,14 @@ function EmployeeMonitoring() {
                       ) : (
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={handleSelectAll}
+                            sx={{ borderRadius: 2, fontWeight: 600 }}
+                          >
+                            {selectedIds.length === screenshots.length ? 'Deselect All' : 'Select All'}
+                          </Button>
+                          <Button
                             variant="contained"
                             color="error"
                             size="small"
@@ -302,7 +351,7 @@ function EmployeeMonitoring() {
                   {screenshots.map((ss) => {
                     const isSelected = selectedIds.includes(ss._id || ss.id);
                     return (
-                      <Grid item xs={6} sm={4} md={3} key={ss._id || ss.id}>
+                      <Grid item xs={12} sm={6} md={4} key={ss._id || ss.id}>
                         <Paper
                           variant="outlined"
                           sx={{
@@ -355,7 +404,7 @@ function EmployeeMonitoring() {
                             component="img"
                             src={ss.screenshotUrl.startsWith('/uploads') ? `${API_URL}${ss.screenshotUrl}` : ss.screenshotUrl}
                             alt="screen capture log"
-                            sx={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 1 }}
+                            sx={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 1 }}
                           />
                           <Typography variant="caption" display="block" align="center" sx={{ mt: 1, fontWeight: 500 }}>
                             {new Date(ss.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

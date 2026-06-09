@@ -40,7 +40,8 @@ import {
   Brightness7 as LightIcon,
   ExitToApp as LogoutIcon,
   AccountCircle as ProfileIcon,
-  Group as EmployeeListIcon
+  Group as EmployeeListIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material';
 import { logout } from '../redux/store';
 
@@ -95,7 +96,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
     return () => {
       socket.disconnect();
     };
-  }, [token, user, API_URL]);
+  }, [token, user?.id, API_URL]);
 
   // Read notifications
   const handleNotificationClick = async (notif) => {
@@ -139,7 +140,8 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
     { text: 'Employee List', icon: <EmployeeListIcon />, path: '/manager/employees' },
     { text: 'Task Management', icon: <TaskIcon />, path: '/manager/tasks' },
     { text: 'Work Reports', icon: <ReportIcon />, path: '/manager/reports' },
-    { text: 'Employee Monitor', icon: <MonitoringIcon />, path: '/manager/monitoring' }
+    { text: 'Employee Monitor', icon: <MonitoringIcon />, path: '/manager/monitoring' },
+    { text: 'Settings', icon: <SettingsIcon />, path: '/manager/settings' }
   ];
 
   const links = user?.role === 'Manager' ? managerLinks : employeeLinks;
@@ -148,21 +150,27 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Toolbar sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', px: 3, py: 2.5 }}>
-        <Typography variant="h6" sx={{
-          fontWeight: 800,
-          fontSize: '1.25rem',
-          fontFamily: "'Inter', sans-serif",
-          letterSpacing: '-0.025em',
-          background: isDarkMode
-            ? 'linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%)'
-            : '#0038a8',
-          WebkitBackgroundClip: isDarkMode ? 'text' : undefined,
-          WebkitTextFillColor: isDarkMode ? 'transparent' : undefined,
-          color: isDarkMode ? undefined : '#0038a8'
-        }}>
-          WorkforceOS
-        </Typography>
-        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, mt: -0.2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <DashboardIcon sx={{ 
+            color: isDarkMode ? '#4f8ef7' : '#0038a8',
+            fontSize: '1.5rem'
+          }} />
+          <Typography variant="h6" sx={{
+            fontWeight: 800,
+            fontSize: '1.25rem',
+            fontFamily: "'Inter', sans-serif",
+            letterSpacing: '-0.025em',
+            background: isDarkMode
+              ? 'linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%)'
+              : 'linear-gradient(135deg, #0038a8 0%, #002266 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            display: 'inline-block'
+          }}>
+            WorkforceOS
+          </Typography>
+        </Box>
+        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, mt: 0.2, pl: 4 }}>
           Enterprise Management
         </Typography>
       </Toolbar>
@@ -260,8 +268,54 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', width: '100%', minHeight: '100vh', bgcolor: 'background.default', position: 'relative' }}>
       <CssBaseline />
+
+      {/* Background Decorative Glass Glow Blobs */}
+      {isDarkMode && (
+        <Box sx={{ position: 'fixed', width: '100%', height: '100%', top: 0, left: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+          {/* Top Left Blue Glow */}
+          <Box
+            sx={{
+              position: 'absolute',
+              width: '45vw',
+              height: '45vw',
+              top: '-15vw',
+              left: '-10vw',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(79, 142, 247, 0.12) 0%, rgba(79, 142, 247, 0) 70%)',
+              filter: 'blur(100px)',
+            }}
+          />
+          {/* Bottom Right Violet Glow */}
+          <Box
+            sx={{
+              position: 'absolute',
+              width: '50vw',
+              height: '50vw',
+              bottom: '-15vw',
+              right: '-10vw',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(167, 139, 250, 0.1) 0%, rgba(167, 139, 250, 0) 70%)',
+              filter: 'blur(120px)',
+            }}
+          />
+          {/* Center-Right Green Glow */}
+          <Box
+            sx={{
+              position: 'absolute',
+              width: '35vw',
+              height: '35vw',
+              top: '30vh',
+              right: '15vw',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(52, 211, 153, 0.06) 0%, rgba(52, 211, 153, 0) 70%)',
+              filter: 'blur(110px)',
+            }}
+          />
+        </Box>
+      )}
+
       <AppBar
         position="fixed"
         elevation={0}
@@ -270,7 +324,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           ml: { sm: `${drawerWidth}px` },
           borderBottom: 1,
           borderColor: 'divider',
-          bgcolor: 'background.paper',
+          bgcolor: isDarkMode ? 'transparent' : 'background.paper',
           color: 'text.primary'
         }}
       >
@@ -435,7 +489,9 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           p: 3,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           minHeight: '100vh',
-          bgcolor: 'background.default'
+          bgcolor: isDarkMode ? 'transparent' : 'background.default',
+          position: 'relative',
+          zIndex: 1
         }}
       >
         <Toolbar />

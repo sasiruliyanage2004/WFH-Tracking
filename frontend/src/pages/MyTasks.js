@@ -81,6 +81,10 @@ function MyTasks() {
     }
   };
 
+  const handleLocalProgressChange = (taskId, newProgress) => {
+    setTasks((prev) => prev.map((t) => (t._id === taskId ? { ...t, progress: newProgress } : t)));
+  };
+
   const handleTaskProgressChange = async (taskId, newProgress) => {
     let newStatus = 'In Progress';
     if (newProgress === 100) newStatus = 'Completed';
@@ -100,9 +104,13 @@ function MyTasks() {
 
   const handleTaskStatusChange = async (taskId, newStatus) => {
     try {
+      const payload = { status: newStatus };
+      if (newStatus === 'Completed') payload.progress = 100;
+      if (newStatus === 'Pending') payload.progress = 0;
+
       const res = await axios.put(
         `${API_URL}/api/tasks/${taskId}`,
-        { status: newStatus },
+        payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setTasks((prev) => prev.map((t) => (t._id === taskId ? res.data : t)));
@@ -166,7 +174,8 @@ function MyTasks() {
                     <Slider
                       size="small"
                       value={task.progress}
-                      onChange={(e, val) => handleTaskProgressChange(task._id, val)}
+                      onChange={(e, val) => handleLocalProgressChange(task._id, val)}
+                      onChangeCommitted={(e, val) => handleTaskProgressChange(task._id, val)}
                       disabled={task.status === 'Completed'}
                       valueLabelDisplay="auto"
                     />

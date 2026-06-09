@@ -1,13 +1,37 @@
 const nodemailer = require('nodemailer');
+const supabase = require('./supabase');
 
 const sendWarningEmail = async (employee, productivity) => {
   try {
     const user = process.env.EMAIL_USER;
     const pass = process.env.EMAIL_PASS;
+    const host = process.env.SMTP_HOST;
+    const port = process.env.SMTP_PORT || 587;
+
+    let recipientEmails = ['liyanagesasiru@gmail.com'];
+    try {
+      const { data: setting } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'warning_emails')
+        .maybeSingle();
+      if (setting && setting.value && setting.value.length > 0) {
+        recipientEmails = setting.value;
+      }
+    } catch (dbErr) {
+      console.error('Failed to fetch recipient emails from settings:', dbErr.message);
+    }
 
     let transporter;
 
-    if (user && pass) {
+    if (host && user && pass) {
+      transporter = nodemailer.createTransport({
+        host,
+        port: parseInt(port, 10),
+        secure: parseInt(port, 10) === 465, // true for 465, false for 587/25
+        auth: { user, pass }
+      });
+    } else if (user && pass) {
       transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: { user, pass }
@@ -15,16 +39,17 @@ const sendWarningEmail = async (employee, productivity) => {
     } else {
       console.log('\n-------------------------------------------------------');
       console.log('--- EMAIL NOT CONFIGURED: Simulating Warning Email ---');
-      console.log(`To: liyanagesasiru@gmail.com`);
+      console.log(`To: ${recipientEmails.join(', ')}`);
       console.log(`Subject: WFH Warning: Low Productivity Alert - ${employee.name}`);
       console.log(`Body: Employee ${employee.name} (Email: ${employee.email}) has a productivity score of ${productivity}%, which is below the 50% threshold today.`);
       console.log('-------------------------------------------------------\n');
       return;
     }
 
+    const sender = process.env.SENDER_EMAIL || user;
     const mailOptions = {
-      from: `"WFH Tracking System" <${user}>`,
-      to: 'liyanagesasiru@gmail.com',
+      from: `"WFH Tracking System" <${sender}>`,
+      to: recipientEmails.join(', '),
       subject: `⚠️ Low Productivity Alert: ${employee.name}`,
       html: `
         <div style="font-family: sans-serif; padding: 20px; border: 1px solid #ef4444; border-radius: 8px; max-width: 600px;">
@@ -46,7 +71,7 @@ const sendWarningEmail = async (employee, productivity) => {
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`Warning email successfully sent to liyanagesasiru@gmail.com for ${employee.name}`);
+    console.log(`Warning email successfully sent to ${recipientEmails.join(', ')} for ${employee.name}`);
   } catch (err) {
     console.error('Failed to send warning email:', err.message);
   }

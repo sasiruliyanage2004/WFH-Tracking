@@ -10,6 +10,7 @@ import DashboardLayout from './components/DashboardLayout';
 
 // Background Trackers
 import ActivityTracker from './components/ActivityTracker';
+import WelcomeSplash from './components/WelcomeSplash';
 
 // Pages
 import Login from './pages/Login';
@@ -30,9 +31,11 @@ import ManagerReports from './pages/ManagerReports';
 import ManagerMonitoring from './pages/ManagerMonitoring';
 import EmployeeMonitoring from './pages/EmployeeMonitoring';
 import EmployeeList from './pages/EmployeeList';
+import ManagerSettings from './pages/ManagerSettings';
 
 function App() {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const [showSplash, setShowSplash] = useState(true);
   
   // Dark mode setting in local storage - default to false (light mode)
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -94,13 +97,15 @@ function App() {
           root: {
             backgroundImage: 'none',
             background: isDarkMode
-              ? 'linear-gradient(145deg, #181818 0%, #1c1c1c 100%)'
+              ? 'rgba(20, 20, 20, 0.65)'
               : '#ffffff',
+            backdropFilter: isDarkMode ? 'blur(16px)' : 'none',
+            WebkitBackdropFilter: isDarkMode ? 'blur(16px)' : 'none',
             border: isDarkMode
-              ? '1px solid rgba(255, 255, 255, 0.07)'
+              ? '1px solid rgba(255, 255, 255, 0.08)'
               : '1px solid #e2e8f0',
             boxShadow: isDarkMode
-              ? '0 8px 32px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.04)'
+              ? '0 8px 32px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04)'
               : '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
           }
         }
@@ -128,10 +133,12 @@ function App() {
         styleOverrides: {
           paper: {
             background: isDarkMode
-              ? '#0f0f0f'
+              ? 'rgba(15, 15, 15, 0.65)'
               : '#ffffff',
+            backdropFilter: isDarkMode ? 'blur(20px)' : 'none',
+            WebkitBackdropFilter: isDarkMode ? 'blur(20px)' : 'none',
             borderRight: isDarkMode
-              ? '1px solid rgba(255, 255, 255, 0.06)'
+              ? '1px solid rgba(255, 255, 255, 0.08)'
               : '1px solid #e2e8f0'
           }
         }
@@ -139,9 +146,13 @@ function App() {
       MuiAppBar: {
         styleOverrides: {
           root: {
-            background: isDarkMode ? '#0f0f0f' : '#ffffff',
+            background: isDarkMode 
+              ? 'rgba(15, 15, 15, 0.55)' 
+              : '#ffffff',
+            backdropFilter: isDarkMode ? 'blur(20px)' : 'none',
+            WebkitBackdropFilter: isDarkMode ? 'blur(20px)' : 'none',
             borderBottom: isDarkMode
-              ? '1px solid rgba(255, 255, 255, 0.06)'
+              ? '1px solid rgba(255, 255, 255, 0.08)'
               : '1px solid #e2e8f0'
           }
         }
@@ -156,7 +167,15 @@ function App() {
       MuiPaper: {
         styleOverrides: {
           root: {
-            backgroundImage: 'none'
+            backgroundImage: 'none',
+            background: isDarkMode
+              ? 'rgba(25, 25, 25, 0.75)'
+              : undefined,
+            backdropFilter: isDarkMode ? 'blur(16px)' : 'none',
+            WebkitBackdropFilter: isDarkMode ? 'blur(16px)' : 'none',
+            border: isDarkMode
+              ? '1px solid rgba(255, 255, 255, 0.08)'
+              : undefined
           }
         }
       }
@@ -181,6 +200,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      {showSplash && <WelcomeSplash onFinish={() => setShowSplash(false)} />}
       <Router>
         {/* Background mouse/keyboard monitor */}
         <ActivityTracker />
@@ -257,6 +277,12 @@ function App() {
           <Route path="/manager/employees" element={
             <ProtectedRoute allowedRoles={['Manager']}>
               <EmployeeList />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/manager/settings" element={
+            <ProtectedRoute allowedRoles={['Manager']}>
+              <ManagerSettings />
             </ProtectedRoute>
           } />
 

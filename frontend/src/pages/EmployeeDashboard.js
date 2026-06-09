@@ -20,8 +20,6 @@ import {
   Typography,
   Chip,
   List,
-  ListItem,
-  ListItemText,
   Paper,
   Tabs,
   Tab,
@@ -36,7 +34,6 @@ import {
   PlayArrow as CheckInIcon,
   Stop as CheckOutIcon,
   CameraAlt as CameraIcon,
-  MyLocation as GPSIcon,
   AddTask as TaskIcon,
   Send as SendIcon,
   TaskAlt as CheckIcon,
@@ -128,6 +125,7 @@ function EmployeeDashboard() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   // Break overlay ticking timer
@@ -137,8 +135,8 @@ function EmployeeDashboard() {
       return;
     }
 
+    if (!attendance.breaks || attendance.breaks.length === 0) return;
     const currentBreak = attendance.breaks[attendance.breaks.length - 1];
-    if (!currentBreak) return;
 
     const tick = () => {
       const diffMs = Date.now() - new Date(currentBreak.startTime);
@@ -155,8 +153,22 @@ function EmployeeDashboard() {
 
   // Live Timer ticker for checked in session
   useEffect(() => {
-    if (!attendance || attendance.checkOutTime) {
+    if (!attendance) {
       setLiveHours('00:00:00');
+      return;
+    }
+
+    if (attendance.checkOutTime) {
+      const start = new Date(attendance.checkInTime);
+      const end = new Date(attendance.checkOutTime);
+      const diffMs = Math.max(0, end - start);
+      
+      const hours = Math.floor(diffMs / 3600000);
+      const minutes = Math.floor((diffMs % 3600000) / 60000);
+      const seconds = Math.floor((diffMs % 60000) / 1000);
+
+      const pad = (num) => String(num).padStart(2, '0');
+      setLiveHours(`${pad(hours)}:${pad(minutes)}:${pad(seconds)}`);
       return;
     }
 
@@ -432,13 +444,35 @@ function EmployeeDashboard() {
   const isCheckedIn = attendance && !attendance.checkOutTime;
   const loginTimeStr = attendance ? new Date(attendance.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
+  // Calculate stats for the dashboard metrics
+  const completedTasksCount = tasks.filter(t => t.status === 'Completed').length;
+  const totalTasksCount = tasks.length;
+  const taskProgressPercent = totalTasksCount > 0 ? Math.round((completedTasksCount / totalTasksCount) * 100) : 0;
+
+  const getShiftProgressPercent = () => {
+    if (!attendance || !liveHours) return 0;
+    const parts = liveHours.split(':').map(Number);
+    if (parts.length < 3 || isNaN(parts[0])) return 0;
+    const [h, m, s] = parts;
+    const totalHrs = h + m / 60 + s / 3600;
+    return Math.min(100, Math.round((totalHrs / 8) * 100));
+  };
+  const shiftProgressPercent = getShiftProgressPercent();
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
   return (
     <Box>
       {/* Top Greeting and GPS Status Banner matching Image 3 */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.025em' }}>
-            Good Morning, {user?.name.split(' ')[0]}
+            {getGreeting()}, {user?.name.split(' ')[0]}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, mt: 0.5 }}>
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} • Hybrid Workspace
@@ -684,51 +718,136 @@ function EmployeeDashboard() {
 
         {/* Right Column: Dynamic metrics widgets matching Image 3 */}
         <Grid item xs={12} md={5}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, height: '100%' }}>
-            {/* 1. Productivity Score */}
-            <Card sx={{ borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, flexGrow: 1 }}>
-              <Box>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
-                  Productivity Score
-                </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 800, mt: 0.5, color: 'text.primary' }}>
-                  {productivity}%
-                </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, height: { xs: 'auto', md: '100%' } }}>
+
+            {/* 1. Shift Progress Card */}
+            <Card 
+              sx={{ 
+                borderRadius: 4, 
+                p: 3, 
+                flex: '1 1 auto', 
+                minHeight: 140, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                justifyContent: 'space-between',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
+                }
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
+                    Shift Progress
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: attendance ? 'primary.main' : 'text.primary', fontFamily: 'monospace' }}>
+                    {attendance ? liveHours : '00:00:00'}
+                  </Typography>
+                </Box>
+                <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: attendance ? 'rgba(79, 142, 247, 0.15)' : 'action.selected', color: attendance ? 'primary.main' : 'text.secondary', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <AccessTimeIcon sx={{ fontSize: 24 }} />
+                </Box>
               </Box>
-              <Box sx={{ width: 56, height: 56, borderRadius: 3, bgcolor: 'primary.light', color: '#0038a8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <TrendingUpIcon sx={{ fontSize: 28 }} />
+              <Box sx={{ mt: 2 }}>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={shiftProgressPercent} 
+                  sx={{ height: 6, borderRadius: 3, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { borderRadius: 3 } }}
+                />
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontWeight: 600 }}>
+                  {attendance ? `Completed ${shiftProgressPercent}% of 8 hrs target` : 'Not Checked-In'}
+                </Typography>
               </Box>
             </Card>
 
-            {/* 2. Active Time */}
-            <Card sx={{ borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, flexGrow: 1 }}>
-              <Box>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
-                  Active Time
-                </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 800, mt: 0.5, fontFamily: 'monospace', color: 'text.primary' }}>
-                  {liveHours}
-                </Typography>
+            {/* 2. Productivity Level Card */}
+            <Card 
+              sx={{ 
+                borderRadius: 4, 
+                p: 3, 
+                flex: '1 1 auto', 
+                minHeight: 140, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                justifyContent: 'space-between',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
+                }
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
+                    Productivity Level
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: productivity >= 70 ? 'success.main' : 'warning.main' }}>
+                    {productivity}%
+                  </Typography>
+                </Box>
+                <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: productivity >= 70 ? 'rgba(52, 211, 153, 0.15)' : 'rgba(251, 191, 36, 0.15)', color: productivity >= 70 ? 'success.main' : 'warning.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <TrendingUpIcon sx={{ fontSize: 24 }} />
+                </Box>
               </Box>
-              <Box sx={{ width: 56, height: 56, borderRadius: 3, bgcolor: '#f5f3ff', color: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <AccessTimeIcon sx={{ fontSize: 28 }} />
+              <Box sx={{ mt: 2 }}>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={productivity} 
+                  color={productivity >= 70 ? 'success' : 'warning'}
+                  sx={{ height: 6, borderRadius: 3, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { borderRadius: 3 } }}
+                />
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontWeight: 600 }}>
+                  {productivity >= 70 ? '🛡️ Privacy Auto-Delete Enabled' : '⚠️ Full Telemetry Audit Mode'}
+                </Typography>
               </Box>
             </Card>
 
-            {/* 3. Tasks Completed */}
-            <Card sx={{ borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, flexGrow: 1 }}>
-              <Box>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
-                  Tasks Completed
-                </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 800, mt: 0.5, color: 'text.primary' }}>
-                  {tasks.filter(t => t.status === 'Completed').length} / {tasks.length}
-                </Typography>
+            {/* 3. Tasks Completed Card */}
+            <Card 
+              sx={{ 
+                borderRadius: 4, 
+                p: 3, 
+                flex: '1 1 auto', 
+                minHeight: 140, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                justifyContent: 'space-between',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
+                }
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
+                    Tasks Completed
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: 'secondary.main' }}>
+                    {completedTasksCount} / {totalTasksCount}
+                  </Typography>
+                </Box>
+                <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: 'rgba(167, 139, 250, 0.15)', color: 'secondary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CheckIcon sx={{ fontSize: 24 }} />
+                </Box>
               </Box>
-              <Box sx={{ width: 56, height: 56, borderRadius: 3, bgcolor: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <TaskIcon sx={{ fontSize: 28 }} />
+              <Box sx={{ mt: 2 }}>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={taskProgressPercent} 
+                  color="secondary"
+                  sx={{ height: 6, borderRadius: 3, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { borderRadius: 3 } }}
+                />
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontWeight: 600 }}>
+                  {totalTasksCount > 0 ? `${taskProgressPercent}% of assigned tasks completed` : 'No tasks assigned'}
+                </Typography>
               </Box>
             </Card>
+
           </Box>
         </Grid>
 

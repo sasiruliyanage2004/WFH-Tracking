@@ -195,11 +195,11 @@ function ScreenshotCapturer({ isCheckedIn }) {
       {isCheckedIn && (
         <Box sx={{ mb: 2 }}>
           {productivity >= 70 ? (
-            <Alert severity="success" sx={{ py: 0.5, borderRadius: 2, mb: 1 }}>
+            <Alert icon={false} severity="success" sx={{ py: 0.5, borderRadius: 2, mb: 1 }}>
               🛡️ <strong>Privacy Protection Active</strong>: Screenshots older than 1 hour are auto-deleted because your productivity is <strong>{productivity}%</strong> (Target &gt;= 70%).
             </Alert>
           ) : (
-            <Alert severity="warning" sx={{ py: 0.5, borderRadius: 2, mb: 1 }}>
+            <Alert icon={false} severity="warning" sx={{ py: 0.5, borderRadius: 2, mb: 1 }}>
               ⚠️ <strong>Full Audit Active</strong>: Screenshots are retained due to low/idle productivity (<strong>{productivity}%</strong>). Maintain active work to enable 1-hour privacy auto-deletion.
             </Alert>
           )}

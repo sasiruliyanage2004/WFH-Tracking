@@ -18,10 +18,15 @@ function ActivityTracker() {
     // Only track if authenticated employee and not on break
     if (!isAuthenticated || !token || user?.role !== 'Employee' || onBreak) return;
 
-    // Interaction handlers
+    // Interaction handlers with mousemove throttling to prevent lag
+    let lastMouseMoveRegistered = 0;
     const handleMouseMove = () => {
-      mouseCount.current += 1;
-      lastActivityTime.current = Date.now();
+      const now = Date.now();
+      if (now - lastMouseMoveRegistered > 1000) {
+        mouseCount.current += 1;
+        lastActivityTime.current = now;
+        lastMouseMoveRegistered = now;
+      }
     };
 
     const handleKeyDown = () => {
