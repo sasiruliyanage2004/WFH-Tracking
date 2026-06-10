@@ -128,6 +128,15 @@ function EmployeeDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  // Auto-trigger Electron desktop active window tracking based on Check-In and Break states
+  useEffect(() => {
+    if (window.api && window.api.toggleTracking) {
+      const active = !!(attendance && !attendance.checkOutTime && !attendance.onBreak);
+      console.log(`[Electron] Auto-toggling active window tracking: ${active}`);
+      window.api.toggleTracking(active, token);
+    }
+  }, [attendance, token]);
+
   // Break overlay ticking timer
   useEffect(() => {
     if (!attendance || !attendance.onBreak) {

@@ -65,7 +65,15 @@ function ScreenshotCapturer({ isCheckedIn }) {
     try {
       let imageData = '';
 
-      if (isCapturing && stream) {
+      if (window.api && window.api.captureScreen) {
+        // Native Electron screen capture (silent, no browser prompts!)
+        const nativeImg = await window.api.captureScreen();
+        if (nativeImg) {
+          imageData = nativeImg;
+        } else {
+          throw new Error("Native screenshot captured null image");
+        }
+      } else if (isCapturing && stream) {
         // Capture from screen stream
         const canvas = canvasRef.current;
         const video = videoRef.current;
@@ -215,13 +223,15 @@ function ScreenshotCapturer({ isCheckedIn }) {
       {isCheckedIn ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            {isCapturing 
-              ? 'Real screen sharing is active. Visual logs are captured automatically.' 
-              : 'Background simulated screen tracking is active. You can share your actual screen for real-time visual captures.'}
+            {window.api
+              ? 'Desktop application wrapper: Real screen capture is active and running silently in the background.'
+              : (isCapturing 
+                  ? 'Real screen sharing is active. Visual logs are captured automatically.' 
+                  : 'Background simulated screen tracking is active. You can share your actual screen for real-time visual captures.')}
           </Typography>
           
           <Box sx={{ display: 'flex', gap: 2 }}>
-            {!isCapturing && (
+            {!isCapturing && !window.api && (
               <Button
                 variant="outlined"
                 color="primary"

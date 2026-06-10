@@ -1,12 +1,13 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, desktopCapturer } = require('electron');
 const path = require('path');
 const { exec } = require('child_process');
 const axios = require('axios');
 
-const BACKEND_URL = 'http://localhost:5000';
+const BACKEND_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3001';
+
 let mainWindow = null;
 let sessionToken = null;
-let currentUser = null;
 
 let trackingInterval = null;
 let trackingActive = false;
@@ -16,12 +17,12 @@ let tickCount = 0;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 380,
-    height: 560,
-    frame: false,
-    transparent: true,
-    resizable: false,
-    maximizable: false,
+    width: 1280,
+    height: 800,
+    frame: true,
+    transparent: false,
+    resizable: true,
+    maximizable: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -29,7 +30,10 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile('index.html');
+  mainWindow.loadURL(FRONTEND_URL);
+
+  // Open DevTools in development if needed
+  // mainWindow.webContents.openDevTools();
 
   mainWindow.on('closed', () => {
     stopTracking();
@@ -53,43 +57,27 @@ app.on('window-all-closed', () => {
   }
 });
 
-// App Window controls
-ipcMain.on('window:close', () => {
-  app.quit();
-});
-
-ipcMain.on('window:minimize', () => {
-  if (mainWindow) mainWindow.minimize();
-});
-
-// Authentication handlers
-ipcMain.on('auth:login', async (event, { email, password }) => {
+// Native Screenshot Capture IPC Handler
+ipcMain.handle('screen:capture', async () => {
   try {
-    const res = await axios.post(`${BACKEND_URL}/api/auth/login`, { email, password });
-    if (res.data && res.data.token) {
-      sessionToken = res.data.token;
-      currentUser = res.data.user;
-      event.reply('auth:result', { success: true, user: currentUser });
-    } else {
-      event.reply('auth:result', { success: false, message: 'Invalid response from server' });
+    const sources = await desktopCapturer.getSources({
+      types: ['screen'],
+      thumbnailSize: { width: 1280, height: 720 }
+    });
+    if (sources.length > 0) {
+      // Return the base64 data URL representing the primary screen thumbnail
+      return sources[0].thumbnail.toDataURL();
     }
   } catch (err) {
-    console.error('Login Error:', err.message);
-    const msg = err.response?.data?.message || 'Failed to connect to backend server';
-    event.reply('auth:result', { success: false, message: msg });
+    console.error('Native screen capture failed:', err.message);
   }
+  return null;
 });
 
-ipcMain.on('auth:logout', (event) => {
-  stopTracking();
-  sessionToken = null;
-  currentUser = null;
-  event.reply('auth:result', { success: false, loggedOut: true });
-});
-
-// Tracking control handlers
-ipcMain.on('tracking:toggle', (event, active) => {
-  if (active && sessionToken) {
+// Auto-Tracking control from React frontend
+ipcMain.on('tracking:toggle', (event, { active, token }) => {
+  if (active && token) {
+    sessionToken = token;
     startTracking();
   } else {
     stopTracking();
@@ -103,15 +91,12 @@ function startTracking() {
   usageBuffer = {};
   tickCount = 0;
 
+  console.log('Desktop Agent: Active window tracking started.');
+
   // Run tracking loop every 10 seconds
   trackingInterval = setInterval(() => {
     totalTrackedSeconds += 10;
     tickCount++;
-
-    // Send stopwatch time update to renderer
-    if (mainWindow) {
-      mainWindow.webContents.send('tracking:tick', formatStopwatch(totalTrackedSeconds));
-    }
 
     // Capture active window
     captureActiveWindow();
@@ -136,12 +121,10 @@ function stopTracking() {
     trackingInterval = null;
   }
 
+  console.log('Desktop Agent: Active window tracking stopped.');
+
   // Flush remaining buffer data before stopping
   flushUsageBuffer();
-
-  if (mainWindow) {
-    mainWindow.webContents.send('tracking:status', { appName: '', windowTitle: '', type: 'Neutral', inactive: true });
-  }
 }
 
 function captureActiveWindow() {
@@ -163,11 +146,6 @@ function captureActiveWindow() {
       
       const type = classifyApp(appName, windowTitle);
 
-      // Send current state to GUI renderer
-      if (mainWindow) {
-        mainWindow.webContents.send('tracking:status', { appName, windowTitle, type });
-      }
-
       // Add to local buffer
       if (!usageBuffer[appName]) {
         usageBuffer[appName] = { windowTitle, type, seconds: 0 };
@@ -184,6 +162,8 @@ async function flushUsageBuffer() {
 
   const logsToFlush = { ...usageBuffer };
   usageBuffer = {}; // Clear immediately to prevent double logging on slow requests
+
+  console.log(`Desktop Agent: Flushing ${keys.length} app usage logs to server...`);
 
   for (const appName of Object.keys(logsToFlush)) {
     const log = logsToFlush[appName];
@@ -232,11 +212,4 @@ function classifyApp(appName, windowTitle) {
   }
 
   return 'Neutral';
-}
-
-function formatStopwatch(totalSeconds) {
-  const hrs = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
-  const mins = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
-  const secs = (totalSeconds % 60).toString().padStart(2, '0');
-  return `${hrs}:${mins}:${secs}`;
 }
