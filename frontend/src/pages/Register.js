@@ -29,6 +29,7 @@ function Register() {
   const [role, setRole] = useState('Employee');
   const [department, setDepartment] = useState('Engineering');
   const [managerKey, setManagerKey] = useState('');
+  const [superAdminKey, setSuperAdminKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -44,6 +45,10 @@ function Register() {
       setErrorMsg('Manager Secret Key is required.');
       return;
     }
+    if (role === 'SuperAdmin' && !superAdminKey) {
+      setErrorMsg('Super Admin Secret Key is required.');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -54,8 +59,9 @@ function Register() {
         email,
         password,
         role,
-        department,
-        managerKey: role === 'Manager' ? managerKey : undefined
+        department: role === 'SuperAdmin' ? 'HR' : department,
+        managerKey: role === 'Manager' ? managerKey : undefined,
+        superAdminKey: role === 'SuperAdmin' ? superAdminKey : undefined
       });
 
       dispatch(authSuccess({
@@ -64,7 +70,7 @@ function Register() {
       }));
 
       // Redirect
-      if (res.data.user.role === 'Manager') {
+      if (res.data.user.role === 'Manager' || res.data.user.role === 'SuperAdmin') {
         navigate('/manager/dashboard');
       } else {
         navigate('/dashboard');
@@ -134,6 +140,7 @@ function Register() {
               >
                 <MenuItem value="Employee">Employee / Staff</MenuItem>
                 <MenuItem value="Manager">Manager / Admin</MenuItem>
+                <MenuItem value="SuperAdmin">HR Head (Super Admin)</MenuItem>
               </Select>
             </FormControl>
 
@@ -149,20 +156,36 @@ function Register() {
                 sx={{ mb: 2 }}
               />
             )}
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel>Department</InputLabel>
-              <Select
-                value={department}
-                label="Department"
-                onChange={(e) => setDepartment(e.target.value)}
-              >
-                <MenuItem value="Engineering">Engineering</MenuItem>
-                <MenuItem value="Design">Design</MenuItem>
-                <MenuItem value="Product">Product</MenuItem>
-                <MenuItem value="Operations">Operations</MenuItem>
-                <MenuItem value="HR">HR / Finance</MenuItem>
-              </Select>
-            </FormControl>
+
+            {role === 'SuperAdmin' && (
+              <TextField
+                label="Super Admin Secret Key"
+                type="password"
+                fullWidth
+                required
+                value={superAdminKey}
+                onChange={(e) => setSuperAdminKey(e.target.value)}
+                placeholder="Enter company super admin key..."
+                sx={{ mb: 2 }}
+              />
+            )}
+
+            {role !== 'SuperAdmin' && (
+              <FormControl fullWidth sx={{ mb: 3 }}>
+                <InputLabel>Department</InputLabel>
+                <Select
+                  value={department}
+                  label="Department"
+                  onChange={(e) => setDepartment(e.target.value)}
+                >
+                  <MenuItem value="Engineering">Engineering</MenuItem>
+                  <MenuItem value="Design">Design</MenuItem>
+                  <MenuItem value="Product">Product</MenuItem>
+                  <MenuItem value="Operations">Operations</MenuItem>
+                  <MenuItem value="HR">HR / Finance</MenuItem>
+                </Select>
+              </FormControl>
+            )}
 
             <Button
               type="submit"

@@ -147,7 +147,9 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
     { text: 'Settings', icon: <SettingsIcon />, path: '/manager/settings' }
   ];
 
-  const links = user?.role === 'Manager' ? managerLinks : employeeLinks;
+  const links = (user?.role === 'Manager' || user?.role === 'SuperAdmin')
+    ? managerLinks.filter(link => link.text !== 'Employee List' || user?.role === 'SuperAdmin')
+    : employeeLinks;
 
   // Render navigation menu
   const drawerContent = (

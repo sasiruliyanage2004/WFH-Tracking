@@ -80,7 +80,7 @@ function Login() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      navigate(user.role === 'Manager' ? '/manager/dashboard' : '/dashboard');
+      navigate((user.role === 'Manager' || user.role === 'SuperAdmin') ? '/manager/dashboard' : '/dashboard');
     }
   }, [isAuthenticated, user, navigate]);
 

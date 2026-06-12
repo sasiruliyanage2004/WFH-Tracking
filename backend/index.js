@@ -245,8 +245,8 @@ const saveBase64Image = (base64String, folder, filename) => {
 
 // --- API ROUTES ---
 
-// 0. EMPLOYEE LIST ROUTES (Manager only)
-app.get('/api/users/employees', authenticate, authorize('Manager'), async (req, res) => {
+// 0. EMPLOYEE LIST ROUTES (SuperAdmin only)
+app.get('/api/users/employees', authenticate, authorize('SuperAdmin'), async (req, res) => {
   try {
     const { data: employees, error } = await supabase
       .from('users')
@@ -293,7 +293,7 @@ app.get('/api/users/employees', authenticate, authorize('Manager'), async (req, 
   }
 });
 
-app.delete('/api/users/employees/:id', authenticate, authorize('Manager'), async (req, res) => {
+app.delete('/api/users/employees/:id', authenticate, authorize('SuperAdmin'), async (req, res) => {
   try {
     const { data: emp, error: fetchErr } = await supabase
       .from('users')
@@ -302,7 +302,7 @@ app.delete('/api/users/employees/:id', authenticate, authorize('Manager'), async
       .maybeSingle();
 
     if (fetchErr || !emp) return res.status(404).json({ message: 'Employee not found.' });
-    if (emp.role === 'Manager') return res.status(403).json({ message: 'Cannot delete a Manager account.' });
+    if (emp.role === 'Manager' || emp.role === 'SuperAdmin') return res.status(403).json({ message: 'Cannot delete a Manager or SuperAdmin account.' });
 
     const { error: deleteErr } = await supabase
       .from('users')
@@ -319,12 +319,17 @@ app.delete('/api/users/employees/:id', authenticate, authorize('Manager'), async
 
 // 1. AUTH ROUTES
 app.post('/api/auth/register', async (req, res) => {
-  const { name, email, password, role, department, managerKey } = req.body;
+  const { name, email, password, role, department, managerKey, superAdminKey } = req.body;
   try {
     if (role === 'Manager') {
       const systemManagerKey = process.env.MANAGER_REGISTRATION_KEY || 'workforce-manager-sec';
       if (managerKey !== systemManagerKey) {
         return res.status(403).json({ message: 'Invalid Manager Secret Key. You cannot register as a Manager/Admin.' });
+      }
+    } else if (role === 'SuperAdmin') {
+      const systemSuperAdminKey = process.env.SUPER_ADMIN_REGISTRATION_KEY || 'workforce-super-sec';
+      if (superAdminKey !== systemSuperAdminKey) {
+        return res.status(403).json({ message: 'Invalid Super Admin Secret Key. You cannot register as a Super Admin.' });
       }
     }
 
@@ -339,6 +344,8 @@ app.post('/api/auth/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const userId = generateId();
 
+    const finalDept = role === 'SuperAdmin' ? 'HR' : (department || 'Engineering');
+
     const { data: newUser, error } = await supabase
       .from('users')
       .insert([{
@@ -347,7 +354,7 @@ app.post('/api/auth/register', async (req, res) => {
         email: email.toLowerCase(),
         password: hashedPassword,
         role: role || 'Employee',
-        department: department || 'Engineering'
+        department: finalDept
       }])
       .select('*')
       .single();
@@ -729,7 +736,7 @@ app.get('/api/attendance/history', authenticate, async (req, res) => {
   }
 });
 
-app.get('/api/attendance/all', authenticate, authorize('Manager'), async (req, res) => {
+app.get('/api/attendance/all', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
   const { date, employeeId } = req.query;
   try {
     let builder = supabase.from('attendance').select('*');
@@ -761,7 +768,7 @@ app.get('/api/attendance/all', authenticate, authorize('Manager'), async (req, r
 app.get('/api/tasks', authenticate, async (req, res) => {
   try {
     let builder = supabase.from('tasks').select('*');
-    if (req.user.role !== 'Manager') {
+    if (req.user.role !== 'Manager' && req.user.role !== 'SuperAdmin') {
       builder = builder.eq('assigned_to', req.user.id);
     }
 
@@ -789,7 +796,7 @@ app.get('/api/tasks', authenticate, async (req, res) => {
 app.post('/api/tasks', authenticate, async (req, res) => {
   const { taskName, description, dueDate, priority, progress, status, assignedTo } = req.body;
   try {
-    const targetUserId = req.user.role === 'Manager' ? (assignedTo || req.user.id) : req.user.id;
+    const targetUserId = (req.user.role === 'Manager' || req.user.role === 'SuperAdmin') ? (assignedTo || req.user.id) : req.user.id;
 
     const { data: task, error } = await supabase
       .from('tasks')
@@ -808,7 +815,7 @@ app.post('/api/tasks', authenticate, async (req, res) => {
 
     if (error) throw error;
 
-    if (req.user.role === 'Manager' && targetUserId !== req.user.id.toString()) {
+    if ((req.user.role === 'Manager' || req.user.role === 'SuperAdmin') && targetUserId !== req.user.id.toString()) {
       await sendNotification(targetUserId, `Manager assigned you a new task: "${taskName}"`, 'task');
     }
 
@@ -830,7 +837,7 @@ app.put('/api/tasks/:id', authenticate, async (req, res) => {
     if (fetchErr || !task) return res.status(404).json({ message: 'Task not found' });
 
     // Permissions check
-    if (req.user.role !== 'Manager' && task.assigned_to.toString() !== req.user.id.toString()) {
+    if (req.user.role !== 'Manager' && req.user.role !== 'SuperAdmin' && task.assigned_to.toString() !== req.user.id.toString()) {
       return res.status(403).json({ message: 'Unauthorized task modification.' });
     }
 
@@ -858,7 +865,7 @@ app.put('/api/tasks/:id', authenticate, async (req, res) => {
 
     // Alert manager if completed by employee
     if (req.user.role === 'Employee' && updatedTask.status === 'Completed') {
-      const { data: managers } = await supabase.from('users').select('id').eq('role', 'Manager');
+      const { data: managers } = await supabase.from('users').select('id').in('role', ['Manager', 'SuperAdmin']);
       if (managers) {
         for (let mgr of managers) {
           await sendNotification(mgr.id, `${req.user.name} has completed the task: "${updatedTask.task_name}"`, 'task');
@@ -872,7 +879,7 @@ app.put('/api/tasks/:id', authenticate, async (req, res) => {
   }
 });
 
-app.delete('/api/tasks/:id', authenticate, authorize('Manager'), async (req, res) => {
+app.delete('/api/tasks/:id', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
   try {
     const { data: task, error: fetchErr } = await supabase
       .from('tasks')
@@ -970,7 +977,7 @@ app.get('/api/reports', authenticate, async (req, res) => {
   }
 });
 
-app.put('/api/reports/:id/approve', authenticate, authorize('Manager'), async (req, res) => {
+app.put('/api/reports/:id/approve', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
   const { status, managerFeedback } = req.body;
   try {
     const { data: report, error: fetchErr } = await supabase
@@ -1082,7 +1089,7 @@ app.post('/api/monitoring/screenshot', authenticate, async (req, res) => {
   }
 });
 
-app.get('/api/monitoring/screenshots/:employeeId', authenticate, authorize('Manager'), async (req, res) => {
+app.get('/api/monitoring/screenshots/:employeeId', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
   try {
     const { data: list, error } = await supabase
       .from('screenshots')
@@ -1098,7 +1105,7 @@ app.get('/api/monitoring/screenshots/:employeeId', authenticate, authorize('Mana
   }
 });
 
-app.post('/api/monitoring/screenshots/delete-bulk', authenticate, authorize('Manager'), async (req, res) => {
+app.post('/api/monitoring/screenshots/delete-bulk', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
   const { ids } = req.body;
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return res.status(400).json({ message: 'No screenshot IDs provided.' });
@@ -1237,7 +1244,7 @@ app.get('/api/monitoring/my-activity', authenticate, async (req, res) => {
   }
 });
 
-app.get('/api/monitoring/activity/:employeeId', authenticate, authorize('Manager'), async (req, res) => {
+app.get('/api/monitoring/activity/:employeeId', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
   try {
     const { data: logs, error } = await supabase
       .from('activity_logs')
@@ -1305,7 +1312,7 @@ app.post('/api/monitoring/usage-log', authenticate, async (req, res) => {
 });
 
 // App & Website Usage Tracking - fetch logs for manager dashboard
-app.get('/api/monitoring/usage/:employeeId', authenticate, authorize('Manager'), async (req, res) => {
+app.get('/api/monitoring/usage/:employeeId', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
   const { date } = req.query;
   const targetDate = date || new Date().toISOString().split('T')[0];
 
@@ -1326,7 +1333,7 @@ app.get('/api/monitoring/usage/:employeeId', authenticate, authorize('Manager'),
 });
 
 // Manager dashboard summary stats
-app.get('/api/monitoring/summary', authenticate, authorize('Manager'), async (req, res) => {
+app.get('/api/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   try {
     const { count: totalEmployees } = await supabase
@@ -1432,7 +1439,7 @@ app.put('/api/notifications/:id/read', authenticate, async (req, res) => {
   }
 });
 
-app.get('/api/settings/warning-emails', authenticate, authorize('Manager'), async (req, res) => {
+app.get('/api/settings/warning-emails', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
   try {
     let { data: setting } = await supabase
       .from('settings')
@@ -1457,7 +1464,7 @@ app.get('/api/settings/warning-emails', authenticate, authorize('Manager'), asyn
   }
 });
 
-app.post('/api/settings/warning-emails', authenticate, authorize('Manager'), async (req, res) => {
+app.post('/api/settings/warning-emails', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
   const { emails } = req.body;
   if (!emails || !Array.isArray(emails)) {
     return res.status(400).json({ message: 'Invalid email list format.' });

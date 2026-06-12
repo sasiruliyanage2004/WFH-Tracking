@@ -286,7 +286,7 @@ function App() {
       return <Navigate to="/login" replace />;
     }
     if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
-      return <Navigate to={user?.role === 'Manager' ? '/manager/dashboard' : '/dashboard'} replace />;
+      return <Navigate to={(user?.role === 'Manager' || user?.role === 'SuperAdmin') ? '/manager/dashboard' : '/dashboard'} replace />;
     }
     return (
       <DashboardLayout isDarkMode={isDarkMode} setIsDarkMode={toggleTheme}>
@@ -355,37 +355,37 @@ function App() {
 
           {/* Manager Routes */}
           <Route path="/manager/dashboard" element={
-            <ProtectedRoute allowedRoles={['Manager']}>
+            <ProtectedRoute allowedRoles={['Manager', 'SuperAdmin']}>
               <ManagerDashboard />
             </ProtectedRoute>
           } />
           <Route path="/manager/tasks" element={
-            <ProtectedRoute allowedRoles={['Manager']}>
+            <ProtectedRoute allowedRoles={['Manager', 'SuperAdmin']}>
               <ManagerTasks />
             </ProtectedRoute>
           } />
           <Route path="/manager/reports" element={
-            <ProtectedRoute allowedRoles={['Manager']}>
+            <ProtectedRoute allowedRoles={['Manager', 'SuperAdmin']}>
               <ManagerReports />
             </ProtectedRoute>
           } />
           <Route path="/manager/monitoring" element={
-            <ProtectedRoute allowedRoles={['Manager']}>
+            <ProtectedRoute allowedRoles={['Manager', 'SuperAdmin']}>
               <ManagerMonitoring />
             </ProtectedRoute>
           } />
           <Route path="/manager/monitoring/:employeeId" element={
-            <ProtectedRoute allowedRoles={['Manager']}>
+            <ProtectedRoute allowedRoles={['Manager', 'SuperAdmin']}>
               <EmployeeMonitoring />
             </ProtectedRoute>
           } />
           <Route path="/manager/employees" element={
-            <ProtectedRoute allowedRoles={['Manager']}>
+            <ProtectedRoute allowedRoles={['SuperAdmin']}>
               <EmployeeList />
             </ProtectedRoute>
           } />
           <Route path="/manager/settings" element={
-            <ProtectedRoute allowedRoles={['Manager']}>
+            <ProtectedRoute allowedRoles={['Manager', 'SuperAdmin']}>
               <ManagerSettings />
             </ProtectedRoute>
           } />
