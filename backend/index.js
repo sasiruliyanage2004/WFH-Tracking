@@ -1364,6 +1364,179 @@ app.get('/api/monitoring/usage/:employeeId', authenticate, authorize(['Manager',
   }
 });
 
+// GET /api/monitoring/leaderboard - Get aggregated employee metrics
+app.get('/api/monitoring/leaderboard', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
+  const { dateRange, department } = req.query;
+  
+  let startDate, endDate;
+  const today = new Date();
+  
+  const formatDate = (d) => {
+    return d.toISOString().split('T')[0];
+  };
+
+  const todayStr = formatDate(today);
+  
+  if (dateRange === 'yesterday') {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    startDate = formatDate(yesterday);
+    endDate = startDate;
+  } else if (dateRange === '7days') {
+    const start = new Date();
+    start.setDate(start.getDate() - 7);
+    startDate = formatDate(start);
+    endDate = todayStr;
+  } else if (dateRange === '30days') {
+    const start = new Date();
+    start.setDate(start.getDate() - 30);
+    startDate = formatDate(start);
+    endDate = todayStr;
+  } else {
+    // Default to 'today'
+    startDate = todayStr;
+    endDate = todayStr;
+  }
+  
+  try {
+    // Fetch employees
+    let userQuery = supabase
+      .from('users')
+      .select('id, name, email, department, avatar_url')
+      .eq('role', 'Employee');
+      
+    if (department && department !== 'All') {
+      userQuery = userQuery.eq('department', department);
+    }
+    
+    const { data: employees, error: empError } = await userQuery;
+    if (empError) throw empError;
+    
+    if (!employees || employees.length === 0) {
+      return res.json([]);
+    }
+    
+    const employeeIds = employees.map(e => e.id);
+    
+    // Fetch attendance records
+    const { data: attendanceData, error: attError } = await supabase
+      .from('attendance')
+      .select('*')
+      .in('employee_id', employeeIds)
+      .gte('date', startDate)
+      .lte('date', endDate);
+    if (attError) throw attError;
+    
+    // Fetch activity logs
+    const { data: activityData, error: actError } = await supabase
+      .from('activity_logs')
+      .select('*')
+      .in('employee_id', employeeIds)
+      .gte('date', startDate)
+      .lte('date', endDate);
+    if (actError) throw actError;
+    
+    // Fetch app usage
+    const { data: usageData, error: usageError } = await supabase
+      .from('app_usage')
+      .select('*')
+      .in('employee_id', employeeIds)
+      .gte('date', startDate)
+      .lte('date', endDate);
+    if (usageError) throw usageError;
+    
+    // Map & Aggregate
+    const leaderboard = employees.map(emp => {
+      const empIdStr = emp.id.toString();
+      
+      const empAttendance = attendanceData?.filter(a => a.employee_id.toString() === empIdStr) || [];
+      const empActivity = activityData?.filter(a => a.employee_id.toString() === empIdStr) || [];
+      const empUsage = usageData?.filter(a => a.employee_id.toString() === empIdStr) || [];
+      
+      // Calculate total work hours
+      let totalHours = 0;
+      empAttendance.forEach(att => {
+        if (att.check_out_time) {
+          totalHours += att.duration_hours || 0;
+        } else {
+          const elapsed = new Date() - new Date(att.check_in_time);
+          const hrs = Math.max(0, elapsed / (1000 * 60 * 60));
+          totalHours += hrs;
+        }
+      });
+      
+      // Calculate active hours & idle hours from activity_logs
+      const activeMinutes = empActivity.reduce((sum, act) => sum + (act.active_minutes || 0), 0);
+      const idleMinutes = empActivity.reduce((sum, act) => sum + (act.idle_minutes || 0), 0);
+      
+      // Calculate break/offline meeting minutes
+      let breakMinutes = 0;
+      empAttendance.forEach(att => {
+        if (att.breaks) {
+          att.breaks.forEach(b => {
+            if (b.durationMinutes) {
+              breakMinutes += b.durationMinutes;
+            } else if (b.startTime) {
+              const breakEnd = b.endTime ? new Date(b.endTime) : new Date();
+              const diffMins = (breakEnd - new Date(b.startTime)) / (1000 * 60);
+              breakMinutes += Math.max(0, diffMins);
+            }
+          });
+        }
+      });
+      
+      // Calculate app usage category breakdowns
+      let productiveMins = 0;
+      let unproductiveMins = 0;
+      let neutralMins = 0;
+      
+      empUsage.forEach(u => {
+        const mins = u.duration_minutes || 0;
+        if (u.type === 'Productive') {
+          productiveMins += mins;
+        } else if (u.type === 'Unproductive') {
+          unproductiveMins += mins;
+        } else {
+          neutralMins += mins;
+        }
+      });
+      
+      // Fallback if no app usage details, use active/idle logs
+      if (productiveMins === 0 && unproductiveMins === 0 && (activeMinutes > 0 || idleMinutes > 0)) {
+        productiveMins = activeMinutes;
+        unproductiveMins = idleMinutes;
+      }
+      
+      const totalTrackedMins = productiveMins + unproductiveMins + neutralMins;
+      const productivityRatio = totalTrackedMins > 0 
+        ? Math.round((productiveMins / totalTrackedMins) * 100) 
+        : 100;
+        
+      return {
+        id: emp.id,
+        name: emp.name,
+        department: emp.department || 'Operations',
+        avatarUrl: emp.avatar_url || '',
+        productivityRatio,
+        productiveMins: Math.round(productiveMins),
+        unproductiveMins: Math.round(unproductiveMins),
+        neutralMins: Math.round(neutralMins),
+        totalHours: Math.round(totalHours * 100) / 100,
+        activeHours: Math.round((activeMinutes / 60) * 100) / 100,
+        offlineMeetingMins: Math.round(breakMinutes)
+      };
+    });
+    
+    // Sort by productivityRatio descending
+    leaderboard.sort((a, b) => b.productivityRatio - a.productivityRatio);
+    
+    res.json(leaderboard);
+  } catch (err) {
+    console.error('Leaderboard Fetch Error:', err.message);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Manager dashboard summary stats
 app.get('/api/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
