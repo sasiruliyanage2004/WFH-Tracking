@@ -673,6 +673,29 @@ app.post('/api/attendance/checkout', authenticate, async (req, res) => {
 
     if (updateErr) throw updateErr;
 
+    // Check productivity score for today at checkout and send warning email if <= 50%
+    try {
+      const { data: log } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .eq('employee_id', req.user.id)
+        .eq('date', today)
+        .maybeSingle();
+
+      if (log) {
+        const totalMinutes = log.active_minutes + log.idle_minutes;
+        if (totalMinutes >= 60 && log.productivity_percentage <= 50 && !log.warning_email_sent) {
+          sendWarningEmail(req.user, log.productivity_percentage);
+          await supabase
+            .from('activity_logs')
+            .update({ warning_email_sent: true })
+            .eq('id', log.id);
+        }
+      }
+    } catch (emailErr) {
+      console.error('Failed to check/send checkout low productivity email:', emailErr.message);
+    }
+
     // Trigger report reminder
     await sendNotification(req.user.id, 'Remember to submit your Daily Work Report before logging off.', 'report');
 
@@ -1345,7 +1368,7 @@ app.post('/api/monitoring/activity', authenticate, async (req, res) => {
       const productivityPercentage = totalMinutes > 0 ? Math.round((activeMinutes / totalMinutes) * 100) : 100;
       
       let warningEmailSent = log.warning_email_sent;
-      if (productivityPercentage <= 50 && !warningEmailSent) {
+      if (totalMinutes >= 60 && productivityPercentage <= 50 && !warningEmailSent) {
         warningEmailSent = true;
         sendWarningEmail(req.user, productivityPercentage);
       }
@@ -1373,7 +1396,7 @@ app.post('/api/monitoring/activity', authenticate, async (req, res) => {
       const productivityPercentage = totalMinutes > 0 ? Math.round((activeMinutes / totalMinutes) * 100) : 100;
 
       let warningEmailSent = false;
-      if (productivityPercentage <= 50) {
+      if (totalMinutes >= 60 && productivityPercentage <= 50) {
         warningEmailSent = true;
         sendWarningEmail(req.user, productivityPercentage);
       }
