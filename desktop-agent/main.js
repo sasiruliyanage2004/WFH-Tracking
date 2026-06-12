@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, desktopCapturer } = require('electron');
+const { app, BrowserWindow, ipcMain, desktopCapturer, Menu } = require('electron');
 const path = require('path');
 const { exec } = require('child_process');
 const axios = require('axios');
@@ -15,14 +15,39 @@ let totalTrackedSeconds = 0;
 let usageBuffer = {};
 let tickCount = 0;
 
+let splashWindow = null;
+
+function createSplashWindow() {
+  splashWindow = new BrowserWindow({
+    width: 450,
+    height: 320,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    resizable: false,
+    icon: path.join(__dirname, 'icon.ico'),
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
+    }
+  });
+
+  splashWindow.loadFile(path.join(__dirname, 'splash.html'));
+
+  splashWindow.on('closed', () => {
+    splashWindow = null;
+  });
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    frame: true,
-    transparent: false,
-    resizable: true,
-    maximizable: true,
+    frame: false, // Make window frameless
+    show: false,  // Hide while loading
+    icon: path.join(__dirname, 'icon.ico'),
+    backgroundColor: '#070b14', // Premium dark background
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -30,10 +55,28 @@ function createWindow() {
     }
   });
 
+  mainWindow.removeMenu();
   mainWindow.loadURL(FRONTEND_URL);
 
-  // Open DevTools in development if needed
-  // mainWindow.webContents.openDevTools();
+  mainWindow.webContents.on('did-finish-load', () => {
+    // Smooth transition from splash to main window
+    setTimeout(() => {
+      if (splashWindow) {
+        splashWindow.close();
+      }
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    }, 1500); // 1.5 second duration
+  });
+
+  // Fallback to port 3002 if default port 3001 fails to load
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    if (validatedURL && (validatedURL.includes('localhost:3001') || validatedURL.includes('127.0.0.1:3001'))) {
+      mainWindow.loadURL('http://localhost:3002');
+    }
+  });
 
   mainWindow.on('closed', () => {
     stopTracking();
@@ -42,6 +85,8 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  Menu.setApplicationMenu(null);
+  createSplashWindow();
   createWindow();
 
   app.on('activate', () => {
@@ -82,6 +127,25 @@ ipcMain.on('tracking:toggle', (event, { active, token }) => {
   } else {
     stopTracking();
   }
+});
+
+// Window control events
+ipcMain.on('window:minimize', () => {
+  if (mainWindow) mainWindow.minimize();
+});
+
+ipcMain.on('window:maximize', () => {
+  if (mainWindow) {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  }
+});
+
+ipcMain.on('window:close', () => {
+  if (mainWindow) mainWindow.close();
 });
 
 function startTracking() {

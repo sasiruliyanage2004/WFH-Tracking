@@ -28,6 +28,7 @@ function Register() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('Employee');
   const [department, setDepartment] = useState('Engineering');
+  const [managerKey, setManagerKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -39,6 +40,10 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name || !email || !password) return;
+    if (role === 'Manager' && !managerKey) {
+      setErrorMsg('Manager Secret Key is required.');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -49,7 +54,8 @@ function Register() {
         email,
         password,
         role,
-        department
+        department,
+        managerKey: role === 'Manager' ? managerKey : undefined
       });
 
       dispatch(authSuccess({
@@ -130,6 +136,19 @@ function Register() {
                 <MenuItem value="Manager">Manager / Admin</MenuItem>
               </Select>
             </FormControl>
+
+            {role === 'Manager' && (
+              <TextField
+                label="Manager Secret Key"
+                type="password"
+                fullWidth
+                required
+                value={managerKey}
+                onChange={(e) => setManagerKey(e.target.value)}
+                placeholder="Enter company manager registration code..."
+                sx={{ mb: 2 }}
+              />
+            )}
             <FormControl fullWidth sx={{ mb: 3 }}>
               <InputLabel>Department</InputLabel>
               <Select

@@ -20,7 +20,8 @@
       "target": [
         "nsis",
         "portable"
-      ]
+      ],
+      "icon": "build/icon.ico"
     },
     "directories": {
       "output": "dist"

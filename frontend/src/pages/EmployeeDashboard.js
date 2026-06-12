@@ -43,6 +43,8 @@ import {
   AccessTime as AccessTimeIcon
 } from '@mui/icons-material';
 import ScreenshotCapturer from '../components/ScreenshotCapturer';
+import SkeletonCard from '../components/SkeletonCard';
+import AnimatedCounter from '../components/AnimatedCounter';
 
 function EmployeeDashboard() {
   const { token, user } = useSelector((state) => state.auth);
@@ -444,8 +446,19 @@ function EmployeeDashboard() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-        <CircularProgress />
+      <Box sx={{ p: 1 }}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={7}>
+            <SkeletonCard variant="full" />
+          </Grid>
+          <Grid item xs={12} md={5}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+              <SkeletonCard variant="stat" />
+              <SkeletonCard variant="stat" />
+              <SkeletonCard variant="stat" />
+            </Box>
+          </Grid>
+        </Grid>
       </Box>
     );
   }
@@ -623,6 +636,14 @@ function EmployeeDashboard() {
                           fullWidth
                           size="small"
                           onClick={() => handleStartBreak('Breakfast')}
+                          sx={{
+                            borderRadius: '20px',
+                            py: 0.8,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderWidth: '1.5px',
+                            '&:hover': { borderWidth: '1.5px', transform: 'translateY(-1px)', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.08)' }
+                          }}
                         >
                           ☕ Breakfast
                         </Button>
@@ -634,6 +655,14 @@ function EmployeeDashboard() {
                           fullWidth
                           size="small"
                           onClick={() => handleStartBreak('Lunch')}
+                          sx={{
+                            borderRadius: '20px',
+                            py: 0.8,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderWidth: '1.5px',
+                            '&:hover': { borderWidth: '1.5px', transform: 'translateY(-1px)', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.08)' }
+                          }}
                         >
                           🍔 Lunch Break
                         </Button>
@@ -645,6 +674,14 @@ function EmployeeDashboard() {
                           fullWidth
                           size="small"
                           onClick={() => handleStartBreak('Dinner')}
+                          sx={{
+                            borderRadius: '20px',
+                            py: 0.8,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderWidth: '1.5px',
+                            '&:hover': { borderWidth: '1.5px', transform: 'translateY(-1px)', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.08)' }
+                          }}
                         >
                           🍽️ Dinner
                         </Button>
@@ -656,6 +693,14 @@ function EmployeeDashboard() {
                           fullWidth
                           size="small"
                           onClick={() => handleStartBreak('Washroom')}
+                          sx={{
+                            borderRadius: '20px',
+                            py: 0.8,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderWidth: '1.5px',
+                            '&:hover': { borderWidth: '1.5px', transform: 'translateY(-1px)', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.08)' }
+                          }}
                         >
                           🚽 Washroom
                         </Button>
@@ -667,6 +712,14 @@ function EmployeeDashboard() {
                           fullWidth
                           size="small"
                           onClick={() => handleStartBreak('Outgoing')}
+                          sx={{
+                            borderRadius: '20px',
+                            py: 0.8,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderWidth: '1.5px',
+                            '&:hover': { borderWidth: '1.5px', transform: 'translateY(-1px)', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.08)' }
+                          }}
                         >
                           🚗 Outgoing
                         </Button>
@@ -678,6 +731,14 @@ function EmployeeDashboard() {
                           fullWidth
                           size="small"
                           onClick={() => setOtherBreakOpen(true)}
+                          sx={{
+                            borderRadius: '20px',
+                            py: 0.8,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderWidth: '1.5px',
+                            '&:hover': { borderWidth: '1.5px', transform: 'translateY(-1px)', boxShadow: '0 4px 10px rgba(139, 92, 246, 0.08)' }
+                          }}
                         >
                           📝 Other
                         </Button>
@@ -794,7 +855,7 @@ function EmployeeDashboard() {
                     Productivity Level
                   </Typography>
                   <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: productivity >= 70 ? 'success.main' : 'warning.main' }}>
-                    {productivity}%
+                    <AnimatedCounter value={productivity} suffix="%" />
                   </Typography>
                 </Box>
                 <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: productivity >= 70 ? 'rgba(52, 211, 153, 0.15)' : 'rgba(251, 191, 36, 0.15)', color: productivity >= 70 ? 'success.main' : 'warning.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -836,8 +897,11 @@ function EmployeeDashboard() {
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
                     Tasks Completed
                   </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: 'secondary.main' }}>
-                    {completedTasksCount} / {totalTasksCount}
+                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: 'secondary.main', display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
+                    <AnimatedCounter value={completedTasksCount} />
+                    <Typography component="span" variant="h5" color="text.secondary" sx={{ fontWeight: 600 }}>
+                      / {totalTasksCount}
+                    </Typography>
                   </Typography>
                 </Box>
                 <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: 'rgba(167, 139, 250, 0.15)', color: 'secondary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

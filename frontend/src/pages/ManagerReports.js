@@ -1,12 +1,9 @@
-// frontend/src/pages/ManagerReports.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -21,13 +18,14 @@ import {
   Tabs,
   Tab,
   List,
-  ListItem
+  LinearProgress
 } from '@mui/material';
 import {
   CheckCircleOutlined as ApproveIcon,
   CancelOutlined as RejectIcon,
-  HourglassEmpty as PendingIcon,
-  Check as CheckIcon
+  Check as CheckIcon,
+  Undo as UndoIcon,
+  Comment as CommentIcon
 } from '@mui/icons-material';
 
 function ManagerReports() {
@@ -40,6 +38,103 @@ function ManagerReports() {
   const [feedback, setFeedback] = useState('');
   const [activeReportId, setActiveReportId] = useState(null);
   const [actionType, setActionType] = useState(''); // 'Approved' or 'Rejected'
+
+  // Pending rejects state for 5s undo countdown
+  const [pendingRejects, setPendingRejects] = useState({}); // { [reportId]: secondsRemaining }
+  const activeTimers = useRef({});
+
+  // Clear all timers on unmount
+  useEffect(() => {
+    const timers = activeTimers.current;
+    return () => {
+      if (timers) {
+        Object.values(timers).forEach(clearInterval);
+      }
+    };
+  }, []);
+
+  const performRejection = async (reportId, customFeedback = 'Auto-rejected') => {
+    try {
+      await axios.put(
+        `${API_URL}/api/reports/${reportId}/approve`,
+        { status: 'Rejected', managerFeedback: customFeedback },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setReports((prev) =>
+        prev.map((r) =>
+          r._id === reportId ? { ...r, approvalStatus: 'Rejected', managerFeedback: customFeedback } : r
+        )
+      );
+      fetchReports();
+    } catch (err) {
+      console.error(err.message);
+    }
+  };
+
+  const handleRejectClick = (reportId) => {
+    if (activeTimers.current[reportId]) {
+      clearInterval(activeTimers.current[reportId]);
+    }
+
+    let timeLeft = 5;
+    setPendingRejects((prev) => ({ ...prev, [reportId]: timeLeft }));
+
+    const timer = setInterval(() => {
+      timeLeft -= 1;
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        delete activeTimers.current[reportId];
+        setPendingRejects((prev) => {
+          const copy = { ...prev };
+          delete copy[reportId];
+          return copy;
+        });
+        performRejection(reportId, 'Auto-rejected');
+      } else {
+        setPendingRejects((prev) => ({ ...prev, [reportId]: timeLeft }));
+      }
+    }, 1000);
+
+    activeTimers.current[reportId] = timer;
+  };
+
+  const handleUndoReject = (reportId) => {
+    if (activeTimers.current[reportId]) {
+      clearInterval(activeTimers.current[reportId]);
+      delete activeTimers.current[reportId];
+    }
+    setPendingRejects((prev) => {
+      const copy = { ...prev };
+      delete copy[reportId];
+      return copy;
+    });
+  };
+
+  const handleAddFeedbackFromPending = (reportId) => {
+    if (activeTimers.current[reportId]) {
+      clearInterval(activeTimers.current[reportId]);
+      delete activeTimers.current[reportId];
+    }
+    setPendingRejects((prev) => {
+      const copy = { ...prev };
+      delete copy[reportId];
+      return copy;
+    });
+    handleOpenDialog(reportId, 'Rejected');
+  };
+
+  const handleInstantReject = (reportId) => {
+    if (activeTimers.current[reportId]) {
+      clearInterval(activeTimers.current[reportId]);
+      delete activeTimers.current[reportId];
+    }
+    setPendingRejects((prev) => {
+      const copy = { ...prev };
+      delete copy[reportId];
+      return copy;
+    });
+    performRejection(reportId, 'Instant rejection');
+  };
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -86,6 +181,87 @@ function ManagerReports() {
     }
   };
 
+  const renderPendingRejectCard = (rep) => {
+    const timeLeft = pendingRejects[rep._id || rep.id];
+    const progressVal = (timeLeft / 5) * 100;
+
+    return (
+      <Paper
+        key={rep._id || rep.id}
+        variant="outlined"
+        sx={{
+          p: 3,
+          borderRadius: 3,
+          background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(239, 68, 68, 0.04) 100%)',
+          borderColor: 'rgba(239, 68, 68, 0.3)',
+          boxShadow: '0 8px 32px rgba(239, 68, 68, 0.08)',
+          position: 'relative',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2
+        }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          <Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#f87171' }}>
+              Report for {rep.employee?.name} will be rejected
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Auto-rejecting in <strong>{timeLeft}s</strong>... You can undo this action or add feedback.
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <Button
+              variant="contained"
+              color="inherit"
+              size="small"
+              startIcon={<UndoIcon />}
+              onClick={() => handleUndoReject(rep._id || rep.id)}
+              sx={{
+                bgcolor: 'rgba(255, 255, 255, 0.1)',
+                color: 'text.primary',
+                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.2)' }
+              }}
+            >
+              Undo
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              size="small"
+              startIcon={<CommentIcon />}
+              onClick={() => handleAddFeedbackFromPending(rep._id || rep.id)}
+            >
+              Add Feedback
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              size="small"
+              onClick={() => handleInstantReject(rep._id || rep.id)}
+            >
+              Reject Now
+            </Button>
+          </Box>
+        </Box>
+        <LinearProgress
+          variant="determinate"
+          value={progressVal}
+          color="error"
+          sx={{
+            height: 4,
+            borderRadius: 2,
+            bgcolor: 'rgba(239, 68, 68, 0.1)',
+            '& .MuiLinearProgress-bar': {
+              transition: 'transform 1s linear'
+            }
+          }}
+        />
+      </Paper>
+    );
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
@@ -116,35 +292,39 @@ function ManagerReports() {
         </Paper>
       ) : (
         <List sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {displayedReports.map((rep) => (
-            <Paper key={rep._id || rep.id} variant="outlined" sx={{ p: 3, borderRadius: 3, boxShadow: '0px 4px 15px rgba(0,0,0,0.02)' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, alignItems: 'center' }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  {rep.employee?.name} ({rep.employee?.department}) - Report for {rep.date}
-                </Typography>
-                
-                {rep.approvalStatus === 'Pending' ? (
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button
-                      variant="contained"
-                      color="success"
-                      size="small"
-                      startIcon={<ApproveIcon />}
-                      onClick={() => handleOpenDialog(rep._id || rep.id, 'Approved')}
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      variant="contained"
-                      color="error"
-                      size="small"
-                      startIcon={<RejectIcon />}
-                      onClick={() => handleOpenDialog(rep._id || rep.id, 'Rejected')}
-                    >
-                      Reject
-                    </Button>
-                  </Box>
-                ) : (
+          {displayedReports.map((rep) => {
+            if (pendingRejects[rep._id || rep.id] !== undefined) {
+              return renderPendingRejectCard(rep);
+            }
+            return (
+              <Paper key={rep._id || rep.id} variant="outlined" sx={{ p: 3, borderRadius: 3, boxShadow: '0px 4px 15px rgba(0,0,0,0.02)' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, alignItems: 'center' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                    {rep.employee?.name} ({rep.employee?.department}) - Report for {rep.date}
+                  </Typography>
+                  
+                  {rep.approvalStatus === 'Pending' ? (
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        variant="contained"
+                        color="success"
+                        size="small"
+                        startIcon={<ApproveIcon />}
+                        onClick={() => handleOpenDialog(rep._id || rep.id, 'Approved')}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="error"
+                        size="small"
+                        startIcon={<RejectIcon />}
+                        onClick={() => handleRejectClick(rep._id || rep.id)}
+                      >
+                        Reject
+                      </Button>
+                    </Box>
+                  ) : (
                   <Chip
                     label={rep.approvalStatus}
                     color={rep.approvalStatus === 'Approved' ? 'success' : 'error'}
@@ -202,7 +382,8 @@ function ManagerReports() {
                 )}
               </Grid>
             </Paper>
-          ))}
+            );
+          })}
         </List>
       )}
 

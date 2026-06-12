@@ -319,8 +319,15 @@ app.delete('/api/users/employees/:id', authenticate, authorize('Manager'), async
 
 // 1. AUTH ROUTES
 app.post('/api/auth/register', async (req, res) => {
-  const { name, email, password, role, department } = req.body;
+  const { name, email, password, role, department, managerKey } = req.body;
   try {
+    if (role === 'Manager') {
+      const systemManagerKey = process.env.MANAGER_REGISTRATION_KEY || 'workforce-manager-sec';
+      if (managerKey !== systemManagerKey) {
+        return res.status(403).json({ message: 'Invalid Manager Secret Key. You cannot register as a Manager/Admin.' });
+      }
+    }
+
     const { data: existingUser } = await supabase
       .from('users')
       .select('*')

@@ -1,5 +1,5 @@
 // frontend/src/pages/ManagerDashboard.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
@@ -8,7 +8,6 @@ import {
   Button,
   Card,
   CardContent,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -48,8 +47,8 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line
+  AreaChart,
+  Area
 } from 'recharts';
 import {
   People as TeamIcon,
@@ -60,8 +59,13 @@ import {
   Visibility as ViewIcon,
   TrendingUp as TrendIcon,
   HourglassEmpty as PendingIcon,
-  FiberManualRecord as DotIcon
+  FiberManualRecord as DotIcon,
+  Undo as UndoIcon,
+  Comment as CommentIcon
 } from '@mui/icons-material';
+
+import SkeletonCard from '../components/SkeletonCard';
+import AnimatedCounter from '../components/AnimatedCounter';
 
 const COLORS = ['#fbbf24', '#4f8ef7', '#34d399', '#f87171'];
 
@@ -117,6 +121,101 @@ function ManagerDashboard() {
   const [reportFeedback, setReportFeedback] = useState('');
   const [activeReportId, setActiveReportId] = useState(null);
   const [reportActionType, setReportActionType] = useState(''); // 'Approved' or 'Rejected'
+
+  // Pending rejects state for 5s undo countdown
+  const [pendingRejects, setPendingRejects] = useState({}); // { [reportId]: secondsRemaining }
+  const activeTimers = useRef({});
+
+  // Clear all timers on unmount
+  useEffect(() => {
+    const timers = activeTimers.current;
+    return () => {
+      if (timers) {
+        Object.values(timers).forEach(clearInterval);
+      }
+    };
+  }, []);
+
+  const performRejection = async (reportId, customFeedback = 'Auto-rejected') => {
+    try {
+      await axios.put(
+        `${API_URL}/api/reports/${reportId}/approve`,
+        { status: 'Rejected', managerFeedback: customFeedback },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setReports((prev) =>
+        prev.map((r) => (r._id === reportId ? { ...r, approvalStatus: 'Rejected', managerFeedback: customFeedback } : r))
+      );
+      fetchData();
+    } catch (err) {
+      console.error(err.message);
+    }
+  };
+
+  const handleRejectClick = (reportId) => {
+    if (activeTimers.current[reportId]) {
+      clearInterval(activeTimers.current[reportId]);
+    }
+
+    let timeLeft = 5;
+    setPendingRejects((prev) => ({ ...prev, [reportId]: timeLeft }));
+
+    const timer = setInterval(() => {
+      timeLeft -= 1;
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        delete activeTimers.current[reportId];
+        setPendingRejects((prev) => {
+          const copy = { ...prev };
+          delete copy[reportId];
+          return copy;
+        });
+        performRejection(reportId, 'Auto-rejected');
+      } else {
+        setPendingRejects((prev) => ({ ...prev, [reportId]: timeLeft }));
+      }
+    }, 1000);
+
+    activeTimers.current[reportId] = timer;
+  };
+
+  const handleUndoReject = (reportId) => {
+    if (activeTimers.current[reportId]) {
+      clearInterval(activeTimers.current[reportId]);
+      delete activeTimers.current[reportId];
+    }
+    setPendingRejects((prev) => {
+      const copy = { ...prev };
+      delete copy[reportId];
+      return copy;
+    });
+  };
+
+  const handleAddFeedbackFromPending = (reportId) => {
+    if (activeTimers.current[reportId]) {
+      clearInterval(activeTimers.current[reportId]);
+      delete activeTimers.current[reportId];
+    }
+    setPendingRejects((prev) => {
+      const copy = { ...prev };
+      delete copy[reportId];
+      return copy;
+    });
+    handleOpenReportDialog(reportId, 'Rejected');
+  };
+
+  const handleInstantReject = (reportId) => {
+    if (activeTimers.current[reportId]) {
+      clearInterval(activeTimers.current[reportId]);
+      delete activeTimers.current[reportId];
+    }
+    setPendingRejects((prev) => {
+      const copy = { ...prev };
+      delete copy[reportId];
+      return copy;
+    });
+    performRejection(reportId, 'Instant rejection');
+  };
 
   // Task Form
   const [taskName, setTaskName] = useState('');
@@ -266,8 +365,29 @@ function ManagerDashboard() {
 
   if (loading || !summary) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-        <CircularProgress />
+      <Box sx={{ p: 1 }}>
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <SkeletonCard variant="stat" />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <SkeletonCard variant="stat" />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <SkeletonCard variant="stat" />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <SkeletonCard variant="stat" />
+          </Grid>
+        </Grid>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={8}>
+            <SkeletonCard variant="chart" />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <SkeletonCard variant="list" />
+          </Grid>
+        </Grid>
       </Box>
     );
   }
@@ -328,7 +448,7 @@ function ManagerDashboard() {
                   Total Employees
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: 'text.primary' }}>
-                  {summary.totalEmployees}
+                  <AnimatedCounter value={summary.totalEmployees} />
                 </Typography>
               </Box>
               <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: 'rgba(79, 142, 247, 0.15)', color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -359,7 +479,7 @@ function ManagerDashboard() {
                   Online Now
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: 'success.main' }}>
-                  {summary.onlineEmployees}
+                  <AnimatedCounter value={summary.onlineEmployees} />
                 </Typography>
               </Box>
               <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: 'rgba(52, 211, 153, 0.15)', color: 'success.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -400,7 +520,7 @@ function ManagerDashboard() {
                   Avg Productivity
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: 'text.primary' }}>
-                  {summary.productivityScore}%
+                  <AnimatedCounter value={summary.productivityScore} suffix="%" />
                 </Typography>
               </Box>
               <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: 'rgba(167, 139, 250, 0.15)', color: 'secondary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -431,7 +551,7 @@ function ManagerDashboard() {
                   Pending Reports
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: 'warning.main' }}>
-                  {summary.pendingReportsCount}
+                  <AnimatedCounter value={summary.pendingReportsCount} />
                 </Typography>
               </Box>
               <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: 'rgba(251, 191, 36, 0.15)', color: 'warning.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -512,21 +632,29 @@ function ManagerDashboard() {
               </Typography>
               <Box sx={{ height: 250 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={productivityTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <AreaChart data={productivityTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorProd" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#4f8ef7" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#4f8ef7" stopOpacity={0.0}/>
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid stroke={isDarkMode ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.08)"} strokeDasharray="3 3" />
                     <XAxis dataKey="day" stroke={isDarkMode ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.5)"} style={{ fontSize: 11 }} />
                     <YAxis domain={[50, 100]} stroke={isDarkMode ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.5)"} style={{ fontSize: 11 }} />
                     <RechartsTooltip content={<CustomTooltip />} />
-                    <Line 
+                    <Area 
                       type="monotone" 
                       dataKey="score" 
                       name="Productivity"
                       stroke="#4f8ef7" 
-                      strokeWidth={4} 
+                      strokeWidth={3} 
+                      fillOpacity={1}
+                      fill="url(#colorProd)"
                       activeDot={{ r: 8, stroke: isDarkMode ? '#111' : '#fff', strokeWidth: 2 }} 
                       dot={{ stroke: '#4f8ef7', strokeWidth: 2, r: 4, fill: isDarkMode ? '#111' : '#fff' }}
                     />
-                  </LineChart>
+                  </AreaChart>
                 </ResponsiveContainer>
               </Box>
             </CardContent>
@@ -575,7 +703,10 @@ function ManagerDashboard() {
           <Card sx={{ borderRadius: 4 }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }} className="no-print">
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>Active Attendance Check-Ins</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box sx={{ width: 4, height: 24, borderRadius: 2, bgcolor: 'primary.main' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.015em' }}>Active Attendance Check-Ins</Typography>
+                </Box>
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                   <FormControl size="small" sx={{ minWidth: 160 }}>
                     <InputLabel>Filter Employee</InputLabel>
@@ -757,7 +888,10 @@ function ManagerDashboard() {
           <Card sx={{ borderRadius: 4, height: '100%' }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2.5, alignItems: 'center' }}>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>Task Distribution</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box sx={{ width: 4, height: 24, borderRadius: 2, bgcolor: 'secondary.main' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.015em' }}>Task Distribution</Typography>
+                </Box>
                 <Button 
                   variant="outlined" 
                   size="small" 
@@ -829,9 +963,12 @@ function ManagerDashboard() {
         <Grid item xs={12} md={7}>
           <Card sx={{ borderRadius: 4, height: '100%' }}>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 800, mb: 2.5 }}>
-                Pending Daily Work Reports
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
+                <Box sx={{ width: 4, height: 24, borderRadius: 2, bgcolor: 'warning.main' }} />
+                <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.015em', mb: 0 }}>
+                  Pending Daily Work Reports
+                </Typography>
+              </Box>
               <Divider sx={{ mb: 2 }} />
 
               <Box sx={{ maxHeight: 320, overflowY: 'auto', pr: 0.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -840,7 +977,91 @@ function ManagerDashboard() {
                     No pending report reviews. All caught up!
                   </Typography>
                 ) : (
-                  reports.filter(r => r.approvalStatus === 'Pending').map((rep) => {
+                   reports.filter(r => r.approvalStatus === 'Pending').map((rep) => {
+                    if (pendingRejects[rep._id || rep.id] !== undefined) {
+                      const timeLeft = pendingRejects[rep._id || rep.id];
+                      const progressVal = (timeLeft / 5) * 100;
+                      return (
+                        <Paper
+                          key={rep._id || rep.id}
+                          variant="outlined"
+                          sx={{
+                            p: 2,
+                            borderRadius: 3,
+                            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(239, 68, 68, 0.04) 100%)',
+                            borderColor: 'rgba(239, 68, 68, 0.3)',
+                            boxShadow: '0 4px 20px rgba(239, 68, 68, 0.05)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 1.5
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                            <Box>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#f87171' }}>
+                                Rejecting {rep.employee?.name}'s report
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                Rejection triggers in <strong>{timeLeft}s</strong>...
+                              </Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <Button
+                                variant="contained"
+                                color="inherit"
+                                size="small"
+                                startIcon={<UndoIcon />}
+                                onClick={() => handleUndoReject(rep._id || rep.id)}
+                                sx={{
+                                  py: 0.25,
+                                  px: 1,
+                                  borderRadius: 1.5,
+                                  fontSize: '0.7rem',
+                                  bgcolor: 'rgba(255, 255, 255, 0.1)',
+                                  color: 'text.primary',
+                                  '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.2)' }
+                                }}
+                              >
+                                Undo
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                color="error"
+                                size="small"
+                                startIcon={<CommentIcon />}
+                                onClick={() => handleAddFeedbackFromPending(rep._id || rep.id)}
+                                sx={{ py: 0.25, px: 1, borderRadius: 1.5, fontSize: '0.7rem' }}
+                              >
+                                Feedback
+                              </Button>
+                              <Button
+                                variant="contained"
+                                color="error"
+                                size="small"
+                                onClick={() => handleInstantReject(rep._id || rep.id)}
+                                sx={{ py: 0.25, px: 1, borderRadius: 1.5, fontSize: '0.7rem' }}
+                              >
+                                Now
+                              </Button>
+                            </Box>
+                          </Box>
+                          <LinearProgress
+                            variant="determinate"
+                            value={progressVal}
+                            color="error"
+                            sx={{
+                              height: 3,
+                              borderRadius: 1.5,
+                              bgcolor: 'rgba(239, 68, 68, 0.1)',
+                              '& .MuiLinearProgress-bar': {
+                                transition: 'transform 1s linear'
+                              }
+                            }}
+                          />
+                        </Paper>
+                      );
+                    }
+
                     const initials = getInitials(rep.employee?.name);
                     return (
                       <Paper 
@@ -885,7 +1106,7 @@ function ManagerDashboard() {
                               color="error"
                               size="small"
                               startIcon={<RejectIcon />}
-                              onClick={() => handleOpenReportDialog(rep._id || rep.id, 'Rejected')}
+                              onClick={() => handleRejectClick(rep._id || rep.id)}
                               sx={{ py: 0.5, borderRadius: 1.5, fontSize: '0.75rem' }}
                             >
                               Reject

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      background: transparent;
+      overflow: hidden;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      user-select: none;
+    }
+    
+    .splash-container {
+      width: 420px;
+      height: 290px;
+      background: rgba(7, 11, 20, 0.95);
+      border: 1px solid rgba(91, 156, 246, 0.2);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 30px rgba(91, 156, 246, 0.15);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    /* Decorative glowing blobs */
+    .glow-blob {
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(91, 156, 246, 0.2) 0%, rgba(167, 139, 250, 0) 70%);
+      filter: blur(40px);
+      z-index: 0;
+      pointer-events: none;
+    }
+    .blob-1 { top: -60px; left: -60px; }
+    .blob-2 { bottom: -60px; right: -60px; }
+    
+    .content {
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    /* Core loading animation */
+    .animation-wrapper {
+      position: relative;
+      width: 90px;
+      height: 90px;
+      margin-bottom: 24px;
+    }
+    
+    .core-dot {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      margin-top: -8px;
+      margin-left: -8px;
+      background: #5b9cf6;
+      border-radius: 50%;
+      box-shadow: 0 0 20px #5b9cf6, 0 0 35px rgba(91, 156, 246, 0.5);
+      animation: pulse 1.8s infinite ease-in-out;
+    }
+    
+    .orbit-ring {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 1.5px solid transparent;
+      border-radius: 50%;
+      box-sizing: border-box;
+    }
+    
+    .ring-1 {
+      border-top-color: rgba(91, 156, 246, 0.8);
+      border-bottom-color: rgba(167, 139, 250, 0.8);
+      animation: rotate-cw 2.5s infinite linear;
+    }
+    
+    .ring-2 {
+      width: 80%;
+      height: 80%;
+      top: 10%;
+      left: 10%;
+      border-left-color: rgba(52, 211, 153, 0.8);
+      border-right-color: rgba(91, 156, 246, 0.6);
+      animation: rotate-ccw 1.8s infinite linear;
+    }
+    
+    .ring-3 {
+      width: 60%;
+      height: 60%;
+      top: 20%;
+      left: 20%;
+      border-top-color: rgba(251, 191, 36, 0.7);
+      animation: rotate-cw 1.2s infinite linear;
+    }
+
+    @keyframes rotate-cw {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes rotate-ccw {
+      0% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(0.85); opacity: 0.8; }
+      50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 30px #5b9cf6, 0 0 50px rgba(91, 156, 246, 0.7); }
+    }
+    
+    .brand-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: #ffffff;
+      background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0;
+    }
+    
+    .brand-subtitle {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: 4px;
+    }
+    
+    .loader-text {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 24px;
+      font-weight: 500;
+      animation: text-pulse 1.5s infinite ease-in-out;
+    }
+    
+    @keyframes text-pulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="splash-container">
+    <div class="glow-blob blob-1"></div>
+    <div class="glow-blob blob-2"></div>
+    <div class="content">
+      <div class="animation-wrapper">
+        <div class="core-dot"></div>
+        <div class="orbit-ring ring-1"></div>
+        <div class="orbit-ring ring-2"></div>
+        <div class="orbit-ring ring-3"></div>
+      </div>
+      <h1 class="brand-title">WorkforceOS</h1>
+      <div class="brand-subtitle">Desktop Agent v2.0</div>
+      <div class="loader-text">Initializing Secure Connection...</div>
+    </div>
+  </div>
+</body>
+</html>

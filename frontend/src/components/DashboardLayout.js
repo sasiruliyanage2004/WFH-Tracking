@@ -25,7 +25,8 @@ import {
   Avatar,
   Snackbar,
   Alert,
-  Tooltip
+  Tooltip,
+  Slide
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -33,7 +34,6 @@ import {
   Assignment as TaskIcon,
   Assessment as ReportIcon,
   History as HistoryIcon,
-  People as TeamIcon,
   Monitor as MonitoringIcon,
   Notifications as NotificationIcon,
   Brightness4 as DarkIcon,
@@ -41,11 +41,14 @@ import {
   ExitToApp as LogoutIcon,
   AccountCircle as ProfileIcon,
   Group as EmployeeListIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  ArrowBack as BackIcon,
+  ArrowForward as ForwardIcon,
+  Warning as AlertIcon
 } from '@mui/icons-material';
 import { logout } from '../redux/store';
 
-const drawerWidth = 240;
+const drawerWidth = 260;
 
 function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
   const navigate = useNavigate();
@@ -186,39 +189,59 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
                   setMobileOpen(false);
                 }}
                 sx={{
-                  borderRadius: 2,
-                  mx: 1,
+                  borderRadius: '12px',
+                  mx: 1.5,
+                  px: 2,
+                  py: 1.25,
                   position: 'relative',
                   background: isActive
                     ? isDarkMode
-                      ? 'linear-gradient(135deg, rgba(79, 142, 247, 0.18) 0%, rgba(167, 139, 250, 0.12) 100%)'
-                      : 'rgba(0, 56, 168, 0.08)'
+                      ? 'linear-gradient(135deg, rgba(91, 156, 246, 0.18) 0%, rgba(167, 139, 250, 0.12) 100%)'
+                      : 'linear-gradient(135deg, rgba(26, 86, 219, 0.08) 0%, rgba(26, 86, 219, 0.04) 100%)'
                     : 'transparent',
                   color: isActive
-                    ? isDarkMode ? '#7aaeff' : '#0038a8'
+                    ? isDarkMode ? '#5b9cf6' : '#1a56db'
                     : 'text.primary',
                   border: isActive && isDarkMode
-                    ? '1px solid rgba(255, 255, 255, 0.12)'
-                    : '1px solid transparent',
-                  boxShadow: isActive && isDarkMode
-                    ? '0 0 10px rgba(255, 255, 255, 0.06)'
+                    ? '1px solid rgba(91, 156, 246, 0.25)'
+                    : isActive
+                      ? '1px solid rgba(26, 86, 219, 0.12)'
+                      : '1px solid transparent',
+                  boxShadow: isActive
+                    ? isDarkMode
+                      ? '0 4px 20px rgba(91, 156, 246, 0.15)'
+                      : '0 4px 15px rgba(26, 86, 219, 0.08)'
                     : 'none',
+                  overflow: 'hidden',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&::before': isActive ? {
+                    content: '""',
+                    position: 'absolute',
+                    left: 0,
+                    top: '20%',
+                    height: '60%',
+                    width: 4,
+                    borderRadius: '0 4px 4px 0',
+                    backgroundColor: isDarkMode ? '#5b9cf6' : '#1a56db'
+                  } : null,
                   '&:hover': {
                     background: isActive
                       ? isDarkMode
-                        ? 'linear-gradient(135deg, rgba(79, 142, 247, 0.25) 0%, rgba(167, 139, 250, 0.18) 100%)'
-                        : 'rgba(0, 56, 168, 0.14)'
+                        ? 'linear-gradient(135deg, rgba(91, 156, 246, 0.25) 0%, rgba(167, 139, 250, 0.18) 100%)'
+                        : 'linear-gradient(135deg, rgba(26, 86, 219, 0.12) 0%, rgba(26, 86, 219, 0.06) 100%)'
                       : isDarkMode
-                        ? 'rgba(79, 142, 247, 0.08)'
-                        : 'action.hover'
+                        ? 'rgba(91, 156, 246, 0.08)'
+                        : 'action.hover',
+                    transform: isActive ? 'none' : 'translateX(4px)'
                   }
                 }}
               >
                 <ListItemIcon sx={{
                   color: isActive
-                    ? isDarkMode ? '#7aaeff' : '#0038a8'
+                    ? isDarkMode ? '#5b9cf6' : '#1a56db'
                     : 'text.secondary',
-                  minWidth: 40
+                  minWidth: 40,
+                  transition: 'color 0.25s'
                 }}>
                   {link.icon}
                 </ListItemIcon>
@@ -226,7 +249,8 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
                   primary={link.text}
                   primaryTypographyProps={{
                     fontSize: '0.9rem',
-                    fontWeight: isActive ? 700 : 500
+                    fontWeight: isActive ? 700 : 500,
+                    letterSpacing: '-0.01em'
                   }}
                 />
               </ListItemButton>
@@ -322,6 +346,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
+          top: window.api !== undefined ? '32px' : 0,
           borderBottom: 1,
           borderColor: 'divider',
           bgcolor: isDarkMode ? 'transparent' : 'background.paper',
@@ -338,6 +363,24 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
               sx={{ mr: 2, display: { sm: 'none' } }}
             >
               <MenuIcon />
+            </IconButton>
+            <IconButton
+              onClick={() => navigate(-1)}
+              color="inherit"
+              sx={{ mr: 0.5 }}
+              size="small"
+              title="Go Back"
+            >
+              <BackIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              onClick={() => navigate(1)}
+              color="inherit"
+              sx={{ mr: 2 }}
+              size="small"
+              title="Go Forward"
+            >
+              <ForwardIcon fontSize="small" />
             </IconButton>
             <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700 }}>
               {links.find((l) => l.path === location.pathname)?.text || 'WFH Tracking'}
@@ -363,13 +406,46 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
 
             {/* Profile Avatar Click */}
             <IconButton onClick={(e) => setAnchorElProfile(e.currentTarget)} sx={{ p: 0, ml: 1 }}>
-              <Avatar
-                src={user?.profilePic || ''}
-                alt={user?.name}
-                sx={{ width: 40, height: 40, bgcolor: 'primary.main' }}
+              <Badge
+                overlap="circular"
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                variant="dot"
+                sx={{
+                  '& .MuiBadge-badge': {
+                    backgroundColor: '#10b981',
+                    color: '#10b981',
+                    width: 11,
+                    height: 11,
+                    borderRadius: '50%',
+                    boxShadow: (theme) => `0 0 0 2px ${theme.palette.background.paper}`,
+                    '&::after': {
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: '50%',
+                      animation: 'pulse-ring 1.2s infinite ease-in-out',
+                      border: '1px solid currentColor',
+                      content: '""',
+                    },
+                  },
+                }}
               >
-                {user?.name?.charAt(0)}
-              </Avatar>
+                <Avatar
+                  src={user?.profilePic || ''}
+                  alt={user?.name}
+                  sx={{ 
+                    width: 40, 
+                    height: 40, 
+                    bgcolor: 'primary.main',
+                    border: '2px solid rgba(91, 156, 246, 0.2)',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+                  }}
+                >
+                  {user?.name?.charAt(0)}
+                </Avatar>
+              </Badge>
             </IconButton>
           </Box>
         </Toolbar>
@@ -404,28 +480,81 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
               <Typography variant="body2" color="text.secondary">No notifications yet</Typography>
             </ListItem>
           ) : (
-            notifications.map((notif) => (
-              <ListItem
-                key={notif.id || notif._id}
-                disablePadding
-                divider
-                onClick={() => handleNotificationClick(notif)}
-                sx={{
-                  bgcolor: notif.isRead ? 'transparent' : 'action.selected',
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: 'action.hover' }
-                }}
-              >
-                <ListItemButton sx={{ flexDirection: 'column', alignItems: 'flex-start', py: 1.5 }}>
-                  <Typography variant="body2" color="text.primary" sx={{ fontWeight: notif.isRead ? 400 : 600 }}>
-                    {notif.message}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
-                    {new Date(notif.timestamp || notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </Typography>
-                </ListItemButton>
-              </ListItem>
-            ))
+            notifications.map((notif) => {
+              const getNotifIcon = (type) => {
+                const style = { fontSize: '1.1rem' };
+                switch (type?.toLowerCase()) {
+                  case 'task':
+                    return <TaskIcon sx={{ ...style, color: '#1a56db' }} />;
+                  case 'attendance':
+                  case 'break':
+                  case 'checkin':
+                    return <HistoryIcon sx={{ ...style, color: '#10b981' }} />;
+                  case 'report':
+                    return <ReportIcon sx={{ ...style, color: '#f59e0b' }} />;
+                  case 'alert':
+                    return <AlertIcon sx={{ ...style, color: '#ef4444' }} />;
+                  default:
+                    return <NotificationIcon sx={{ ...style, color: '#6b7280' }} />;
+                }
+              };
+
+              const getNotifBg = (type, isRead) => {
+                if (isRead) return 'action.hover';
+                switch (type?.toLowerCase()) {
+                  case 'task': return 'rgba(26, 86, 219, 0.08)';
+                  case 'attendance':
+                  case 'break':
+                  case 'checkin': return 'rgba(16, 185, 129, 0.08)';
+                  case 'report': return 'rgba(245, 158, 11, 0.08)';
+                  case 'alert': return 'rgba(239, 68, 68, 0.08)';
+                  default: return 'rgba(91, 156, 246, 0.08)';
+                }
+              };
+
+              return (
+                <ListItem
+                  key={notif.id || notif._id}
+                  disablePadding
+                  divider
+                  onClick={() => handleNotificationClick(notif)}
+                  sx={{
+                    bgcolor: notif.isRead ? 'transparent' : 'action.selected',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s',
+                    '&:hover': { bgcolor: 'action.hover' }
+                  }}
+                >
+                  <ListItemButton sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.5, px: 2 }}>
+                    <Box sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 36,
+                      height: 36,
+                      borderRadius: '10px',
+                      bgcolor: getNotifBg(notif.type, notif.isRead),
+                      flexShrink: 0
+                    }}>
+                      {getNotifIcon(notif.type)}
+                    </Box>
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                      <Typography variant="body2" color="text.primary" sx={{ 
+                        fontWeight: notif.isRead ? 400 : 600,
+                        fontSize: '0.825rem',
+                        lineHeight: 1.4,
+                        wordBreak: 'break-word'
+                      }}>
+                        {notif.message}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block', fontSize: '0.75rem' }}>
+                        {new Date(notif.timestamp || notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Typography>
+                    </Box>
+                  </ListItemButton>
+                </ListItem>
+              );
+            })
           )}
         </List>
       </Popover>
@@ -464,7 +593,12 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth }
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: drawerWidth,
+              top: window.api !== undefined ? 32 : 0,
+              height: window.api !== undefined ? 'calc(100% - 32px)' : '100%'
+            }
           }}
         >
           {drawerContent}
@@ -473,7 +607,12 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth }
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: drawerWidth,
+              top: window.api !== undefined ? 32 : 0,
+              height: window.api !== undefined ? 'calc(100% - 32px)' : '100%'
+            }
           }}
           open
         >
@@ -504,8 +643,34 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
         autoHideDuration={4000}
         onClose={() => setToast({ ...toast, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        TransitionComponent={(props) => <Slide {...props} direction="up" />}
       >
-        <Alert severity={toast.severity} onClose={() => setToast({ ...toast, open: false })} variant="filled">
+        <Alert 
+          severity={toast.severity} 
+          onClose={() => setToast({ ...toast, open: false })} 
+          variant="filled"
+          sx={{
+            borderRadius: '16px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.16)',
+            background: toast.severity === 'success'
+              ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
+              : toast.severity === 'error'
+                ? 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)'
+                : toast.severity === 'warning'
+                  ? 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)'
+                  : 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            fontWeight: 600,
+            py: 1,
+            px: 2,
+            alignItems: 'center',
+            '& .MuiAlert-icon': {
+              fontSize: '1.5rem',
+              color: '#ffffff'
+            }
+          }}
+        >
           {toast.message}
         </Alert>
       </Snackbar>
