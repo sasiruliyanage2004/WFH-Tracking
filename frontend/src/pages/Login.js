@@ -94,7 +94,7 @@ function Login() {
       const updated = [
         { email: loginEmail, password: loginPassword },
         ...savedAccounts.filter(a => a.email !== loginEmail),
-      ].slice(0, 5);
+      ]; // Keep all logged-in accounts
       localStorage.setItem('wfh_saved_accounts', JSON.stringify(updated));
       setSavedAccounts(updated);
     } catch (err) {
@@ -389,10 +389,16 @@ function Login() {
                     top: '100%', left: 0, right: 0,
                     mt: 0.5, zIndex: 20,
                     borderRadius: 3,
-                    overflow: 'hidden',
+                    maxHeight: 220,
+                    overflowY: 'auto',
                     border: '1px solid rgba(255,255,255,0.08)',
                     bgcolor: 'rgba(13,17,23,0.97)',
                     backdropFilter: 'blur(20px)',
+                    // Custom scrollbar
+                    '&::-webkit-scrollbar': { width: '6px' },
+                    '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
+                    '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.15)', borderRadius: '3px' },
+                    '&::-webkit-scrollbar-thumb:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
                   }}
                 >
                   {savedAccounts.map((acc, idx) => (
