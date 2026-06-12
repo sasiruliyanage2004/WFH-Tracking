@@ -39,7 +39,7 @@ import {
 
 function ManagerMonitoring() {
   const navigate = useNavigate();
-  const { token } = useSelector((state) => state.auth);
+  const { token, user } = useSelector((state) => state.auth);
   
   // Navigation tabs: 0 = Productivity Leaderboard (Top Users), 1 = Live Status Directory
   const [viewTab, setViewTab] = useState(0); // Default to Leaderboard as requested
@@ -55,7 +55,7 @@ function ManagerMonitoring() {
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
   const [leaderboardError, setLeaderboardError] = useState('');
   const [dateRange, setDateRange] = useState('yesterday'); // default to 'Yesterday' like screenshot
-  const [department, setDepartment] = useState('All');
+  const [department, setDepartment] = useState(user?.role === 'Manager' ? (user?.department || 'Engineering') : 'All');
   const [userSearch, setUserSearch] = useState('');
   const [leaderboardTab, setLeaderboardTab] = useState('USERS'); // USERS or GROUPS
   const [viewMode, setViewMode] = useState('SUMMARY'); // SUMMARY VIEW or DETAILED VIEW
@@ -122,6 +122,12 @@ function ManagerMonitoring() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, dateRange, department]);
+
+  useEffect(() => {
+    if (user?.role === 'Manager' && user?.department) {
+      setDepartment(user.department);
+    }
+  }, [user]);
 
   // Duration Formatter Helpers
   const formatMins = (mins) => {
@@ -215,14 +221,21 @@ function ManagerMonitoring() {
                 <Select
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
+                  disabled={user?.role === 'Manager'}
                   sx={{ borderRadius: 2, bgcolor: 'background.paper', fontWeight: 600 }}
                 >
-                  <MenuItem value="All">All Departments</MenuItem>
-                  <MenuItem value="Product">Product</MenuItem>
-                  <MenuItem value="Operations">Operations</MenuItem>
-                  <MenuItem value="Engineering">Engineering</MenuItem>
-                  <MenuItem value="Marketing">Marketing</MenuItem>
-                  <MenuItem value="HR">HR</MenuItem>
+                  {user?.role === 'Manager' ? (
+                    <MenuItem value={user.department || 'Engineering'}>{user.department || 'Engineering'}</MenuItem>
+                  ) : (
+                    <>
+                      <MenuItem value="All">All Departments</MenuItem>
+                      <MenuItem value="Product">Product</MenuItem>
+                      <MenuItem value="Operations">Operations</MenuItem>
+                      <MenuItem value="Engineering">Engineering</MenuItem>
+                      <MenuItem value="Marketing">Marketing</MenuItem>
+                      <MenuItem value="HR">HR</MenuItem>
+                    </>
+                  )}
                 </Select>
               </FormControl>
 

@@ -800,8 +800,19 @@ app.get('/api/attendance/all', authenticate, authorize(['Manager', 'SuperAdmin']
 app.get('/api/tasks', authenticate, async (req, res) => {
   try {
     let builder = supabase.from('tasks').select('*');
-    if (req.user.role !== 'Manager' && req.user.role !== 'SuperAdmin') {
+    if (req.user.role === 'Employee') {
       builder = builder.eq('assigned_to', req.user.id);
+    } else if (req.user.role === 'Manager') {
+      const { data: deptEmps } = await supabase
+        .from('users')
+        .select('id')
+        .eq('department', req.user.department)
+        .eq('role', 'Employee');
+      const employeeIds = deptEmps ? deptEmps.map(u => u.id) : [];
+      if (employeeIds.length === 0) {
+        return res.json([]);
+      }
+      builder = builder.in('assigned_to', employeeIds);
     }
 
     const { data: tasks, error } = await builder.order('created_at', { ascending: false });
@@ -829,6 +840,19 @@ app.post('/api/tasks', authenticate, async (req, res) => {
   const { taskName, description, dueDate, priority, progress, status, assignedTo } = req.body;
   try {
     const targetUserId = (req.user.role === 'Manager' || req.user.role === 'SuperAdmin') ? (assignedTo || req.user.id) : req.user.id;
+
+    // Check if Manager tries to assign task to employee of a different department
+    if (req.user.role === 'Manager' && targetUserId !== req.user.id.toString()) {
+      const { data: targetUser } = await supabase
+        .from('users')
+        .select('department')
+        .eq('id', targetUserId)
+        .single();
+      
+      if (targetUser && targetUser.department !== req.user.department) {
+        return res.status(403).json({ message: 'Access denied. You can only assign tasks to employees in your department.' });
+      }
+    }
 
     const { data: task, error } = await supabase
       .from('tasks')
@@ -871,6 +895,19 @@ app.put('/api/tasks/:id', authenticate, async (req, res) => {
     // Permissions check
     if (req.user.role !== 'Manager' && req.user.role !== 'SuperAdmin' && task.assigned_to.toString() !== req.user.id.toString()) {
       return res.status(403).json({ message: 'Unauthorized task modification.' });
+    }
+
+    // Department isolation check for Manager
+    if (req.user.role === 'Manager') {
+      const { data: targetUser } = await supabase
+        .from('users')
+        .select('department')
+        .eq('id', task.assigned_to)
+        .single();
+      
+      if (targetUser && targetUser.department !== req.user.department) {
+        return res.status(403).json({ message: 'Access denied. You cannot modify tasks of employees in other departments.' });
+      }
     }
 
     const updates = {
@@ -920,6 +957,19 @@ app.delete('/api/tasks/:id', authenticate, authorize(['Manager', 'SuperAdmin']),
       .maybeSingle();
 
     if (fetchErr || !task) return res.status(404).json({ message: 'Task not found' });
+
+    // Department isolation check for Manager
+    if (req.user.role === 'Manager') {
+      const { data: targetUser } = await supabase
+        .from('users')
+        .select('department')
+        .eq('id', task.assigned_to)
+        .single();
+      
+      if (targetUser && targetUser.department !== req.user.department) {
+        return res.status(403).json({ message: 'Access denied. You cannot delete tasks of employees in other departments.' });
+      }
+    }
 
     const { error: deleteErr } = await supabase
       .from('tasks')
@@ -984,8 +1034,19 @@ app.post('/api/reports', authenticate, async (req, res) => {
 app.get('/api/reports', authenticate, async (req, res) => {
   try {
     let builder = supabase.from('work_reports').select('*');
-    if (req.user.role !== 'Manager') {
+    if (req.user.role === 'Employee') {
       builder = builder.eq('employee_id', req.user.id);
+    } else if (req.user.role === 'Manager') {
+      const { data: deptEmps } = await supabase
+        .from('users')
+        .select('id')
+        .eq('department', req.user.department)
+        .eq('role', 'Employee');
+      const employeeIds = deptEmps ? deptEmps.map(u => u.id) : [];
+      if (employeeIds.length === 0) {
+        return res.json([]);
+      }
+      builder = builder.in('employee_id', employeeIds);
     }
 
     const { data: reports, error } = await builder.order('date', { ascending: false });
@@ -1019,6 +1080,19 @@ app.put('/api/reports/:id/approve', authenticate, authorize(['Manager', 'SuperAd
       .maybeSingle();
 
     if (fetchErr || !report) return res.status(404).json({ message: 'Report not found' });
+
+    // Department isolation check for Manager
+    if (req.user.role === 'Manager') {
+      const { data: employeeUser } = await supabase
+        .from('users')
+        .select('department')
+        .eq('id', report.employee_id)
+        .single();
+      
+      if (employeeUser && employeeUser.department !== req.user.department) {
+        return res.status(403).json({ message: 'Access denied. You can only review reports for employees in your department.' });
+      }
+    }
 
     const { data: updatedReport, error: updateErr } = await supabase
       .from('work_reports')
@@ -1123,6 +1197,19 @@ app.post('/api/monitoring/screenshot', authenticate, async (req, res) => {
 
 app.get('/api/monitoring/screenshots/:employeeId', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
   try {
+    // Department isolation check for Manager
+    if (req.user.role === 'Manager') {
+      const { data: targetUser } = await supabase
+        .from('users')
+        .select('department')
+        .eq('id', req.params.employeeId)
+        .single();
+      
+      if (targetUser && targetUser.department !== req.user.department) {
+        return res.status(403).json({ message: 'Access denied. You can only view screenshots for employees in your department.' });
+      }
+    }
+
     const { data: list, error } = await supabase
       .from('screenshots')
       .select('*')
@@ -1278,6 +1365,19 @@ app.get('/api/monitoring/my-activity', authenticate, async (req, res) => {
 
 app.get('/api/monitoring/activity/:employeeId', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
   try {
+    // Department isolation check for Manager
+    if (req.user.role === 'Manager') {
+      const { data: targetUser } = await supabase
+        .from('users')
+        .select('department')
+        .eq('id', req.params.employeeId)
+        .single();
+      
+      if (targetUser && targetUser.department !== req.user.department) {
+        return res.status(403).json({ message: 'Access denied. You can only view activity for employees in your department.' });
+      }
+    }
+
     const { data: logs, error } = await supabase
       .from('activity_logs')
       .select('*')
@@ -1349,6 +1449,19 @@ app.get('/api/monitoring/usage/:employeeId', authenticate, authorize(['Manager',
   const targetDate = date || new Date().toISOString().split('T')[0];
 
   try {
+    // Department isolation check for Manager
+    if (req.user.role === 'Manager') {
+      const { data: targetUser } = await supabase
+        .from('users')
+        .select('department')
+        .eq('id', req.params.employeeId)
+        .single();
+      
+      if (targetUser && targetUser.department !== req.user.department) {
+        return res.status(403).json({ message: 'Access denied. You can only view usage for employees in your department.' });
+      }
+    }
+
     const { data, error } = await supabase
       .from('app_usage')
       .select('*')
@@ -1405,7 +1518,9 @@ app.get('/api/monitoring/leaderboard', authenticate, authorize(['Manager', 'Supe
       .select('id, name, email, department, avatar_url')
       .eq('role', 'Employee');
       
-    if (department && department !== 'All') {
+    if (req.user.role === 'Manager') {
+      userQuery = userQuery.eq('department', req.user.department);
+    } else if (department && department !== 'All') {
       userQuery = userQuery.eq('department', department);
     }
     
@@ -1540,16 +1655,50 @@ app.get('/api/monitoring/leaderboard', authenticate, authorize(['Manager', 'Supe
 // Manager dashboard summary stats
 app.get('/api/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
+  const isManager = req.user.role === 'Manager';
+  const dept = req.user.department;
+  
   try {
-    const { count: totalEmployees } = await supabase
+    let employeeIds = [];
+    if (isManager) {
+      const { data: deptEmps } = await supabase
+        .from('users')
+        .select('id')
+        .eq('department', dept)
+        .eq('role', 'Employee');
+      employeeIds = deptEmps ? deptEmps.map(u => u.id) : [];
+    }
+
+    let employeesQuery = supabase
       .from('users')
       .select('*', { count: 'exact', head: true })
       .eq('role', 'Employee');
+      
+    if (isManager) {
+      employeesQuery = employeesQuery.eq('department', dept);
+    }
+    const { count: totalEmployees } = await employeesQuery;
 
-    const { data: checkinsToday } = await supabase
+    let checkinsQuery = supabase
       .from('attendance')
       .select('*')
       .eq('date', today);
+      
+    if (isManager) {
+      if (employeeIds.length === 0) {
+        return res.json({
+          totalEmployees: 0,
+          onlineEmployees: 0,
+          offlineEmployees: 0,
+          pendingReportsCount: 0,
+          productivityScore: 100,
+          attendanceSummary: { present: 0, absent: 0 },
+          liveCheckins: []
+        });
+      }
+      checkinsQuery = checkinsQuery.in('employee_id', employeeIds);
+    }
+    const { data: checkinsToday } = await checkinsQuery;
 
     let onlineEmployees = 0;
     let enrichedCheckins = [];
@@ -1567,15 +1716,25 @@ app.get('/api/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdm
       }));
     }
 
-    const { count: pendingReportsCount } = await supabase
+    let reportsQuery = supabase
       .from('work_reports')
       .select('*', { count: 'exact', head: true })
       .eq('approval_status', 'Pending');
+      
+    if (isManager) {
+      reportsQuery = reportsQuery.in('employee_id', employeeIds);
+    }
+    const { count: pendingReportsCount } = await reportsQuery;
 
-    const { data: activityToday } = await supabase
+    let activityQuery = supabase
       .from('activity_logs')
       .select('*')
       .eq('date', today);
+      
+    if (isManager) {
+      activityQuery = activityQuery.in('employee_id', employeeIds);
+    }
+    const { data: activityToday } = await activityQuery;
 
     let avgProductivity = 100;
     if (activityToday && activityToday.length > 0) {
