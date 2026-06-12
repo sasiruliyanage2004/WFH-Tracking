@@ -349,6 +349,60 @@ app.delete('/api/users/employees/:id', authenticate, authorize('SuperAdmin'), as
   }
 });
 
+app.get('/api/users/admins', authenticate, authorize('SuperAdmin'), async (req, res) => {
+  try {
+    const { data: admins, error } = await supabase
+      .from('users')
+      .select('id, name, email, department, role, profile_pic, created_at')
+      .in('role', ['Manager', 'SuperAdmin'])
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const mapped = admins.map(adm => ({
+      _id: adm.id,
+      id: adm.id,
+      name: adm.name,
+      email: adm.email,
+      department: adm.department,
+      role: adm.role,
+      profilePic: adm.profile_pic,
+      createdAt: adm.created_at
+    }));
+
+    res.json(mapped);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.delete('/api/users/admins/:id', authenticate, authorize('SuperAdmin'), async (req, res) => {
+  try {
+    if (req.params.id.toString() === req.user.id.toString()) {
+      return res.status(400).json({ message: 'You cannot delete your own HR Head account.' });
+    }
+
+    const { data: adm, error: fetchErr } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (fetchErr || !adm) return res.status(404).json({ message: 'Admin account not found.' });
+
+    const { error: deleteErr } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', req.params.id);
+
+    if (deleteErr) throw deleteErr;
+
+    res.json({ message: 'Admin account deleted successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // 1. AUTH ROUTES
 app.post('/api/auth/register', async (req, res) => {
   const { name, email, password, role, department, managerKey, superAdminKey } = req.body;

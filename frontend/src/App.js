@@ -32,6 +32,7 @@ import ManagerReports from './pages/ManagerReports';
 import ManagerMonitoring from './pages/ManagerMonitoring';
 import EmployeeMonitoring from './pages/EmployeeMonitoring';
 import EmployeeList from './pages/EmployeeList';
+import AdminList from './pages/AdminList';
 import ManagerSettings from './pages/ManagerSettings';
 
 function App() {
@@ -382,6 +383,11 @@ function App() {
           <Route path="/manager/employees" element={
             <ProtectedRoute allowedRoles={['SuperAdmin']}>
               <EmployeeList />
+            </ProtectedRoute>
+          } />
+          <Route path="/manager/admins" element={
+            <ProtectedRoute allowedRoles={['SuperAdmin']}>
+              <AdminList />
             </ProtectedRoute>
           } />
           <Route path="/manager/settings" element={

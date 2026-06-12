@@ -41,6 +41,7 @@ import {
   ExitToApp as LogoutIcon,
   AccountCircle as ProfileIcon,
   Group as EmployeeListIcon,
+  SupervisorAccount as AdminListIcon,
   Settings as SettingsIcon,
   ArrowBack as BackIcon,
   ArrowForward as ForwardIcon,
@@ -141,6 +142,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
   const managerLinks = [
     { text: 'Team Dashboard', icon: <DashboardIcon />, path: '/manager/dashboard' },
     { text: 'Employee List', icon: <EmployeeListIcon />, path: '/manager/employees' },
+    { text: 'Admin List', icon: <AdminListIcon />, path: '/manager/admins' },
     { text: 'Task Management', icon: <TaskIcon />, path: '/manager/tasks' },
     { text: 'Work Reports', icon: <ReportIcon />, path: '/manager/reports' },
     { text: 'Employee Monitor', icon: <MonitoringIcon />, path: '/manager/monitoring' },
@@ -148,7 +150,11 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
   ];
 
   const links = (user?.role === 'Manager' || user?.role === 'SuperAdmin')
-    ? managerLinks.filter(link => link.text !== 'Employee List' || user?.role === 'SuperAdmin')
+    ? managerLinks.filter(link => {
+        if (link.text === 'Employee List') return user?.role === 'SuperAdmin';
+        if (link.text === 'Admin List') return user?.role === 'SuperAdmin';
+        return true;
+      })
     : employeeLinks;
 
   // Render navigation menu
