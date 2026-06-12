@@ -25,7 +25,9 @@ const app = express();
 const server = http.createServer(app);
 
 // Security Headers
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
 // CORS configuration - secure for production
 const isProduction = process.env.NODE_ENV === 'production';
