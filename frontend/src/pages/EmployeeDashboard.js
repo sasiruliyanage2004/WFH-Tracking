@@ -29,7 +29,8 @@ import {
   InputLabel,
   Slider,
   Backdrop,
-  Menu
+  Menu,
+  InputAdornment
 } from '@mui/material';
 import {
   PlayArrow as CheckInIcon,
@@ -42,7 +43,8 @@ import {
   CancelOutlined as RejectIcon,
   TrendingUp as TrendingUpIcon,
   AccessTime as AccessTimeIcon,
-  KeyboardArrowDown as KeyboardArrowDownIcon
+  KeyboardArrowDown as KeyboardArrowDownIcon,
+  Search as SearchIcon
 } from '@mui/icons-material';
 import ScreenshotCapturer from '../components/ScreenshotCapturer';
 import SkeletonCard from '../components/SkeletonCard';
@@ -66,6 +68,7 @@ function EmployeeDashboard() {
   const [otherBreakOpen, setOtherBreakOpen] = useState(false);
   const [otherBreakNote, setOtherBreakNote] = useState('');
   const [breakAnchorEl, setBreakAnchorEl] = useState(null);
+  const [breakSearch, setBreakSearch] = useState('');
 
   // Webcam States
   const [webcamOpen, setWebcamOpen] = useState(false);
@@ -320,6 +323,7 @@ function EmployeeDashboard() {
 
   const handleBreakClose = () => {
     setBreakAnchorEl(null);
+    setBreakSearch('');
   };
 
   const handleEndBreak = async () => {
@@ -514,6 +518,19 @@ function EmployeeDashboard() {
     return 'Good Evening';
   };
 
+  const breakOptions = [
+    { name: 'Breakfast', label: 'Breakfast', icon: '☕', action: () => handleStartBreak('Breakfast') },
+    { name: 'Lunch', label: 'Lunch Break', icon: '🍔', action: () => handleStartBreak('Lunch') },
+    { name: 'Dinner', label: 'Dinner', icon: '🍽️', action: () => handleStartBreak('Dinner') },
+    { name: 'Washroom', label: 'Washroom', icon: '🚽', action: () => handleStartBreak('Washroom') },
+    { name: 'Outgoing', label: 'Outgoing', icon: '🚗', action: () => handleStartBreak('Outgoing') },
+    { name: 'Other', label: 'Other', icon: '📝', action: () => setOtherBreakOpen(true) }
+  ];
+
+  const filteredBreakOptions = breakOptions.filter(opt =>
+    opt.label.toLowerCase().includes(breakSearch.toLowerCase())
+  );
+
   return (
     <Box>
       {/* Top Greeting and GPS Status Banner matching Image 3 */}
@@ -707,24 +724,40 @@ function EmployeeDashboard() {
                         }
                       }}
                     >
-                      <MenuItem onClick={() => { handleBreakClose(); handleStartBreak('Breakfast'); }}>
-                        <span>☕</span> Breakfast
-                      </MenuItem>
-                      <MenuItem onClick={() => { handleBreakClose(); handleStartBreak('Lunch'); }}>
-                        <span>🍔</span> Lunch Break
-                      </MenuItem>
-                      <MenuItem onClick={() => { handleBreakClose(); handleStartBreak('Dinner'); }}>
-                        <span>🍽️</span> Dinner
-                      </MenuItem>
-                      <MenuItem onClick={() => { handleBreakClose(); handleStartBreak('Washroom'); }}>
-                        <span>🚽</span> Washroom
-                      </MenuItem>
-                      <MenuItem onClick={() => { handleBreakClose(); handleStartBreak('Outgoing'); }}>
-                        <span>🚗</span> Outgoing
-                      </MenuItem>
-                      <MenuItem onClick={() => { handleBreakClose(); setOtherBreakOpen(true); }}>
-                        <span>📝</span> Other
-                      </MenuItem>
+                      <Box sx={{ p: 1, pb: 0.5 }}>
+                        <TextField
+                          size="small"
+                          placeholder="Search break..."
+                          value={breakSearch}
+                          onChange={(e) => setBreakSearch(e.target.value)}
+                          autoFocus
+                          fullWidth
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <SearchIcon sx={{ color: 'text.secondary', fontSize: '1.2rem' }} />
+                              </InputAdornment>
+                            ),
+                          }}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: 2,
+                            }
+                          }}
+                        />
+                      </Box>
+                      <Divider sx={{ my: 0.5 }} />
+                      {filteredBreakOptions.length === 0 ? (
+                        <MenuItem disabled sx={{ justifyContent: 'center', py: 1.5 }}>
+                          <Typography variant="body2" color="text.secondary">No options found</Typography>
+                        </MenuItem>
+                      ) : (
+                        filteredBreakOptions.map(opt => (
+                          <MenuItem key={opt.name} onClick={() => { handleBreakClose(); opt.action(); }}>
+                            <span>{opt.icon}</span> {opt.label}
+                          </MenuItem>
+                        ))
+                      )}
                     </Menu>
                   </Box>
                 )}
