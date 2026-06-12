@@ -673,28 +673,57 @@ function EmployeeDashboard() {
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>Shift Break Controls</Typography>
                     <Button
                       variant="outlined"
-                      color="warning"
-                      fullWidth
-                      endIcon={<KeyboardArrowDownIcon />}
                       onClick={handleBreakClick}
+                      endIcon={<KeyboardArrowDownIcon sx={{ 
+                        transition: 'transform 0.2s', 
+                        transform: breakAnchorEl ? 'rotate(180deg)' : 'none',
+                        color: '#f59e0b'
+                      }} />}
                       sx={{
-                        borderRadius: '12px',
-                        py: 1.2,
+                        borderRadius: '16px',
+                        py: 1.4,
+                        px: 2.5,
                         textTransform: 'none',
                         fontWeight: 700,
-                        fontSize: '0.9rem',
-                        borderWidth: '1.5px',
+                        fontSize: '0.925rem',
+                        borderWidth: '2px',
+                        borderColor: 'rgba(245, 158, 11, 0.35)',
+                        color: 'warning.main',
                         display: 'flex',
                         justifyContent: 'space-between',
-                        px: 2,
-                        borderColor: 'warning.main',
+                        alignItems: 'center',
+                        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.03) 0%, rgba(245, 158, 11, 0.08) 100%)',
+                        boxShadow: '0 4px 12px rgba(245, 158, 11, 0.04)',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
-                          borderWidth: '1.5px',
-                          bgcolor: 'rgba(245, 158, 11, 0.08)'
+                          borderWidth: '2px',
+                          borderColor: '#f59e0b',
+                          background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, rgba(245, 158, 11, 0.12) 100%)',
+                          boxShadow: '0 6px 18px rgba(245, 158, 11, 0.15)',
+                          transform: 'translateY(-1px)'
+                        },
+                        '&:active': {
+                          transform: 'translateY(0)'
                         }
                       }}
                     >
-                      ☕ Take a Break / Pause Shift
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <span style={{ 
+                          fontSize: '1.2rem', 
+                          display: 'inline-block',
+                          animation: 'emojiPulse 2.5s infinite ease-in-out'
+                        }}>
+                          ☕
+                        </span>
+                        <style>{`
+                          @keyframes emojiPulse {
+                            0% { transform: scale(1); }
+                            50% { transform: scale(1.15) rotate(5deg); }
+                            100% { transform: scale(1); }
+                          }
+                        `}</style>
+                        <span>Take a Break / Pause Shift</span>
+                      </Box>
                     </Button>
                     <Menu
                       anchorEl={breakAnchorEl}
@@ -702,29 +731,47 @@ function EmployeeDashboard() {
                       onClose={handleBreakClose}
                       PaperProps={{
                         sx: {
-                          borderRadius: 2,
-                          mt: 0.5,
-                          minWidth: '220px',
+                          borderRadius: '16px',
+                          mt: 1,
+                          minWidth: '240px',
                           bgcolor: 'background.paper',
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
+                          backdropFilter: 'blur(10px)',
+                          border: '1px solid rgba(255, 255, 255, 0.08)',
+                          boxShadow: '0 12px 35px rgba(0, 0, 0, 0.4)',
+                          py: 1,
+                          '& .MuiList-root': {
+                            py: 0
+                          },
                           '& .MuiMenuItem-root': {
-                            fontSize: '0.9rem',
+                            fontSize: '0.925rem',
                             fontWeight: 600,
-                            py: 1,
-                            px: 2,
+                            py: 1.2,
+                            px: 2.2,
                             display: 'flex',
-                            gap: 1.5,
-                            transition: 'background-color 0.15s ease',
+                            gap: 2,
+                            alignItems: 'center',
+                            borderRadius: '10px',
+                            mx: 1,
+                            my: 0.4,
+                            color: 'text.secondary',
+                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                            '& span.emoji-icon': {
+                              fontSize: '1.25rem',
+                              transition: 'transform 0.25s ease-in-out',
+                              display: 'inline-block'
+                            },
                             '&:hover': {
-                              bgcolor: 'action.hover'
+                              bgcolor: 'rgba(245, 158, 11, 0.08)',
+                              color: 'warning.main',
+                              '& span.emoji-icon': {
+                                transform: 'scale(1.3) rotate(-8deg)'
+                              }
                             }
                           }
                         }
                       }}
                     >
-                      <Box sx={{ p: 1, pb: 0.5 }}>
+                      <Box sx={{ p: 1.5, pb: 1 }}>
                         <TextField
                           size="small"
                           placeholder="Search break..."
@@ -735,26 +782,46 @@ function EmployeeDashboard() {
                           InputProps={{
                             startAdornment: (
                               <InputAdornment position="start">
-                                <SearchIcon sx={{ color: 'text.secondary', fontSize: '1.2rem' }} />
+                                <SearchIcon sx={{ color: '#f59e0b', fontSize: '1.15rem' }} />
                               </InputAdornment>
                             ),
                           }}
                           sx={{
                             '& .MuiOutlinedInput-root': {
-                              borderRadius: 2,
+                              borderRadius: '10px',
+                              backgroundColor: 'rgba(15, 23, 42, 0.4)',
+                              transition: 'all 0.2s',
+                              '& fieldset': {
+                                borderColor: 'rgba(255, 255, 255, 0.1)',
+                              },
+                              '&:hover fieldset': {
+                                borderColor: 'rgba(245, 158, 11, 0.4)',
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: '#f59e0b',
+                                borderWidth: '1.5px',
+                              }
+                            },
+                            '& input': {
+                              color: 'text.primary',
+                              fontSize: '0.85rem',
+                              py: 1
                             }
                           }}
                         />
                       </Box>
-                      <Divider sx={{ my: 0.5 }} />
+                      <Divider sx={{ my: 0.5, opacity: 0.6 }} />
                       {filteredBreakOptions.length === 0 ? (
-                        <MenuItem disabled sx={{ justifyContent: 'center', py: 1.5 }}>
-                          <Typography variant="body2" color="text.secondary">No options found</Typography>
+                        <MenuItem disabled sx={{ justifyContent: 'center', py: 2 }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            No options found
+                          </Typography>
                         </MenuItem>
                       ) : (
                         filteredBreakOptions.map(opt => (
                           <MenuItem key={opt.name} onClick={() => { handleBreakClose(); opt.action(); }}>
-                            <span>{opt.icon}</span> {opt.label}
+                            <span className="emoji-icon">{opt.icon}</span> 
+                            <span>{opt.label}</span>
                           </MenuItem>
                         ))
                       )}
