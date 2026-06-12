@@ -28,7 +28,8 @@ import {
   FormControl,
   InputLabel,
   Slider,
-  Backdrop
+  Backdrop,
+  Menu
 } from '@mui/material';
 import {
   PlayArrow as CheckInIcon,
@@ -40,7 +41,8 @@ import {
   HourglassEmpty as PendingIcon,
   CancelOutlined as RejectIcon,
   TrendingUp as TrendingUpIcon,
-  AccessTime as AccessTimeIcon
+  AccessTime as AccessTimeIcon,
+  KeyboardArrowDown as KeyboardArrowDownIcon
 } from '@mui/icons-material';
 import ScreenshotCapturer from '../components/ScreenshotCapturer';
 import SkeletonCard from '../components/SkeletonCard';
@@ -63,6 +65,7 @@ function EmployeeDashboard() {
   // Other Break Dialog
   const [otherBreakOpen, setOtherBreakOpen] = useState(false);
   const [otherBreakNote, setOtherBreakNote] = useState('');
+  const [breakAnchorEl, setBreakAnchorEl] = useState(null);
 
   // Webcam States
   const [webcamOpen, setWebcamOpen] = useState(false);
@@ -309,6 +312,14 @@ function EmployeeDashboard() {
     await handleStartBreak('Other', otherBreakNote);
     setOtherBreakOpen(false);
     setOtherBreakNote('');
+  };
+
+  const handleBreakClick = (event) => {
+    setBreakAnchorEl(event.currentTarget);
+  };
+
+  const handleBreakClose = () => {
+    setBreakAnchorEl(null);
   };
 
   const handleEndBreak = async () => {
@@ -643,122 +654,78 @@ function EmployeeDashboard() {
                 {isCheckedIn && (
                   <Box sx={{ mb: 1 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>Shift Break Controls</Typography>
-                    <Grid container spacing={1}>
-                      <Grid item xs={6}>
-                        <Button
-                          variant="outlined"
-                          color="warning"
-                          fullWidth
-                          size="small"
-                          onClick={() => handleStartBreak('Breakfast')}
-                          sx={{
-                            borderRadius: '20px',
-                            py: 0.8,
-                            textTransform: 'none',
+                    <Button
+                      variant="outlined"
+                      color="warning"
+                      fullWidth
+                      endIcon={<KeyboardArrowDownIcon />}
+                      onClick={handleBreakClick}
+                      sx={{
+                        borderRadius: '12px',
+                        py: 1.2,
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        fontSize: '0.9rem',
+                        borderWidth: '1.5px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        px: 2,
+                        borderColor: 'warning.main',
+                        '&:hover': {
+                          borderWidth: '1.5px',
+                          bgcolor: 'rgba(245, 158, 11, 0.08)'
+                        }
+                      }}
+                    >
+                      ☕ Take a Break / Pause Shift
+                    </Button>
+                    <Menu
+                      anchorEl={breakAnchorEl}
+                      open={Boolean(breakAnchorEl)}
+                      onClose={handleBreakClose}
+                      PaperProps={{
+                        sx: {
+                          borderRadius: 2,
+                          mt: 0.5,
+                          minWidth: '220px',
+                          bgcolor: 'background.paper',
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
+                          '& .MuiMenuItem-root': {
+                            fontSize: '0.9rem',
                             fontWeight: 600,
-                            borderWidth: '1.5px',
-                            '&:hover': { borderWidth: '1.5px', transform: 'translateY(-1px)', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.08)' }
-                          }}
-                        >
-                          ☕ Breakfast
-                        </Button>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Button
-                          variant="outlined"
-                          color="warning"
-                          fullWidth
-                          size="small"
-                          onClick={() => handleStartBreak('Lunch')}
-                          sx={{
-                            borderRadius: '20px',
-                            py: 0.8,
-                            textTransform: 'none',
-                            fontWeight: 600,
-                            borderWidth: '1.5px',
-                            '&:hover': { borderWidth: '1.5px', transform: 'translateY(-1px)', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.08)' }
-                          }}
-                        >
-                          🍔 Lunch Break
-                        </Button>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Button
-                          variant="outlined"
-                          color="warning"
-                          fullWidth
-                          size="small"
-                          onClick={() => handleStartBreak('Dinner')}
-                          sx={{
-                            borderRadius: '20px',
-                            py: 0.8,
-                            textTransform: 'none',
-                            fontWeight: 600,
-                            borderWidth: '1.5px',
-                            '&:hover': { borderWidth: '1.5px', transform: 'translateY(-1px)', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.08)' }
-                          }}
-                        >
-                          🍽️ Dinner
-                        </Button>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Button
-                          variant="outlined"
-                          color="warning"
-                          fullWidth
-                          size="small"
-                          onClick={() => handleStartBreak('Washroom')}
-                          sx={{
-                            borderRadius: '20px',
-                            py: 0.8,
-                            textTransform: 'none',
-                            fontWeight: 600,
-                            borderWidth: '1.5px',
-                            '&:hover': { borderWidth: '1.5px', transform: 'translateY(-1px)', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.08)' }
-                          }}
-                        >
-                          🚽 Washroom
-                        </Button>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Button
-                          variant="outlined"
-                          color="warning"
-                          fullWidth
-                          size="small"
-                          onClick={() => handleStartBreak('Outgoing')}
-                          sx={{
-                            borderRadius: '20px',
-                            py: 0.8,
-                            textTransform: 'none',
-                            fontWeight: 600,
-                            borderWidth: '1.5px',
-                            '&:hover': { borderWidth: '1.5px', transform: 'translateY(-1px)', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.08)' }
-                          }}
-                        >
-                          🚗 Outgoing
-                        </Button>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Button
-                          variant="outlined"
-                          color="secondary"
-                          fullWidth
-                          size="small"
-                          onClick={() => setOtherBreakOpen(true)}
-                          sx={{
-                            borderRadius: '20px',
-                            py: 0.8,
-                            textTransform: 'none',
-                            fontWeight: 600,
-                            borderWidth: '1.5px',
-                            '&:hover': { borderWidth: '1.5px', transform: 'translateY(-1px)', boxShadow: '0 4px 10px rgba(139, 92, 246, 0.08)' }
-                          }}
-                        >
-                          📝 Other
-                        </Button>
-                      </Grid>
-                    </Grid>
+                            py: 1,
+                            px: 2,
+                            display: 'flex',
+                            gap: 1.5,
+                            transition: 'background-color 0.15s ease',
+                            '&:hover': {
+                              bgcolor: 'action.hover'
+                            }
+                          }
+                        }
+                      }}
+                    >
+                      <MenuItem onClick={() => { handleBreakClose(); handleStartBreak('Breakfast'); }}>
+                        <span>☕</span> Breakfast
+                      </MenuItem>
+                      <MenuItem onClick={() => { handleBreakClose(); handleStartBreak('Lunch'); }}>
+                        <span>🍔</span> Lunch Break
+                      </MenuItem>
+                      <MenuItem onClick={() => { handleBreakClose(); handleStartBreak('Dinner'); }}>
+                        <span>🍽️</span> Dinner
+                      </MenuItem>
+                      <MenuItem onClick={() => { handleBreakClose(); handleStartBreak('Washroom'); }}>
+                        <span>🚽</span> Washroom
+                      </MenuItem>
+                      <MenuItem onClick={() => { handleBreakClose(); handleStartBreak('Outgoing'); }}>
+                        <span>🚗</span> Outgoing
+                      </MenuItem>
+                      <MenuItem onClick={() => { handleBreakClose(); setOtherBreakOpen(true); }}>
+                        <span>📝</span> Other
+                      </MenuItem>
+                    </Menu>
                   </Box>
                 )}
                 
