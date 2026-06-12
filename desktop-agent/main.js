@@ -192,16 +192,58 @@ function stopTracking() {
 }
 
 function captureActiveWindow() {
-  const scriptPath = path.join(__dirname, 'get-active-window.ps1');
-  const command = `powershell -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`;
+  const psScript = `
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class User32 {
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+}
+"@
+try {
+    $hwnd = [User32]::GetForegroundWindow()
+    if ($hwnd -ne [IntPtr]::Zero) {
+        $windowPid = 0
+        [void][User32]::GetWindowThreadProcessId($hwnd, [ref]$windowPid)
+        if ($windowPid -gt 0) {
+            $process = Get-Process -Id $windowPid
+            $processName = $process.ProcessName
+            $windowTitle = $process.MainWindowTitle
+            if ([string]::IsNullOrEmpty($processName)) { $processName = "Unknown" }
+            if ([string]::IsNullOrEmpty($windowTitle)) { $windowTitle = "Active Window" }
+            Write-Output "App:$processName|Title:$windowTitle"
+        }
+    }
+} catch {
+    # Fail silently
+}
+  `.trim();
+
+  const buffer = Buffer.from(psScript, 'utf16le');
+  const base64Script = buffer.toString('base64');
+  const command = `powershell -NoProfile -EncodedCommand ${base64Script}`;
 
   exec(command, (error, stdout, stderr) => {
+    const fs = require('fs');
+    const logPath = path.join(app.getPath('userData'), 'agent_debug.log');
+
     if (error) {
       console.error('Active Window Capture Error:', error.message);
+      try {
+        fs.appendFileSync(logPath, `[${new Date().toISOString()}] ERROR: ${error.message}\n`);
+      } catch (e) {}
       return;
     }
 
-    const output = stdout.trim();
+    const output = stdout.trim().replace(/^\uFEFF/, '');
+    
+    try {
+      fs.appendFileSync(logPath, `[${new Date().toISOString()}] Captured output: "${output}" (BOM removed: ${stdout.trim() !== output})\n`);
+    } catch (e) {}
+
     if (output && output.startsWith('App:')) {
       // Parse App:AppName|Title:WindowTitle
       const parts = output.split('|');
@@ -219,6 +261,7 @@ function captureActiveWindow() {
     }
   });
 }
+
 
 async function flushUsageBuffer() {
   const keys = Object.keys(usageBuffer);
