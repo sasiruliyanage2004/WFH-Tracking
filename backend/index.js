@@ -4,6 +4,8 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 // Load environment variables immediately
 dotenv.config();
@@ -22,12 +24,42 @@ const { authenticate, authorize } = require('./middleware/auth');
 const app = express();
 const server = http.createServer(app);
 
-// CORS configuration
+// Security Headers
+app.use(helmet());
+
+// CORS configuration - secure for production
+const isProduction = process.env.NODE_ENV === 'production';
+const corsOrigin = isProduction && process.env.FRONTEND_URL 
+  ? process.env.FRONTEND_URL.split(',') 
+  : '*';
+
 app.use(cors({
-  origin: '*', // Allow all origins for development ease
+  origin: corsOrigin,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
+
+// Rate limiting configurations
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // Limit each IP to 1000 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many requests from this IP, please try again after 15 minutes.' }
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // Limit each IP to 30 login/register requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many authentication attempts from this IP, please try again after 15 minutes.' }
+});
+
+// Apply rate limiters
+app.use('/api/', apiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 
 // Body parser
 app.use(express.json({ limit: '50mb' }));
