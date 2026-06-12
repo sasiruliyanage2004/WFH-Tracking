@@ -228,9 +228,24 @@ function EmployeeDashboard() {
         setGpsData({ latitude, longitude, address });
         setGpsLoading(false);
       },
-      (err) => {
+      async (err) => {
+        console.warn('GPS failed, falling back to IP Geolocation:', err.message);
+        try {
+          const ipRes = await axios.get('https://ipapi.co/json/');
+          if (ipRes.data && ipRes.data.latitude) {
+            setGpsData({
+              latitude: ipRes.data.latitude,
+              longitude: ipRes.data.longitude,
+              address: `${ipRes.data.city || 'Unknown City'}, ${ipRes.data.region || 'Region'}, ${ipRes.data.country_name || 'Country'} (IP Location)`
+            });
+          } else {
+            setGpsData({ latitude: 40.7128, longitude: -74.0060, address: 'Remote Workplace / IP Address' });
+          }
+        } catch (ipErr) {
+          console.warn('IP Geolocation fallback failed:', ipErr.message);
+          setGpsData({ latitude: 40.7128, longitude: -74.0060, address: 'Remote Workplace / IP Address' });
+        }
         setGpsError(`GPS retrieval blocked: ${err.message}. Checked in using IP location instead.`);
-        setGpsData({ latitude: 40.7128, longitude: -74.0060, address: 'Remote Workplace / IP Address' });
         setGpsLoading(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
