@@ -64,18 +64,6 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
   const [anchorElNotifications, setAnchorElNotifications] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [toast, setToast] = useState({ open: false, message: '', severity: 'info' });
-  const [rotation, setRotation] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = (e) => {
-      const target = e.target === document ? document.documentElement : e.target;
-      if (target && target.scrollTop !== undefined) {
-        setRotation(target.scrollTop * 0.08);
-      }
-    };
-    window.addEventListener('scroll', handleScroll, true);
-    return () => window.removeEventListener('scroll', handleScroll, true);
-  }, []);
 
   // Get backend API URL
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -370,7 +358,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           }}
         />
 
-        {/* Rotating background image matching user's design */}
+        {/* Ambient video-like rotating background image matching user's design */}
         <Box
           sx={{
             position: 'absolute',
@@ -379,14 +367,24 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
-            transform: `rotate(${rotation}deg) scale(1.15)`, // Scale slightly to avoid corner clipping on rotation
             transformOrigin: 'center center',
             width: '100%',
             height: '100%',
             opacity: isDarkMode ? 0.08 : 0.45,
-            transition: 'transform 0.1s ease-out', // Smooth scroll rotation
             pointerEvents: 'none',
-            zIndex: 0
+            zIndex: 0,
+            animation: 'ambientVideoLike 160s linear infinite',
+            '@keyframes ambientVideoLike': {
+              '0%': {
+                transform: 'rotate(0deg) scale(1.2)'
+              },
+              '50%': {
+                transform: 'rotate(180deg) scale(1.3)'
+              },
+              '100%': {
+                transform: 'rotate(360deg) scale(1.2)'
+              }
+            }
           }}
         />
       </Box>
