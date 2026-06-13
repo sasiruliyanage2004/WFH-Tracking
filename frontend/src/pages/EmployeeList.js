@@ -1,5 +1,5 @@
 // frontend/src/pages/EmployeeList.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -26,7 +26,8 @@ import {
   Divider,
   IconButton,
   Tooltip,
-  Paper
+  Paper,
+  Snackbar
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -66,6 +67,20 @@ function EmployeeList() {
   const [selectedEmp, setSelectedEmp] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [lastDeletedEmp, setLastDeletedEmp] = useState(null);
+  const pendingDeleteRef = useRef(null);
+  const timeoutIdRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (pendingDeleteRef.current) {
+        clearTimeout(timeoutIdRef.current);
+        pendingDeleteRef.current();
+      }
+    };
+  }, []);
+
   const fetchEmployees = async () => {
     try {
       setLoading(true);
@@ -83,6 +98,7 @@ function EmployeeList() {
 
   useEffect(() => {
     fetchEmployees();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   // Filter logic
@@ -111,23 +127,72 @@ function EmployeeList() {
 
   const departments = ['All', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean)))];
 
-  const handleDelete = async () => {
-    try {
-      await axios.delete(`${API_URL}/api/users/employees/${deleteConfirm._id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setDeleteConfirm(null);
-      fetchEmployees();
-    } catch (err) {
-      console.error('Delete failed:', err.message);
+  const handleDeleteConfirm = () => {
+    if (!deleteConfirm) return;
+
+    // Immediately execute any previous pending delete
+    if (pendingDeleteRef.current) {
+      clearTimeout(timeoutIdRef.current);
+      pendingDeleteRef.current();
     }
+
+    const empToDelete = deleteConfirm;
+
+    // Optimistically remove from local state
+    setEmployees(prev => prev.filter(e => e._id !== empToDelete._id));
+
+    // Define the actual delete execution
+    const performDelete = async () => {
+      try {
+        await axios.delete(`${API_URL}/api/users/employees/${empToDelete._id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch (err) {
+        console.error('Delete failed:', err.message);
+        // Restore employee list on failure
+        fetchEmployees();
+      } finally {
+        if (pendingDeleteRef.current === performDelete) {
+          pendingDeleteRef.current = null;
+        }
+      }
+    };
+
+    pendingDeleteRef.current = performDelete;
+    setLastDeletedEmp(empToDelete);
+    setDeleteConfirm(null);
+    setSnackbarOpen(true);
+
+    // Schedule actual delete after 6 seconds
+    timeoutIdRef.current = setTimeout(() => {
+      if (pendingDeleteRef.current === performDelete) {
+        performDelete();
+        setSnackbarOpen(false);
+      }
+    }, 6000);
+  };
+
+  const handleUndoDelete = () => {
+    if (timeoutIdRef.current) {
+      clearTimeout(timeoutIdRef.current);
+    }
+    if (lastDeletedEmp) {
+      setEmployees(prev => [...prev, lastDeletedEmp]);
+    }
+    pendingDeleteRef.current = null;
+    setLastDeletedEmp(null);
+    setSnackbarOpen(false);
+  };
+
+  const handleSnackbarClose = (event, reason) => {
+    if (reason === 'clickaway') return;
+    setSnackbarOpen(false);
   };
 
   // Summary stats
   const totalActive = employees.filter(e => e.todayStatus === 'Active').length;
   const totalAbsent = employees.filter(e => e.todayStatus === 'Absent').length;
   const totalOnBreak = employees.filter(e => e.todayStatus?.startsWith('On Break')).length;
-  const totalCheckedOut = employees.filter(e => e.todayStatus === 'Checked Out').length;
 
   if (loading) {
     return (
@@ -387,9 +452,72 @@ function EmployeeList() {
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
           <Button onClick={() => setDeleteConfirm(null)} color="inherit">Cancel</Button>
-          <Button onClick={handleDelete} variant="contained" color="error">Delete</Button>
+          <Button onClick={handleDeleteConfirm} variant="contained" color="error">Delete</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Undo Delete Snackbar */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        sx={{ zIndex: 10000 }}
+      >
+        <Paper
+          elevation={12}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            px: 2.5,
+            py: 1.5,
+            bgcolor: 'rgba(15, 23, 42, 0.95)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            borderRadius: 3,
+            color: '#fff',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+            minWidth: 320,
+            animation: 'slideIn 0.3s ease-out',
+            '@keyframes slideIn': {
+              '0%': { transform: 'translateY(100%) scale(0.9)', opacity: 0 },
+              '100%': { transform: 'translateY(0) scale(1)', opacity: 1 },
+            }
+          }}
+        >
+          <Box sx={{ flexGrow: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              Employee Deleted
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+              {lastDeletedEmp?.name} has been removed.
+            </Typography>
+          </Box>
+          <Button
+            size="small"
+            color="error"
+            variant="contained"
+            onClick={handleUndoDelete}
+            sx={{
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              borderRadius: 2,
+              px: 2,
+              py: 0.5,
+              fontSize: '0.75rem',
+              boxShadow: '0 0 10px rgba(239, 68, 68, 0.4)',
+              transition: 'all 0.2s',
+              '&:hover': {
+                bgcolor: 'error.dark',
+                transform: 'scale(1.05)',
+              }
+            }}
+          >
+            Undo
+          </Button>
+        </Paper>
+      </Snackbar>
     </Box>
   );
 }
