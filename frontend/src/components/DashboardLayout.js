@@ -370,30 +370,29 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           }}
         />
 
-        {/* Rotating Connection Globe with Neon Glow & Traveling Data Particles (Mulin danma ekama thawa lassana karala) */}
+        {/* Rotating connection constellation with neon glow & traveling data particles (Scattered across the entire screen) */}
         <Box
           sx={{
             position: 'absolute',
-            top: '50%',
-            right: '-10%',
-            transform: `translateY(-50%) rotate(${rotation}deg)`,
-            transformOrigin: '75% 50%',
-            width: '900px',
-            height: '900px',
+            inset: 0,
+            transform: `rotate(${rotation}deg) scale(1.15)`, // Scale slightly to avoid corner clipping on rotation
+            transformOrigin: 'center center',
+            width: '100%',
+            height: '100%',
             opacity: isDarkMode ? 0.45 : 0.75,
-            transition: 'transform 0.1s linear',
+            transition: 'transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
             pointerEvents: 'none',
             '@keyframes flowParticles': {
               '0%': { strokeDashoffset: 0 },
-              '100%': { strokeDashoffset: -180 }
+              '100%': { strokeDashoffset: -240 }
             },
             '@keyframes flowParticlesReverse': {
               '0%': { strokeDashoffset: 0 },
-              '100%': { strokeDashoffset: 145 }
+              '100%': { strokeDashoffset: 180 }
             }
           }}
         >
-          <svg width="100%" height="100%" viewBox="0 0 1200 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="100%" height="100%" viewBox="0 0 1600 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               {/* Neon Glow Filter */}
               <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
@@ -407,71 +406,96 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
                 </feMerge>
               </filter>
               
-              {/* Radial gradient for fading grid lines */}
-              <radialGradient id="gridGrad" cx="750" cy="500" r="450" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#66B539" stopOpacity="0.3"/>
-                <stop offset="60%" stopColor="#66B539" stopOpacity="0.15"/>
+              {/* Fade Gradients for Concentric Rings */}
+              <radialGradient id="ringGrad1" cx="850" cy="200" r="200" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#66B539" stopOpacity="0.25"/>
+                <stop offset="100%" stopColor="#66B539" stopOpacity="0.01"/>
+              </radialGradient>
+              <radialGradient id="ringGrad2" cx="1050" cy="650" r="250" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#66B539" stopOpacity="0.25"/>
                 <stop offset="100%" stopColor="#66B539" stopOpacity="0.01"/>
               </radialGradient>
             </defs>
 
-            {/* Globe Grid Lines (Radial Fade) */}
-            <g stroke="url(#gridGrad)" strokeWidth="1.2" fill="none">
-              <circle cx="750" cy="500" r="450"/>
-              <circle cx="750" cy="500" r="350"/>
-              <circle cx="750" cy="500" r="250"/>
-              <circle cx="750" cy="500" r="150"/>
-              <ellipse cx="750" cy="500" rx="450" ry="180" transform="rotate(30, 750, 500)"/>
-              <ellipse cx="750" cy="500" rx="450" ry="180" transform="rotate(-30, 750, 500)"/>
-              <ellipse cx="750" cy="500" rx="450" ry="320" transform="rotate(60, 750, 500)"/>
-              <ellipse cx="750" cy="500" rx="450" ry="320" transform="rotate(-60, 750, 500)"/>
-              <line x1="300" y1="500" x2="1200" y2="500"/>
-              <line x1="750" y1="50" x2="750" y2="950"/>
+            {/* Fading Concentric Globe Rings around Hub Nodes */}
+            <g stroke="url(#ringGrad1)" strokeWidth="1" fill="none">
+              <circle cx="850" cy="200" r="60"/>
+              <circle cx="850" cy="200" r="120"/>
+              <circle cx="850" cy="200" r="200"/>
+              <ellipse cx="850" cy="200" rx="200" ry="70" transform="rotate(30, 850, 200)"/>
+              <ellipse cx="850" cy="200" rx="200" ry="70" transform="rotate(-30, 850, 200)"/>
+            </g>
+            <g stroke="url(#ringGrad2)" strokeWidth="1" fill="none">
+              <circle cx="1050" cy="650" r="80"/>
+              <circle cx="1050" cy="650" r="160"/>
+              <circle cx="1050" cy="650" r="240"/>
+              <ellipse cx="1050" cy="650" rx="240" ry="90" transform="rotate(45, 1050, 650)"/>
+              <ellipse cx="1050" cy="650" rx="240" ry="90" transform="rotate(-45, 1050, 650)"/>
             </g>
 
-            {/* Static Connection Dashed Lines */}
-            <g stroke="#66B539" strokeWidth="1" strokeDasharray="6,6" fill="none" opacity="0.2">
-              <path d="M460,330 L750,50 L1040,330 L1200,500 L1040,670 L750,950 L460,670 L300,500 Z"/>
-              <path d="M750,270 L940,380 L940,620 L750,730 L560,620 L560,380 Z"/>
+            {/* Connection Grid Lines (Static) */}
+            <g stroke="#66B539" strokeWidth="1.2" fill="none" opacity="0.15">
+              <path d="M200,250 L850,200 L1200,350 L1450,750 L1050,650 L650,850 L500,600 Z"/>
+              <line x1="850" y1="200" x2="500" y2="600"/>
+              <line x1="1200" y1="350" x2="1050" y2="650"/>
+              <line x1="500" y1="600" x2="1050" y2="650"/>
+              <line x1="850" y1="200" x2="1050" y2="650"/>
             </g>
 
-            {/* Flowing Pulse Particles (Data flows) */}
+            {/* Flowing Pulse Particles (Data flow animation) */}
             <g stroke="#66B539" strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.8" filter="url(#neonGlow)">
-              <path d="M460,330 L750,50 L1040,330 L1200,500 L1040,670 L750,950 L460,670 L300,500 Z" 
+              <path d="M200,250 L850,200 L1200,350 L1450,750 L1050,650 L650,850 L500,600 Z" 
+                    strokeDasharray="40, 200" 
+                    style={{ animation: 'flowParticles 8s linear infinite' }}/>
+              <path d="M1050,650 L500,600 L850,200 Z" 
                     strokeDasharray="30, 150" 
-                    style={{ animation: 'flowParticles 6s linear infinite' }}/>
-              <path d="M750,270 L940,380 L940,620 L750,730 L560,620 L560,380 Z" 
-                    strokeDasharray="25, 120" 
-                    style={{ animation: 'flowParticlesReverse 5s linear infinite' }}/>
+                    style={{ animation: 'flowParticlesReverse 6s linear infinite' }}/>
             </g>
 
-            {/* Glowing Nodes */}
+            {/* Glowing Scattered Node Points */}
             <g fill="#66B539" opacity="0.75" filter="url(#neonGlow)">
-              <circle cx="750" cy="50" r="7"/>
-              <circle cx="750" cy="950" r="7"/>
-              <circle cx="300" cy="500" r="7"/>
-              <circle cx="1200" cy="500" r="7"/>
-              <circle cx="460" cy="330" r="4"/>
-              <circle cx="1040" cy="670" r="4"/>
-              <circle cx="1040" cy="330" r="4"/>
-              <circle cx="460" cy="670" r="4"/>
+              <circle cx="200" cy="250" r="6"/>
+              <circle cx="500" cy="600" r="6"/>
+              <circle cx="850" cy="200" r="6"/>
+              <circle cx="1200" cy="350" r="6"/>
+              <circle cx="1450" cy="750" r="6"/>
+              <circle cx="650" cy="850" r="6"/>
+              <circle cx="1050" cy="650" r="6"/>
             </g>
 
-            {/* Glowing WFH Icons */}
+            {/* Glowing WFH Icons at Node Points */}
             <g filter="url(#neonGlow)" opacity="0.8" stroke="#66B539" strokeWidth="1.5" fill="none">
-              {/* Clock */}
-              <circle cx="460" cy="330" r="15"/>
-              <path d="M460,324 L460,330 L465,330" strokeLinecap="round"/>
-              {/* House */}
-              <path d="M1032,676 L1032,666 L1040,658 L1048,666 L1048,676 Z"/>
-              <path d="M1038,676 L1038,670 L1042,670 L1042,676"/>
-              {/* Checkmark */}
-              <path d="M1034,330 L1038,334 L1046,326" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="1040" cy="330" r="15"/>
-              {/* Profile */}
-              <circle cx="460" cy="666" r="5"/>
-              <path d="M452,676 C452,672 455,671 460,671 C465,671 468,672 468,676"/>
-              <circle cx="460" cy="670" r="15"/>
+              {/* Clock at A (200, 250) */}
+              <circle cx="200" cy="250" r="14"/>
+              <path d="M200,244 L200,250 L205,250" strokeLinecap="round"/>
+
+              {/* Profile at B (500, 600) */}
+              <circle cx="500" cy="596" r="5"/>
+              <path d="M492,606 C492,602 495,601 500,601 C505,601 508,602 508,606"/>
+              <circle cx="500" cy="600" r="14"/>
+
+              {/* House at C (850, 200) */}
+              <path d="M842,206 L842,196 L850,188 L858,196 L858,206 Z"/>
+              <path d="M848,206 L848,200 L852,200 L852,206"/>
+              <circle cx="850" cy="200" r="15"/>
+
+              {/* Checkmark at D (1200, 350) */}
+              <path d="M1194,350 L1198,354 L1206,346" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="1200" cy="350" r="14"/>
+
+              {/* Laptop at E (1450, 750) */}
+              <rect x="1440" y="740" width="20" height="14" rx="2"/>
+              <path d="M1436,755 L1464,755 L1460,759 L1440,759 Z"/>
+              <circle cx="1450" cy="750" r="16"/>
+
+              {/* Wifi at F (650, 850) */}
+              <path d="M645,845 A8,8 0 0,1 655,845" strokeLinecap="round"/>
+              <path d="M641,841 A14,14 0 0,1 659,841" strokeLinecap="round"/>
+              <circle cx="650" cy="850" r="14"/>
+
+              {/* Clock at G (1050, 650) */}
+              <circle cx="1050" cy="650" r="15"/>
+              <path d="M1050,644 L1050,650 L1055,650" strokeLinecap="round"/>
             </g>
           </svg>
         </Box>
