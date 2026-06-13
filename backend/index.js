@@ -1594,7 +1594,7 @@ app.get('/api/monitoring/leaderboard', authenticate, authorize(['Manager', 'Supe
     // Fetch employees
     let userQuery = supabase
       .from('users')
-      .select('id, name, email, department, avatar_url')
+      .select('id, name, email, department, profile_pic')
       .eq('role', 'Employee');
       
     if (req.user.role === 'Manager') {
@@ -1710,7 +1710,7 @@ app.get('/api/monitoring/leaderboard', authenticate, authorize(['Manager', 'Supe
         id: emp.id,
         name: emp.name,
         department: emp.department || 'Operations',
-        avatarUrl: emp.avatar_url || '',
+        avatarUrl: emp.profile_pic || '',
         productivityRatio,
         productiveMins: Math.round(productiveMins),
         unproductiveMins: Math.round(unproductiveMins),
