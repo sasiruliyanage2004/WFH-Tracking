@@ -64,6 +64,18 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
   const [anchorElNotifications, setAnchorElNotifications] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [toast, setToast] = useState({ open: false, message: '', severity: 'info' });
+  const [rotation, setRotation] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = (e) => {
+      const target = e.target === document ? document.documentElement : e.target;
+      if (target && target.scrollTop !== undefined) {
+        setRotation(target.scrollTop * 0.08);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, []);
 
   // Get backend API URL
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -301,14 +313,6 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const floatingOrbs = [
-    { icon: <DashboardIcon sx={{ fontSize: 26, color: '#66B539' }} />, top: '15%', left: '10%', anim: 'floatSlow1 25s ease-in-out infinite', size: 64 },
-    { icon: <HistoryIcon sx={{ fontSize: 24, color: '#66B539' }} />, top: '65%', left: '15%', anim: 'floatSlow2 30s ease-in-out infinite', size: 56 },
-    { icon: <TaskIcon sx={{ fontSize: 24, color: '#66B539' }} />, top: '35%', right: '12%', anim: 'floatSlow3 22s ease-in-out infinite', size: 60 },
-    { icon: <MonitoringIcon sx={{ fontSize: 26, color: '#66B539' }} />, top: '75%', right: '20%', anim: 'floatSlow1 28s ease-in-out infinite', size: 70 },
-    { icon: <SettingsIcon sx={{ fontSize: 22, color: '#66B539' }} />, top: '50%', left: '40%', anim: 'floatSlow2 35s ease-in-out infinite', size: 52 }
-  ];
-
   return (
     <Box sx={{ display: 'flex', width: '100%', minHeight: '100vh', bgcolor: 'background.default', position: 'relative' }}>
       <CssBaseline />
@@ -366,46 +370,61 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           }}
         />
 
-        {/* Floating WFH Glassmorphic Icon Orbs */}
-        {floatingOrbs.map((orb, index) => (
-          <Box
-            key={index}
-            sx={{
-              position: 'absolute',
-              top: orb.top,
-              left: orb.left,
-              right: orb.right,
-              width: orb.size,
-              height: orb.size,
-              borderRadius: '50%',
-              border: isDarkMode ? '1px solid rgba(102, 181, 57, 0.15)' : '1px solid rgba(102, 181, 57, 0.12)',
-              background: isDarkMode ? 'rgba(28, 36, 42, 0.25)' : 'rgba(255, 255, 255, 0.45)',
-              backdropFilter: 'blur(8px)',
-              boxShadow: isDarkMode 
-                ? '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)' 
-                : '0 8px 32px rgba(102, 181, 57, 0.06)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              animation: orb.anim,
-              transition: 'all 0.3s ease',
-              '@keyframes floatSlow1': {
-                '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
-                '50%': { transform: 'translate(50px, -60px) rotate(90deg)' }
-              },
-              '@keyframes floatSlow2': {
-                '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
-                '50%': { transform: 'translate(-40px, 40px) rotate(-90deg)' }
-              },
-              '@keyframes floatSlow3': {
-                '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
-                '50%': { transform: 'translate(40px, 30px) rotate(45deg)' }
-              }
-            }}
-          >
-            {orb.icon}
-          </Box>
-        ))}
+        {/* Rotating Connection Globe (Mulin danma ekama hadanna, scrolling animation ekath ekka) */}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            right: '-10%',
+            transform: `translateY(-50%) rotate(${rotation}deg)`,
+            transformOrigin: '75% 50%',
+            width: '900px',
+            height: '900px',
+            opacity: isDarkMode ? 0.35 : 0.65,
+            transition: 'transform 0.1s linear',
+            pointerEvents: 'none',
+          }}
+        >
+          <svg width="100%" height="100%" viewBox="0 0 1200 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g stroke="#66B539" strokeWidth="1.2" fill="none" opacity="0.16">
+              <circle cx="750" cy="500" r="450"/>
+              <circle cx="750" cy="500" r="350"/>
+              <circle cx="750" cy="500" r="250"/>
+              <circle cx="750" cy="500" r="150"/>
+              <ellipse cx="750" cy="500" rx="450" ry="180" transform="rotate(30, 750, 500)"/>
+              <ellipse cx="750" cy="500" rx="450" ry="180" transform="rotate(-30, 750, 500)"/>
+              <ellipse cx="750" cy="500" rx="450" ry="320" transform="rotate(60, 750, 500)"/>
+              <ellipse cx="750" cy="500" rx="450" ry="320" transform="rotate(-60, 750, 500)"/>
+              <line x1="300" y1="500" x2="1200" y2="500"/>
+              <line x1="750" y1="50" x2="750" y2="950"/>
+            </g>
+            <g fill="#66B539" opacity="0.28">
+              <circle cx="750" cy="50" r="6"/>
+              <circle cx="750" cy="950" r="6"/>
+              <circle cx="300" cy="500" r="6"/>
+              <circle cx="1200" cy="500" r="6"/>
+            </g>
+            <g stroke="#66B539" strokeWidth="1" strokeDasharray="5,5" fill="none" opacity="0.22">
+              <path d="M460,330 L750,50 L1040,330 L1200,500 L1040,670 L750,950 L460,670 L300,500 Z"/>
+              <path d="M750,270 L940,380 L940,620 L750,730 L560,620 L560,380 Z"/>
+            </g>
+            <g opacity="0.45">
+              {/* Clock */}
+              <circle cx="460" cy="330" r="14" stroke="#66B539" strokeWidth="1.5" fill="none"/>
+              <path d="M460,324 L460,330 L465,330" stroke="#66B539" strokeWidth="1.5" strokeLinecap="round"/>
+              {/* House */}
+              <path d="M1032,676 L1032,666 L1040,658 L1048,666 L1048,676 Z" stroke="#66B539" strokeWidth="1.5" fill="none"/>
+              <path d="M1038,676 L1038,670 L1042,670 L1042,676" stroke="#66B539" strokeWidth="1.5"/>
+              {/* Checkmark */}
+              <path d="M1034,330 L1038,334 L1046,326" stroke="#66B539" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              <circle cx="1040" cy="330" r="14" stroke="#66B539" strokeWidth="1.5" fill="none"/>
+              {/* Profile */}
+              <circle cx="460" cy="666" r="5" stroke="#66B539" strokeWidth="1.5" fill="none"/>
+              <path d="M452,676 C452,672 455,671 460,671 C465,671 468,672 468,676" stroke="#66B539" stroke-width="1.5" fill="none"/>
+              <circle cx="460" cy="670" r="14" stroke="#66B539" stroke-width="1.5" fill="none"/>
+            </g>
+          </svg>
+        </Box>
       </Box>
 
       <AppBar
