@@ -34,7 +34,8 @@ import {
   Refresh as RefreshIcon,
   GetApp as ExportIcon,
   Search as SearchIcon,
-  Circle as CircleIcon
+  Circle as CircleIcon,
+  Groups as GroupsIcon
 } from '@mui/icons-material';
 
 function ManagerMonitoring() {
@@ -151,11 +152,16 @@ function ManagerMonitoring() {
 
   // Export Leaderboard to CSV
   const handleExportCSV = () => {
-    if (leaderboard.length === 0) return;
-    const headers = ['User', 'Department', 'Productive Time', 'Unproductive Time', 'Undefined Time', 'Total Work Time', 'Active Time', 'Offline Meetings'];
-    const rows = leaderboard.map(row => [
+    const dataToExport = leaderboardTab === 'USERS' ? leaderboard : getGroupsLeaderboard();
+    if (dataToExport.length === 0) return;
+
+    const headers = leaderboardTab === 'USERS'
+      ? ['User', 'Department', 'Productive Time', 'Unproductive Time', 'Undefined Time', 'Total Work Time', 'Active Time', 'Offline Meetings']
+      : ['Group/Department', 'Active Employees', 'Productive Time', 'Unproductive Time', 'Undefined Time', 'Total Work Time', 'Active Time', 'Offline Meetings'];
+
+    const rows = dataToExport.map(row => [
       row.name,
-      row.department,
+      leaderboardTab === 'USERS' ? row.department : `${row.employeeCount} active employee(s)`,
       formatMins(row.productiveMins),
       formatMins(row.unproductiveMins),
       formatMins(row.neutralMins),
@@ -170,16 +176,58 @@ function ManagerMonitoring() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `productivity_leaderboard_${dateRange}_${department}.csv`);
+    link.setAttribute("download", `${leaderboardTab === 'USERS' ? 'user' : 'group'}_productivity_leaderboard_${dateRange}_${department}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  // Group aggregation logic
+  const getGroupsLeaderboard = () => {
+    const groupsMap = {};
+
+    leaderboard.forEach(row => {
+      const dept = row.department || 'Operations';
+      if (!groupsMap[dept]) {
+        groupsMap[dept] = {
+          id: dept,
+          name: dept,
+          productiveMins: 0,
+          unproductiveMins: 0,
+          neutralMins: 0,
+          totalHours: 0,
+          activeHours: 0,
+          offlineMeetingMins: 0,
+          employeeCount: 0
+        };
+      }
+
+      groupsMap[dept].productiveMins += row.productiveMins || 0;
+      groupsMap[dept].unproductiveMins += row.unproductiveMins || 0;
+      groupsMap[dept].neutralMins += row.neutralMins || 0;
+      groupsMap[dept].totalHours += row.totalHours || 0;
+      groupsMap[dept].activeHours += row.activeHours || 0;
+      groupsMap[dept].offlineMeetingMins += row.offlineMeetingMins || 0;
+      groupsMap[dept].employeeCount += 1;
+    });
+
+    return Object.values(groupsMap).map(group => {
+      const totalMins = group.productiveMins + group.unproductiveMins + group.neutralMins;
+      const productivityRatio = totalMins > 0
+        ? Math.round((group.productiveMins / totalMins) * 100)
+        : 100;
+
+      return {
+        ...group,
+        productivityRatio
+      };
+    }).sort((a, b) => b.productivityRatio - a.productivityRatio);
+  };
+
   // Client-side search filtering
-  const filteredLeaderboard = leaderboard.filter(item => 
-    item.name.toLowerCase().includes(userSearch.toLowerCase())
-  );
+  const displayedLeaderboard = leaderboardTab === 'USERS'
+    ? leaderboard.filter(item => item.name.toLowerCase().includes(userSearch.toLowerCase()))
+    : getGroupsLeaderboard().filter(item => item.name.toLowerCase().includes(userSearch.toLowerCase()));
 
   return (
     <Box sx={{ pb: 5 }}>
@@ -275,19 +323,15 @@ function ManagerMonitoring() {
               >
                 USERS
               </Button>
-              <Tooltip title="Groups feature currently unavailable">
-                <span>
-                  <Button
-                    variant={leaderboardTab === 'GROUPS' ? 'contained' : 'text'}
-                    color="inherit"
-                    size="small"
-                    disabled
-                    sx={{ borderRadius: 1.5, px: 3, fontWeight: 700, textTransform: 'none' }}
-                  >
-                    GROUPS
-                  </Button>
-                </span>
-              </Tooltip>
+              <Button
+                variant={leaderboardTab === 'GROUPS' ? 'contained' : 'text'}
+                color={leaderboardTab === 'GROUPS' ? 'primary' : 'inherit'}
+                size="small"
+                onClick={() => setLeaderboardTab('GROUPS')}
+                sx={{ borderRadius: 1.5, px: 3, fontWeight: 700, textTransform: 'none', boxShadow: leaderboardTab === 'GROUPS' ? 1 : 0 }}
+              >
+                GROUPS
+              </Button>
             </Box>
 
             {/* SUMMARY/DETAILED VIEW switcher */}
@@ -338,7 +382,7 @@ function ManagerMonitoring() {
             <Paper sx={{ py: 6, textAlign: 'center', borderRadius: 3, px: 3 }}>
               <Typography color="error" sx={{ fontWeight: 600 }}>{leaderboardError}</Typography>
             </Paper>
-          ) : filteredLeaderboard.length === 0 ? (
+          ) : displayedLeaderboard.length === 0 ? (
             <Paper sx={{ py: 6, textAlign: 'center', borderRadius: 3, px: 3 }}>
               <Typography color="text.secondary">No records found matching the criteria.</Typography>
             </Paper>
@@ -347,7 +391,7 @@ function ManagerMonitoring() {
               <Table>
                 <TableHead sx={{ bgcolor: 'action.hover' }}>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700, py: 1.5 }}>User</TableCell>
+                    <TableCell sx={{ fontWeight: 700, py: 1.5 }}>{leaderboardTab === 'USERS' ? 'User' : 'Department/Group'}</TableCell>
                     <TableCell sx={{ fontWeight: 700, py: 1.5, width: 220 }}>Productivity Ratio</TableCell>
                     <TableCell sx={{ fontWeight: 700, py: 1.5 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -377,7 +421,7 @@ function ManagerMonitoring() {
                     <TableCell sx={{ py: 1, px: 2 }} colSpan={8}>
                       <TextField
                         size="small"
-                        placeholder="Search user..."
+                        placeholder={leaderboardTab === 'USERS' ? "Search user..." : "Search group..."}
                         value={userSearch}
                         onChange={(e) => setUserSearch(e.target.value)}
                         sx={{ maxWidth: 300, bgcolor: 'background.paper', borderRadius: 1.5 }}
@@ -393,7 +437,7 @@ function ManagerMonitoring() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredLeaderboard.map((row) => {
+                  {displayedLeaderboard.map((row) => {
                     // Calculate stacked bar segment percentages
                     const totalMins = row.productiveMins + row.unproductiveMins + row.neutralMins;
                     const prodPct = totalMins > 0 ? (row.productiveMins / totalMins) * 100 : 100;
@@ -404,17 +448,23 @@ function ManagerMonitoring() {
                       <TableRow key={row.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                         {/* User Profile Column */}
                         <TableCell sx={{ py: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <Avatar sx={{ bgcolor: 'primary.light', width: 34, height: 34, fontWeight: 700, fontSize: '0.85rem' }}>
-                            {row.name.charAt(0)}
+                          <Avatar sx={{ bgcolor: leaderboardTab === 'USERS' ? 'primary.light' : 'secondary.light', width: 34, height: 34, fontWeight: 700, fontSize: '0.85rem' }}>
+                            {leaderboardTab === 'USERS' ? row.name.charAt(0) : <GroupsIcon sx={{ fontSize: 18, color: 'secondary.contrastText' }} />}
                           </Avatar>
                           <Box>
                             <Typography variant="body2" sx={{ fontWeight: 700 }}>
                               {row.name}
                             </Typography>
-                            {viewMode === 'DETAILED' && (
+                            {leaderboardTab === 'GROUPS' ? (
                               <Typography variant="caption" color="text.secondary">
-                                {row.department}
+                                {row.employeeCount} active employee{row.employeeCount !== 1 ? 's' : ''}
                               </Typography>
+                            ) : (
+                              viewMode === 'DETAILED' && (
+                                <Typography variant="caption" color="text.secondary">
+                                  {row.department}
+                                </Typography>
+                              )
                             )}
                           </Box>
                         </TableCell>
