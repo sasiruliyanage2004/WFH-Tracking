@@ -370,7 +370,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           }}
         />
 
-        {/* Rotating Connection Globe (Mulin danma ekama hadanna, scrolling animation ekath ekka) */}
+        {/* Rotating Connection Globe with Neon Glow & Traveling Data Particles (Mulin danma ekama thawa lassana karala) */}
         <Box
           sx={{
             position: 'absolute',
@@ -380,13 +380,43 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
             transformOrigin: '75% 50%',
             width: '900px',
             height: '900px',
-            opacity: isDarkMode ? 0.35 : 0.65,
+            opacity: isDarkMode ? 0.45 : 0.75,
             transition: 'transform 0.1s linear',
             pointerEvents: 'none',
+            '@keyframes flowParticles': {
+              '0%': { strokeDashoffset: 0 },
+              '100%': { strokeDashoffset: -180 }
+            },
+            '@keyframes flowParticlesReverse': {
+              '0%': { strokeDashoffset: 0 },
+              '100%': { strokeDashoffset: 145 }
+            }
           }}
         >
           <svg width="100%" height="100%" viewBox="0 0 1200 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <g stroke="#66B539" strokeWidth="1.2" fill="none" opacity="0.16">
+            <defs>
+              {/* Neon Glow Filter */}
+              <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="5" result="blur" />
+                <feComponentTransfer in="blur" result="glow1">
+                  <feFuncA type="linear" slope="0.8"/>
+                </feComponentTransfer>
+                <feMerge>
+                  <feMergeNode in="glow1" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              
+              {/* Radial gradient for fading grid lines */}
+              <radialGradient id="gridGrad" cx="750" cy="500" r="450" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#66B539" stopOpacity="0.3"/>
+                <stop offset="60%" stopColor="#66B539" stopOpacity="0.15"/>
+                <stop offset="100%" stopColor="#66B539" stopOpacity="0.01"/>
+              </radialGradient>
+            </defs>
+
+            {/* Globe Grid Lines (Radial Fade) */}
+            <g stroke="url(#gridGrad)" strokeWidth="1.2" fill="none">
               <circle cx="750" cy="500" r="450"/>
               <circle cx="750" cy="500" r="350"/>
               <circle cx="750" cy="500" r="250"/>
@@ -398,30 +428,50 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
               <line x1="300" y1="500" x2="1200" y2="500"/>
               <line x1="750" y1="50" x2="750" y2="950"/>
             </g>
-            <g fill="#66B539" opacity="0.28">
-              <circle cx="750" cy="50" r="6"/>
-              <circle cx="750" cy="950" r="6"/>
-              <circle cx="300" cy="500" r="6"/>
-              <circle cx="1200" cy="500" r="6"/>
-            </g>
-            <g stroke="#66B539" strokeWidth="1" strokeDasharray="5,5" fill="none" opacity="0.22">
+
+            {/* Static Connection Dashed Lines */}
+            <g stroke="#66B539" strokeWidth="1" strokeDasharray="6,6" fill="none" opacity="0.2">
               <path d="M460,330 L750,50 L1040,330 L1200,500 L1040,670 L750,950 L460,670 L300,500 Z"/>
               <path d="M750,270 L940,380 L940,620 L750,730 L560,620 L560,380 Z"/>
             </g>
-            <g opacity="0.45">
+
+            {/* Flowing Pulse Particles (Data flows) */}
+            <g stroke="#66B539" strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.8" filter="url(#neonGlow)">
+              <path d="M460,330 L750,50 L1040,330 L1200,500 L1040,670 L750,950 L460,670 L300,500 Z" 
+                    strokeDasharray="30, 150" 
+                    style={{ animation: 'flowParticles 6s linear infinite' }}/>
+              <path d="M750,270 L940,380 L940,620 L750,730 L560,620 L560,380 Z" 
+                    strokeDasharray="25, 120" 
+                    style={{ animation: 'flowParticlesReverse 5s linear infinite' }}/>
+            </g>
+
+            {/* Glowing Nodes */}
+            <g fill="#66B539" opacity="0.75" filter="url(#neonGlow)">
+              <circle cx="750" cy="50" r="7"/>
+              <circle cx="750" cy="950" r="7"/>
+              <circle cx="300" cy="500" r="7"/>
+              <circle cx="1200" cy="500" r="7"/>
+              <circle cx="460" cy="330" r="4"/>
+              <circle cx="1040" cy="670" r="4"/>
+              <circle cx="1040" cy="330" r="4"/>
+              <circle cx="460" cy="670" r="4"/>
+            </g>
+
+            {/* Glowing WFH Icons */}
+            <g filter="url(#neonGlow)" opacity="0.8" stroke="#66B539" strokeWidth="1.5" fill="none">
               {/* Clock */}
-              <circle cx="460" cy="330" r="14" stroke="#66B539" strokeWidth="1.5" fill="none"/>
-              <path d="M460,324 L460,330 L465,330" stroke="#66B539" strokeWidth="1.5" strokeLinecap="round"/>
+              <circle cx="460" cy="330" r="15"/>
+              <path d="M460,324 L460,330 L465,330" strokeLinecap="round"/>
               {/* House */}
-              <path d="M1032,676 L1032,666 L1040,658 L1048,666 L1048,676 Z" stroke="#66B539" strokeWidth="1.5" fill="none"/>
-              <path d="M1038,676 L1038,670 L1042,670 L1042,676" stroke="#66B539" strokeWidth="1.5"/>
+              <path d="M1032,676 L1032,666 L1040,658 L1048,666 L1048,676 Z"/>
+              <path d="M1038,676 L1038,670 L1042,670 L1042,676"/>
               {/* Checkmark */}
-              <path d="M1034,330 L1038,334 L1046,326" stroke="#66B539" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-              <circle cx="1040" cy="330" r="14" stroke="#66B539" strokeWidth="1.5" fill="none"/>
+              <path d="M1034,330 L1038,334 L1046,326" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="1040" cy="330" r="15"/>
               {/* Profile */}
-              <circle cx="460" cy="666" r="5" stroke="#66B539" strokeWidth="1.5" fill="none"/>
-              <path d="M452,676 C452,672 455,671 460,671 C465,671 468,672 468,676" stroke="#66B539" stroke-width="1.5" fill="none"/>
-              <circle cx="460" cy="670" r="14" stroke="#66B539" stroke-width="1.5" fill="none"/>
+              <circle cx="460" cy="666" r="5"/>
+              <path d="M452,676 C452,672 455,671 460,671 C465,671 468,672 468,676"/>
+              <circle cx="460" cy="670" r="15"/>
             </g>
           </svg>
         </Box>
