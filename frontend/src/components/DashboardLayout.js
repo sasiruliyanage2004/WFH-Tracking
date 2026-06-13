@@ -204,21 +204,21 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
                   position: 'relative',
                   background: isActive
                     ? isDarkMode
-                      ? 'linear-gradient(135deg, rgba(91, 156, 246, 0.18) 0%, rgba(167, 139, 250, 0.12) 100%)'
-                      : 'linear-gradient(135deg, rgba(26, 86, 219, 0.08) 0%, rgba(26, 86, 219, 0.04) 100%)'
+                      ? 'linear-gradient(135deg, rgba(102, 181, 57, 0.15) 0%, rgba(102, 181, 57, 0.05) 100%)'
+                      : 'linear-gradient(135deg, rgba(102, 181, 57, 0.12) 0%, rgba(102, 181, 57, 0.04) 100%)'
                     : 'transparent',
                   color: isActive
-                    ? isDarkMode ? '#5b9cf6' : '#1a56db'
+                    ? '#66B539'
                     : 'text.primary',
                   border: isActive && isDarkMode
-                    ? '1px solid rgba(91, 156, 246, 0.25)'
+                    ? '1px solid rgba(102, 181, 57, 0.25)'
                     : isActive
-                      ? '1px solid rgba(26, 86, 219, 0.12)'
+                      ? '1px solid rgba(102, 181, 57, 0.15)'
                       : '1px solid transparent',
                   boxShadow: isActive
                     ? isDarkMode
-                      ? '0 4px 20px rgba(91, 156, 246, 0.15)'
-                      : '0 4px 15px rgba(26, 86, 219, 0.08)'
+                      ? '0 4px 20px rgba(102, 181, 57, 0.12)'
+                      : '0 4px 15px rgba(102, 181, 57, 0.08)'
                     : 'none',
                   overflow: 'hidden',
                   transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -230,15 +230,15 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
                     height: '60%',
                     width: 4,
                     borderRadius: '0 4px 4px 0',
-                    backgroundColor: isDarkMode ? '#5b9cf6' : '#1a56db'
+                    backgroundColor: '#66B539'
                   } : null,
                   '&:hover': {
                     background: isActive
                       ? isDarkMode
-                        ? 'linear-gradient(135deg, rgba(91, 156, 246, 0.25) 0%, rgba(167, 139, 250, 0.18) 100%)'
-                        : 'linear-gradient(135deg, rgba(26, 86, 219, 0.12) 0%, rgba(26, 86, 219, 0.06) 100%)'
+                        ? 'linear-gradient(135deg, rgba(102, 181, 57, 0.22) 0%, rgba(102, 181, 57, 0.1) 100%)'
+                        : 'linear-gradient(135deg, rgba(102, 181, 57, 0.18) 0%, rgba(102, 181, 57, 0.08) 100%)'
                       : isDarkMode
-                        ? 'rgba(91, 156, 246, 0.08)'
+                        ? 'rgba(102, 181, 57, 0.06)'
                         : 'action.hover',
                     transform: isActive ? 'none' : 'translateX(4px)'
                   }
@@ -246,7 +246,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
               >
                 <ListItemIcon sx={{
                   color: isActive
-                    ? isDarkMode ? '#5b9cf6' : '#1a56db'
+                    ? '#66B539'
                     : 'text.secondary',
                   minWidth: 40,
                   transition: 'color 0.25s'
@@ -447,7 +447,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
                     width: 40, 
                     height: 40, 
                     bgcolor: 'primary.main',
-                    border: '2px solid rgba(91, 156, 246, 0.2)',
+                    border: '2px solid rgba(102, 181, 57, 0.2)',
                     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
                   }}
                 >
@@ -492,8 +492,8 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
               const getNotifIcon = (type) => {
                 const style = { fontSize: '1.1rem' };
                 switch (type?.toLowerCase()) {
-                  case 'task':
-                    return <TaskIcon sx={{ ...style, color: '#1a56db' }} />;
+                   case 'task':
+                    return <TaskIcon sx={{ ...style, color: '#66B539' }} />;
                   case 'attendance':
                   case 'break':
                   case 'checkin':
@@ -510,13 +510,13 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
               const getNotifBg = (type, isRead) => {
                 if (isRead) return 'action.hover';
                 switch (type?.toLowerCase()) {
-                  case 'task': return 'rgba(26, 86, 219, 0.08)';
+                  case 'task': return 'rgba(102, 181, 57, 0.08)';
                   case 'attendance':
                   case 'break':
                   case 'checkin': return 'rgba(16, 185, 129, 0.08)';
                   case 'report': return 'rgba(245, 158, 11, 0.08)';
                   case 'alert': return 'rgba(239, 68, 68, 0.08)';
-                  default: return 'rgba(91, 156, 246, 0.08)';
+                  default: return 'rgba(102, 181, 57, 0.08)';
                 }
               };
 

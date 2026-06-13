@@ -142,16 +142,16 @@ function Login() {
         }}
       >
         {/* Orbs */}
-        <Orb size="380px" top="-80px"  left="-100px" color="rgba(26,86,219,0.4)"   delay={0} dur={8} />
-        <Orb size="300px" bottom="-60px" right="-60px" color="rgba(124,58,237,0.35)" delay={1} dur={9} />
-        <Orb size="220px" top="40%"    left="55%"    color="rgba(16,185,129,0.2)"  delay={2} dur={10}/>
+        <Orb size="380px" top="-80px"  left="-100px" color="rgba(102,181,57,0.4)"   delay={0} dur={8} />
+        <Orb size="300px" bottom="-60px" right="-60px" color="rgba(55,65,72,0.35)" delay={1} dur={9} />
+        <Orb size="220px" top="40%"    left="55%"    color="rgba(102,181,57,0.2)"  delay={2} dur={10}/>
 
         {/* Dotted pattern (dot matrix) and tech circles instead of boxes */}
         <Box
           sx={{
             position: 'absolute',
             inset: 0,
-            backgroundImage: 'radial-gradient(rgba(91, 156, 246, 0.07) 1px, transparent 1px)',
+            backgroundImage: 'radial-gradient(rgba(102, 181, 57, 0.07) 1px, transparent 1px)',
             backgroundSize: '28px 28px',
             pointerEvents: 'none',
           }}
@@ -164,21 +164,21 @@ function Login() {
             width: '600px',
             height: '600px',
             borderRadius: '50%',
-            border: '1px solid rgba(91, 156, 246, 0.04)',
+            border: '1px solid rgba(102, 181, 57, 0.04)',
             pointerEvents: 'none',
             '&::before': {
               content: '""',
               position: 'absolute',
               inset: '80px',
               borderRadius: '50%',
-              border: '1px solid rgba(167, 139, 250, 0.03)',
+              border: '1px solid rgba(55, 65, 72, 0.03)',
             },
             '&::after': {
               content: '""',
               position: 'absolute',
               inset: '160px',
               borderRadius: '50%',
-              border: '1px solid rgba(91, 156, 246, 0.02)',
+              border: '1px solid rgba(102, 181, 57, 0.02)',
             }
           }}
         />
@@ -186,7 +186,7 @@ function Login() {
         {/* Top accent bar */}
         <Box sx={{
           position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
-          background: 'linear-gradient(90deg, transparent, #5b9cf6 40%, #a78bfa 70%, transparent)',
+          background: 'linear-gradient(90deg, transparent, #66B539 40%, #85d156 70%, transparent)',
           opacity: 0.7,
         }} />
 
@@ -196,9 +196,9 @@ function Login() {
             sx={{
               width: 48, height: 48,
               borderRadius: '14px',
-              background: 'linear-gradient(135deg, #1a56db 0%, #7c3aed 100%)',
+              background: 'linear-gradient(135deg, #66B539 0%, #374148 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 8px 24px rgba(26,86,219,0.45)',
+              boxShadow: '0 8px 24px rgba(102,181,57,0.45)',
             }}
           >
             <MonitorIcon sx={{ color: '#fff', fontSize: 26 }} />
@@ -225,7 +225,7 @@ function Login() {
             lineHeight: 1.15,
             mb: 2.5,
             fontSize: { md: '2.6rem', lg: '3rem' },
-            background: 'linear-gradient(135deg, #ffffff 0%, #93c5fd 50%, #c4b5fd 100%)',
+            background: 'linear-gradient(135deg, #ffffff 0%, #e2f5d7 50%, #85d156 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
@@ -233,7 +233,7 @@ function Login() {
         >
           Monitor your team,{'\n'}
           <Box component="span" sx={{
-            background: 'linear-gradient(135deg, #34d399 0%, #5b9cf6 100%)',
+            background: 'linear-gradient(135deg, #66B539 0%, #85d156 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
@@ -311,7 +311,7 @@ function Login() {
         }}
       >
         {/* Subtle ambient orb */}
-        <Orb size="300px" top="-60px" right="-60px" color="rgba(124,58,237,0.2)" delay={0} dur={8} />
+        <Orb size="300px" top="-60px" right="-60px" color="rgba(102,181,57,0.2)" delay={0} dur={8} />
 
         <Box sx={{ width: '100%', maxWidth: 420, position: 'relative', zIndex: 1 }}>
 
@@ -319,7 +319,7 @@ function Login() {
           <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 1.5, mb: 5 }}>
             <Box sx={{
               width: 40, height: 40, borderRadius: '12px',
-              background: 'linear-gradient(135deg, #1a56db, #7c3aed)',
+              background: 'linear-gradient(135deg, #66B539, #374148)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <MonitorIcon sx={{ color: '#fff', fontSize: 22 }} />
@@ -372,11 +372,11 @@ function Login() {
                   '& .MuiOutlinedInput-root': {
                     bgcolor: 'rgba(255,255,255,0.04)',
                     '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-                    '&:hover fieldset': { borderColor: 'rgba(91,156,246,0.4)' },
-                    '&.Mui-focused fieldset': { borderColor: '#5b9cf6' },
+                    '&:hover fieldset': { borderColor: 'rgba(102,181,57,0.4)' },
+                    '&.Mui-focused fieldset': { borderColor: '#66B539' },
                   },
                   '& .MuiInputLabel-root': { color: 'rgba(148,163,184,0.6)' },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#5b9cf6' },
+                  '& .MuiInputLabel-root.Mui-focused': { color: '#66B539' },
                   '& input': { color: '#e2e8f0' },
                 }}
               />
@@ -412,13 +412,13 @@ function Login() {
                         cursor: 'pointer',
                         borderBottom: idx < savedAccounts.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
                         transition: 'background 0.15s',
-                        '&:hover': { bgcolor: 'rgba(91,156,246,0.08)' },
+                        '&:hover': { bgcolor: 'rgba(102,181,57,0.08)' },
                       }}
                     >
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                         <Box sx={{
                           width: 28, height: 28, borderRadius: '8px',
-                          background: 'linear-gradient(135deg, #1a56db, #7c3aed)',
+                          background: 'linear-gradient(135deg, #66B539, #374148)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: '0.7rem', fontWeight: 700, color: '#fff',
                         }}>
@@ -469,7 +469,7 @@ function Login() {
                     <IconButton
                       onClick={() => setShowPassword(v => !v)}
                       edge="end"
-                      sx={{ color: 'rgba(148,163,184,0.5)', '&:hover': { color: '#5b9cf6' } }}
+                      sx={{ color: 'rgba(148,163,184,0.5)', '&:hover': { color: '#66B539' } }}
                     >
                       {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                     </IconButton>
@@ -480,11 +480,11 @@ function Login() {
                 '& .MuiOutlinedInput-root': {
                   bgcolor: 'rgba(255,255,255,0.04)',
                   '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-                  '&:hover fieldset': { borderColor: 'rgba(91,156,246,0.4)' },
-                  '&.Mui-focused fieldset': { borderColor: '#5b9cf6' },
+                  '&:hover fieldset': { borderColor: 'rgba(102,181,57,0.4)' },
+                  '&.Mui-focused fieldset': { borderColor: '#66B539' },
                 },
                 '& .MuiInputLabel-root': { color: 'rgba(148,163,184,0.6)' },
-                '& .MuiInputLabel-root.Mui-focused': { color: '#5b9cf6' },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#66B539' },
                 '& input': { color: '#e2e8f0' },
               }}
             />
@@ -494,8 +494,8 @@ function Login() {
               <Link
                 component={RouterLink}
                 to="/forgot-password"
-                sx={{ fontSize: '0.85rem', color: '#5b9cf6', fontWeight: 600, textDecoration: 'none',
-                      '&:hover': { color: '#93c5fd' } }}
+                sx={{ fontSize: '0.85rem', color: '#66B539', fontWeight: 600, textDecoration: 'none',
+                      '&:hover': { color: '#85d156' } }}
               >
                 Forgot password?
               </Link>
@@ -515,12 +515,12 @@ function Login() {
                 fontWeight: 700,
                 fontSize: '0.95rem',
                 letterSpacing: '0.03em',
-                background: 'linear-gradient(135deg, #1239a5 0%, #1a56db 50%, #5b9cf6 100%)',
-                boxShadow: '0 8px 24px rgba(26,86,219,0.5)',
+                background: 'linear-gradient(135deg, #4d8b28 0%, #66B539 50%, #85d156 100%)',
+                boxShadow: '0 8px 24px rgba(102,181,57,0.5)',
                 transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
                 '&:hover': {
-                  background: 'linear-gradient(135deg, #1a56db 0%, #3b82f6 100%)',
-                  boxShadow: '0 12px 32px rgba(26,86,219,0.65)',
+                  background: 'linear-gradient(135deg, #4d8b28 0%, #66B539 100%)',
+                  boxShadow: '0 12px 32px rgba(102,181,57,0.65)',
                   transform: 'translateY(-2px)',
                 },
                 '&:active': { transform: 'translateY(0)' },
@@ -538,7 +538,7 @@ function Login() {
               <Link
                 component={RouterLink}
                 to="/register"
-                sx={{ color: '#5b9cf6', fontWeight: 700, textDecoration: 'none', '&:hover': { color: '#93c5fd' } }}
+                sx={{ color: '#66B539', fontWeight: 700, textDecoration: 'none', '&:hover': { color: '#85d156' } }}
               >
                 Create one
               </Link>

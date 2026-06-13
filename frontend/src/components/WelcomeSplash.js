@@ -115,7 +115,7 @@ const WelcomeSplash = ({ onFinish }) => {
           position: 'absolute',
           top: 0, left: 0, right: 0,
           height: '2px',
-          background: 'linear-gradient(90deg, transparent 0%, #5b9cf6 40%, #a78bfa 70%, transparent 100%)',
+          background: 'linear-gradient(90deg, transparent 0%, #66B539 40%, #85d156 70%, transparent 100%)',
           opacity: 0.8,
         }}
       />
@@ -149,8 +149,8 @@ const WelcomeSplash = ({ onFinish }) => {
               inset: 0,
               borderRadius: '50%',
               border: '2px solid transparent',
-              borderTopColor: '#5b9cf6',
-              borderRightColor: 'rgba(91,156,246,0.3)',
+              borderTopColor: '#66B539',
+              borderRightColor: 'rgba(102,181,57,0.3)',
               animation: 'rotateSlow 2.4s linear infinite',
               '@keyframes rotateSlow': {
                 from: { transform: 'rotate(0deg)' },
@@ -164,12 +164,12 @@ const WelcomeSplash = ({ onFinish }) => {
               position: 'absolute',
               inset: 8,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, rgba(37,99,235,0.25) 0%, rgba(124,58,237,0.15) 100%)',
+              background: 'linear-gradient(135deg, rgba(102,181,57,0.25) 0%, rgba(55,65,72,0.15) 100%)',
               border: '1px solid rgba(255,255,255,0.12)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 0 30px rgba(91,156,246,0.3), inset 0 1px 0 rgba(255,255,255,0.15)',
+              boxShadow: '0 0 30px rgba(102,181,57,0.3), inset 0 1px 0 rgba(255,255,255,0.15)',
               animation: 'float 3s ease-in-out infinite',
               '@keyframes float': {
                 '0%,100%': { transform: 'translateY(0)' },
@@ -179,8 +179,8 @@ const WelcomeSplash = ({ onFinish }) => {
           >
             {/* Monitor icon SVG inline */}
             <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="2" y="3" width="20" height="14" rx="2" stroke="#5b9cf6" strokeWidth="1.8" fill="none"/>
-              <path d="M8 21h8M12 17v4" stroke="#5b9cf6" strokeWidth="1.8" strokeLinecap="round"/>
+              <rect x="2" y="3" width="20" height="14" rx="2" stroke="#66B539" strokeWidth="1.8" fill="none"/>
+              <path d="M8 21h8M12 17v4" stroke="#66B539" strokeWidth="1.8" strokeLinecap="round"/>
               <circle cx="16" cy="10" r="1.5" fill="#34d399"/>
             </svg>
           </Box>
@@ -242,10 +242,10 @@ const WelcomeSplash = ({ onFinish }) => {
               sx={{
                 height: '100%',
                 width: `${barWidth}%`,
-                background: 'linear-gradient(90deg, #1a56db 0%, #5b9cf6 50%, #a78bfa 100%)',
-                borderRadius: 99,
-                transition: 'width 0.05s linear',
-                boxShadow: '0 0 8px rgba(91,156,246,0.6)',
+                 background: 'linear-gradient(90deg, #4d8b28 0%, #66B539 50%, #85d156 100%)',
+                 borderRadius: 99,
+                 transition: 'width 0.05s linear',
+                 boxShadow: '0 0 8px rgba(102,181,57,0.6)',
               }}
             />
           </Box>
