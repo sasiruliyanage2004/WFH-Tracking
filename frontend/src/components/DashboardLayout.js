@@ -51,7 +51,7 @@ import { logout } from '../redux/store';
 
 const drawerWidth = 260;
 
-const svgBackground = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'><g stroke='%2366B539' stroke-width='1' fill='none' opacity='0.05'><rect x='50' y='50' width='200' height='200' rx='10' stroke-dasharray='4,4'/><line x1='50' y1='50' x2='150' y2='150'/><line x1='250' y1='50' x2='150' y2='150'/><line x1='50' y1='250' x2='150' y2='150'/><line x1='250' y1='250' x2='150' y2='150'/><circle cx='150' cy='150' r='50' stroke-dasharray='2,2'/><circle cx='150' cy='150' r='100' stroke-dasharray='4,4'/></g><g stroke='%2366B539' stroke-width='1.2' fill='none' opacity='0.16'><path d='M44,54 L44,48 L50,42 L56,48 L56,54 Z M48,54 L48,50 L52,50 L52,54'/><circle cx='50' cy='50' r='10' stroke-dasharray='2,2'/><circle cx='250' cy='50' r='8'/><path d='M250,46 L250,50 L253,50' stroke-linecap='round'/><circle cx='250' cy='50' r='12' stroke-dasharray='2,2'/><rect x='140' y='140' width='20' height='14' rx='2'/><path d='M136,155 L164,155 L160,159 L140,159 Z'/><circle cx='150' cy='150' r='18' stroke-dasharray='3,3'/><circle cx='50' cy='250' r='2' fill='%2366B539'/><path d='M45,245 A8,8 0 0,1 55,245' stroke-linecap='round'/><path d='M41,241 A14,14 0 0,1 59,241' stroke-linecap='round'/><circle cx='50' cy='250' r='12' stroke-dasharray='2,2'/><circle cx='250' cy='250' r='8'/><path d='M246,250 L249,253 L255,247' stroke-linecap='round' stroke-linejoin='round'/><circle cx='250' cy='250' r='12' stroke-dasharray='2,2'/></g></svg>")`;
+
 
 function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
   const navigate = useNavigate();
@@ -301,54 +301,112 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
+  const floatingOrbs = [
+    { icon: <DashboardIcon sx={{ fontSize: 26, color: '#66B539' }} />, top: '15%', left: '10%', anim: 'floatSlow1 25s ease-in-out infinite', size: 64 },
+    { icon: <HistoryIcon sx={{ fontSize: 24, color: '#66B539' }} />, top: '65%', left: '15%', anim: 'floatSlow2 30s ease-in-out infinite', size: 56 },
+    { icon: <TaskIcon sx={{ fontSize: 24, color: '#66B539' }} />, top: '35%', right: '12%', anim: 'floatSlow3 22s ease-in-out infinite', size: 60 },
+    { icon: <MonitoringIcon sx={{ fontSize: 26, color: '#66B539' }} />, top: '75%', right: '20%', anim: 'floatSlow1 28s ease-in-out infinite', size: 70 },
+    { icon: <SettingsIcon sx={{ fontSize: 22, color: '#66B539' }} />, top: '50%', left: '40%', anim: 'floatSlow2 35s ease-in-out infinite', size: 52 }
+  ];
+
   return (
     <Box sx={{ display: 'flex', width: '100%', minHeight: '100vh', bgcolor: 'background.default', position: 'relative' }}>
       <CssBaseline />
 
-      {/* Background Decorative Glass Glow Blobs */}
-      {isDarkMode && (
-        <Box sx={{ position: 'fixed', width: '100%', height: '100%', top: 0, left: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-          {/* Top Left Blue Glow */}
+      {/* Premium Animated WFH Background */}
+      <Box 
+        sx={{ 
+          position: 'fixed', 
+          width: '100%', 
+          height: '100%', 
+          top: 0, 
+          left: 0, 
+          zIndex: 0, 
+          overflow: 'hidden', 
+          pointerEvents: 'none' 
+        }}
+      >
+        {/* Ambient Glowing Orbs */}
+        <Box
+          sx={{
+            position: 'absolute',
+            width: '60vw',
+            height: '60vw',
+            top: '-20vw',
+            left: '-10vw',
+            borderRadius: '50%',
+            background: isDarkMode 
+              ? 'radial-gradient(circle, rgba(102, 181, 57, 0.08) 0%, rgba(102, 181, 57, 0) 70%)'
+              : 'radial-gradient(circle, rgba(102, 181, 57, 0.05) 0%, rgba(102, 181, 57, 0) 70%)',
+            filter: 'blur(80px)',
+            animation: 'pulseGlow 15s ease-in-out infinite',
+            '@keyframes pulseGlow': {
+              '0%, 100%': { opacity: 0.6, transform: 'scale(1)' },
+              '50%': { opacity: 1, transform: 'scale(1.2)' }
+            }
+          }}
+        />
+        <Box
+          sx={{
+            position: 'absolute',
+            width: '50vw',
+            height: '50vw',
+            bottom: '-10vw',
+            right: '-10vw',
+            borderRadius: '50%',
+            background: isDarkMode
+              ? 'radial-gradient(circle, rgba(55, 65, 72, 0.15) 0%, rgba(55, 65, 72, 0) 70%)'
+              : 'radial-gradient(circle, rgba(102, 181, 57, 0.04) 0%, rgba(102, 181, 57, 0) 70%)',
+            filter: 'blur(100px)',
+            animation: 'pulseGlow2 20s ease-in-out infinite',
+            '@keyframes pulseGlow2': {
+              '0%, 100%': { opacity: 0.5, transform: 'scale(1.1)' },
+              '50%': { opacity: 0.9, transform: 'scale(0.9)' }
+            }
+          }}
+        />
+
+        {/* Floating WFH Glassmorphic Icon Orbs */}
+        {floatingOrbs.map((orb, index) => (
           <Box
+            key={index}
             sx={{
               position: 'absolute',
-              width: '45vw',
-              height: '45vw',
-              top: '-15vw',
-              left: '-10vw',
+              top: orb.top,
+              left: orb.left,
+              right: orb.right,
+              width: orb.size,
+              height: orb.size,
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(79, 142, 247, 0.12) 0%, rgba(79, 142, 247, 0) 70%)',
-              filter: 'blur(100px)',
+              border: isDarkMode ? '1px solid rgba(102, 181, 57, 0.15)' : '1px solid rgba(102, 181, 57, 0.12)',
+              background: isDarkMode ? 'rgba(28, 36, 42, 0.25)' : 'rgba(255, 255, 255, 0.45)',
+              backdropFilter: 'blur(8px)',
+              boxShadow: isDarkMode 
+                ? '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)' 
+                : '0 8px 32px rgba(102, 181, 57, 0.06)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              animation: orb.anim,
+              transition: 'all 0.3s ease',
+              '@keyframes floatSlow1': {
+                '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
+                '50%': { transform: 'translate(50px, -60px) rotate(90deg)' }
+              },
+              '@keyframes floatSlow2': {
+                '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
+                '50%': { transform: 'translate(-40px, 40px) rotate(-90deg)' }
+              },
+              '@keyframes floatSlow3': {
+                '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
+                '50%': { transform: 'translate(40px, 30px) rotate(45deg)' }
+              }
             }}
-          />
-          {/* Bottom Right Violet Glow */}
-          <Box
-            sx={{
-              position: 'absolute',
-              width: '50vw',
-              height: '50vw',
-              bottom: '-15vw',
-              right: '-10vw',
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(167, 139, 250, 0.1) 0%, rgba(167, 139, 250, 0) 70%)',
-              filter: 'blur(120px)',
-            }}
-          />
-          {/* Center-Right Green Glow */}
-          <Box
-            sx={{
-              position: 'absolute',
-              width: '35vw',
-              height: '35vw',
-              top: '30vh',
-              right: '15vw',
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(52, 211, 153, 0.06) 0%, rgba(52, 211, 153, 0) 70%)',
-              filter: 'blur(110px)',
-            }}
-          />
-        </Box>
-      )}
+          >
+            {orb.icon}
+          </Box>
+        ))}
+      </Box>
 
       <AppBar
         position="fixed"
@@ -638,14 +696,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           p: 3,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           minHeight: '100vh',
-          bgcolor: isDarkMode ? 'transparent' : 'background.default',
-          backgroundImage: isDarkMode
-            ? `${svgBackground}, radial-gradient(circle at 50% 50%, rgba(21, 27, 31, 0.1) 0%, #151B1F 100%)`
-            : `${svgBackground}, radial-gradient(circle at 50% 50%, rgba(232, 247, 221, 0.1) 0%, #E8F7DD 100%)`,
-          backgroundAttachment: 'fixed, fixed',
-          backgroundPosition: 'center center, center center',
-          backgroundRepeat: 'repeat, no-repeat',
-          backgroundSize: '240px 240px, cover',
+          bgcolor: 'transparent',
           position: 'relative',
           zIndex: 1
         }}
