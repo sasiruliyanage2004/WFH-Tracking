@@ -318,6 +318,23 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           pointerEvents: 'none' 
         }}
       >
+        {/* SVG Filter for organic wave/ripple distortion effect */}
+        <svg style={{ position: 'absolute', width: 0, height: 0, pointerEvents: 'none' }}>
+          <defs>
+            <filter id="organicWave">
+              <feTurbulence type="fractalNoise" baseFrequency="0.003 0.012" numOctaves="1" result="noise">
+                <animate 
+                  attributeName="baseFrequency" 
+                  values="0.003 0.012; 0.005 0.020; 0.003 0.012" 
+                  dur="40s" 
+                  repeatCount="indefinite" 
+                />
+              </feTurbulence>
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="40" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+          </defs>
+        </svg>
+
         {/* Ambient Glowing Orbs */}
         <Box
           sx={{
@@ -333,7 +350,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
             filter: 'blur(80px)',
             animation: 'pulseGlow 15s ease-in-out infinite',
             '@keyframes pulseGlow': {
-              '0%, 100%': { opacity: 0.6, transform: 'scale(1)' },
+              '0%': { opacity: 0.6, transform: 'scale(1)' },
               '50%': { opacity: 1, transform: 'scale(1.2)' }
             }
           }}
@@ -373,6 +390,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
             opacity: isDarkMode ? 0.08 : 0.45,
             pointerEvents: 'none',
             zIndex: 0,
+            filter: 'url(#organicWave)', // Apply the wave filter to dynamically animate the mesh/sketch lines
             animation: 'ambientVideoLike 160s linear infinite',
             '@keyframes ambientVideoLike': {
               '0%': {
