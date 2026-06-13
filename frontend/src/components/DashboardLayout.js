@@ -51,7 +51,7 @@ import { logout } from '../redux/store';
 
 const drawerWidth = 260;
 
-const svgBackground = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='1000' viewBox='0 0 1200 1000'><g stroke='%2366B539' stroke-width='1.2' fill='none' opacity='0.16'><circle cx='750' cy='500' r='450'/><circle cx='750' cy='500' r='350'/><circle cx='750' cy='500' r='250'/><circle cx='750' cy='500' r='150'/><ellipse cx='750' cy='500' rx='450' ry='180' transform='rotate(30, 750, 500)'/><ellipse cx='750' cy='500' rx='450' ry='180' transform='rotate(-30, 750, 500)'/><ellipse cx='750' cy='500' rx='450' ry='320' transform='rotate(60, 750, 500)'/><ellipse cx='750' cy='500' rx='450' ry='320' transform='rotate(-60, 750, 500)'/><line x1='300' y1='500' x2='1200' y2='500'/><line x1='750' y1='50' x2='750' y2='950'/></g><g fill='%2366B539' opacity='0.28'><circle cx='750' cy='50' r='6'/><circle cx='750' cy='950' r='6'/><circle cx='300' cy='500' r='6'/><circle cx='1200' cy='500' r='6'/></g><g stroke='%2366B539' stroke-width='1' stroke-dasharray='5,5' fill='none' opacity='0.22'><path d='M460,330 L750,50 L1040,330 L1200,500 L1040,670 L750,950 L460,670 L300,500 Z'/><path d='M750,270 L940,380 L940,620 L750,730 L560,620 L560,380 Z'/></g><g opacity='0.45'><circle cx='460' cy='330' r='14' stroke='%2366B539' stroke-width='1.5' fill='none'/><path d='M460,324 L460,330 L465,330' stroke='%2366B539' stroke-width='1.5' stroke-linecap='round'/><path d='M1032,676 L1032,666 L1040,658 L1048,666 L1048,676 Z' stroke='%2366B539' stroke-width='1.5' fill='none'/><path d='M1038,676 L1038,670 L1042,670 L1042,676' stroke='%2366B539' stroke-width='1.5'/><path d='M1034,330 L1038,334 L1046,326' stroke='%2366B539' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='1040' cy='330' r='14' stroke='%2366B539' stroke-width='1.5' fill='none'/><circle cx='460' cy='666' r='5' stroke='%2366B539' stroke-width='1.5' fill='none'/><path d='M452,676 C452,672 455,671 460,671 C465,671 468,672 468,676' stroke='%2366B539' stroke-width='1.5' fill='none'/><circle cx='460' cy='670' r='14' stroke='%2366B539' stroke-width='1.5' fill='none'/></g></svg>")`;
+const svgBackground = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'><g stroke='%2366B539' stroke-width='1' fill='none' opacity='0.05'><rect x='50' y='50' width='200' height='200' rx='10' stroke-dasharray='4,4'/><line x1='50' y1='50' x2='150' y2='150'/><line x1='250' y1='50' x2='150' y2='150'/><line x1='50' y1='250' x2='150' y2='150'/><line x1='250' y1='250' x2='150' y2='150'/><circle cx='150' cy='150' r='50' stroke-dasharray='2,2'/><circle cx='150' cy='150' r='100' stroke-dasharray='4,4'/></g><g stroke='%2366B539' stroke-width='1.2' fill='none' opacity='0.16'><path d='M44,54 L44,48 L50,42 L56,48 L56,54 Z M48,54 L48,50 L52,50 L52,54'/><circle cx='50' cy='50' r='10' stroke-dasharray='2,2'/><circle cx='250' cy='50' r='8'/><path d='M250,46 L250,50 L253,50' stroke-linecap='round'/><circle cx='250' cy='50' r='12' stroke-dasharray='2,2'/><rect x='140' y='140' width='20' height='14' rx='2'/><path d='M136,155 L164,155 L160,159 L140,159 Z'/><circle cx='150' cy='150' r='18' stroke-dasharray='3,3'/><circle cx='50' cy='250' r='2' fill='%2366B539'/><path d='M45,245 A8,8 0 0,1 55,245' stroke-linecap='round'/><path d='M41,241 A14,14 0 0,1 59,241' stroke-linecap='round'/><circle cx='50' cy='250' r='12' stroke-dasharray='2,2'/><circle cx='250' cy='250' r='8'/><path d='M246,250 L249,253 L255,247' stroke-linecap='round' stroke-linejoin='round'/><circle cx='250' cy='250' r='12' stroke-dasharray='2,2'/></g></svg>")`;
 
 function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
   const navigate = useNavigate();
@@ -640,12 +640,12 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           minHeight: '100vh',
           bgcolor: isDarkMode ? 'transparent' : 'background.default',
           backgroundImage: isDarkMode
-            ? `${svgBackground}, radial-gradient(circle at 85% 50%, rgba(21, 27, 31, 0.15) 0%, #151B1F 100%)`
-            : `${svgBackground}, radial-gradient(circle at 85% 50%, rgba(232, 247, 221, 0.15) 0%, #E8F7DD 100%)`,
+            ? `${svgBackground}, radial-gradient(circle at 50% 50%, rgba(21, 27, 31, 0.1) 0%, #151B1F 100%)`
+            : `${svgBackground}, radial-gradient(circle at 50% 50%, rgba(232, 247, 221, 0.1) 0%, #E8F7DD 100%)`,
           backgroundAttachment: 'fixed, fixed',
-          backgroundPosition: 'right center, center center',
-          backgroundRepeat: 'no-repeat, no-repeat',
-          backgroundSize: '1000px 1000px, cover',
+          backgroundPosition: 'center center, center center',
+          backgroundRepeat: 'repeat, no-repeat',
+          backgroundSize: '240px 240px, cover',
           position: 'relative',
           zIndex: 1
         }}
