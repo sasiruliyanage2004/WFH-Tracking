@@ -77,4 +77,62 @@ const sendWarningEmail = async (employee, productivity) => {
   }
 };
 
-module.exports = { sendWarningEmail };
+const sendPasswordResetEmail = async (recipientEmail, otpCode) => {
+  try {
+    const user = process.env.EMAIL_USER;
+    const pass = process.env.EMAIL_PASS;
+    const host = process.env.SMTP_HOST;
+    const port = process.env.SMTP_PORT || 587;
+
+    let transporter;
+
+    if (host && user && pass) {
+      transporter = nodemailer.createTransport({
+        host,
+        port: parseInt(port, 10),
+        secure: parseInt(port, 10) === 465,
+        auth: { user, pass }
+      });
+    } else if (user && pass) {
+      transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user, pass }
+      });
+    } else {
+      console.log('\n-------------------------------------------------------');
+      console.log('--- EMAIL NOT CONFIGURED: Simulating Password Reset ---');
+      console.log(`To: ${recipientEmail}`);
+      console.log(`OTP Code: ${otpCode}`);
+      console.log('-------------------------------------------------------\n');
+      return;
+    }
+
+    const sender = process.env.SENDER_EMAIL || user;
+    const mailOptions = {
+      from: `"WFH Tracking System" <${sender}>`,
+      to: recipientEmail,
+      subject: `🔑 Password Reset Verification Code: ${otpCode}`,
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #66B539; border-radius: 8px; max-width: 600px;">
+          <h2 style="color: #66B539; margin-top: 0;">🔑 Reset Your Password</h2>
+          <p>You requested a password reset for your WFH Tracking System account.</p>
+          <p>Please use the following 6-digit verification code to complete your reset:</p>
+          <div style="background-color: #f4fbf0; padding: 15px; text-align: center; border-radius: 6px; font-size: 28px; font-weight: 700; letter-spacing: 5px; color: #4d8b28; border: 1px dashed #66B539; margin: 20px 0;">
+            ${otpCode}
+          </div>
+          <p>This code is valid for 10 minutes. If you did not request this, please ignore this email.</p>
+          <hr style="border: 0; border-top: 1px solid #eee;" />
+          <p style="color: #777; font-size: 0.85em; margin-top: 20px;">WFH Tracking System Security Team</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Password reset email successfully sent to ${recipientEmail}`);
+  } catch (err) {
+    console.error('Failed to send password reset email:', err.message);
+    throw err;
+  }
+};
+
+module.exports = { sendWarningEmail, sendPasswordResetEmail };

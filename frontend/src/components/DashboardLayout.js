@@ -48,6 +48,7 @@ import {
   Warning as AlertIcon
 } from '@mui/icons-material';
 import { logout } from '../redux/store';
+import DeveloperSignature from './DeveloperSignature';
 
 const drawerWidth = 260;
 
@@ -206,21 +207,21 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
                   position: 'relative',
                   background: isActive
                     ? isDarkMode
-                      ? 'linear-gradient(135deg, rgba(102, 181, 57, 0.15) 0%, rgba(102, 181, 57, 0.05) 100%)'
-                      : 'linear-gradient(135deg, rgba(102, 181, 57, 0.12) 0%, rgba(102, 181, 57, 0.04) 100%)'
+                      ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%)'
+                      : 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%)'
                     : 'transparent',
                   color: isActive
-                    ? '#66B539'
+                    ? '#10b981'
                     : 'text.primary',
                   border: isActive && isDarkMode
-                    ? '1px solid rgba(102, 181, 57, 0.25)'
+                    ? '1px solid rgba(16, 185, 129, 0.25)'
                     : isActive
-                      ? '1px solid rgba(102, 181, 57, 0.15)'
+                      ? '1px solid rgba(16, 185, 129, 0.15)'
                       : '1px solid transparent',
                   boxShadow: isActive
                     ? isDarkMode
-                      ? '0 4px 20px rgba(102, 181, 57, 0.12)'
-                      : '0 4px 15px rgba(102, 181, 57, 0.08)'
+                      ? '0 4px 20px rgba(16, 185, 129, 0.12)'
+                      : '0 4px 15px rgba(16, 185, 129, 0.08)'
                     : 'none',
                   overflow: 'hidden',
                   transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -232,15 +233,15 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
                     height: '60%',
                     width: 4,
                     borderRadius: '0 4px 4px 0',
-                    backgroundColor: '#66B539'
+                    backgroundColor: '#10b981'
                   } : null,
                   '&:hover': {
                     background: isActive
                       ? isDarkMode
-                        ? 'linear-gradient(135deg, rgba(102, 181, 57, 0.22) 0%, rgba(102, 181, 57, 0.1) 100%)'
-                        : 'linear-gradient(135deg, rgba(102, 181, 57, 0.18) 0%, rgba(102, 181, 57, 0.08) 100%)'
+                        ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0.1) 100%)'
+                        : 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(16, 185, 129, 0.08) 100%)'
                       : isDarkMode
-                        ? 'rgba(102, 181, 57, 0.06)'
+                        ? 'rgba(16, 185, 129, 0.06)'
                         : 'action.hover',
                     transform: isActive ? 'none' : 'translateX(4px)'
                   }
@@ -248,7 +249,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
               >
                 <ListItemIcon sx={{
                   color: isActive
-                    ? '#66B539'
+                    ? '#10b981'
                     : 'text.secondary',
                   minWidth: 40,
                   transition: 'color 0.25s'
@@ -296,16 +297,39 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           </ListItemButton>
         </ListItem>
       </List>
+      <Divider />
+      <Box sx={{ py: 2, px: 2, display: 'flex', justifyContent: 'center' }}>
+        <DeveloperSignature />
+      </Box>
     </Box>
   );
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
+  const strokeColor = '#10b981';
+  const lineOpacity = isDarkMode ? 0.24 : 0.26;
+  const globeOpacity = isDarkMode ? 0.28 : 0.30;
+  const nodeOpacity = isDarkMode ? 0.85 : 0.75;
+  const iconColor = '#10b981';
+  const iconOpacity = isDarkMode ? 0.80 : 0.70;
+
+
   return (
-    <Box sx={{ display: 'flex', width: '100%', minHeight: '100vh', bgcolor: 'background.default', position: 'relative' }}>
+    <Box 
+      sx={{ 
+        display: 'flex', 
+        width: '100%', 
+        minHeight: '100vh', 
+        background: isDarkMode 
+          ? 'linear-gradient(135deg, #060913 0%, #070b14 50%, #090d16 100%)'
+          : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+        position: 'relative',
+        color: 'text.primary'
+      }}
+    >
       <CssBaseline />
 
-      {/* Premium Animated WFH Background */}
+      {/* Premium Static WFH Global Network Background */}
       <Box 
         sx={{ 
           position: 'fixed', 
@@ -318,24 +342,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           pointerEvents: 'none' 
         }}
       >
-        {/* SVG Filter for organic wave/ripple distortion effect */}
-        <svg style={{ position: 'absolute', width: 0, height: 0, pointerEvents: 'none' }}>
-          <defs>
-            <filter id="organicWave">
-              <feTurbulence type="fractalNoise" baseFrequency="0.003 0.012" numOctaves="1" result="noise">
-                <animate 
-                  attributeName="baseFrequency" 
-                  values="0.003 0.012; 0.005 0.020; 0.003 0.012" 
-                  dur="40s" 
-                  repeatCount="indefinite" 
-                />
-              </feTurbulence>
-              <feDisplacementMap in="SourceGraphic" in2="noise" scale="40" xChannelSelector="R" yChannelSelector="G" />
-            </filter>
-          </defs>
-        </svg>
-
-        {/* Ambient Glowing Orbs */}
+        {/* Ambient Static Glowing Orbs */}
         <Box
           sx={{
             position: 'absolute',
@@ -345,14 +352,9 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
             left: '-10vw',
             borderRadius: '50%',
             background: isDarkMode 
-              ? 'radial-gradient(circle, rgba(102, 181, 57, 0.08) 0%, rgba(102, 181, 57, 0) 70%)'
-              : 'radial-gradient(circle, rgba(102, 181, 57, 0.05) 0%, rgba(102, 181, 57, 0) 70%)',
-            filter: 'blur(80px)',
-            animation: 'pulseGlow 15s ease-in-out infinite',
-            '@keyframes pulseGlow': {
-              '0%': { opacity: 0.6, transform: 'scale(1)' },
-              '50%': { opacity: 1, transform: 'scale(1.2)' }
-            }
+              ? 'radial-gradient(circle, rgba(16, 185, 129, 0.06) 0%, rgba(16, 185, 129, 0) 70%)'
+              : 'radial-gradient(circle, rgba(16, 185, 129, 0.04) 0%, rgba(16, 185, 129, 0) 70%)',
+            filter: 'blur(80px)'
           }}
         />
         <Box
@@ -364,182 +366,177 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
             right: '-10vw',
             borderRadius: '50%',
             background: isDarkMode
-              ? 'radial-gradient(circle, rgba(55, 65, 72, 0.15) 0%, rgba(55, 65, 72, 0) 70%)'
-              : 'radial-gradient(circle, rgba(102, 181, 57, 0.04) 0%, rgba(102, 181, 57, 0) 70%)',
-            filter: 'blur(100px)',
-            animation: 'pulseGlow2 20s ease-in-out infinite',
-            '@keyframes pulseGlow2': {
-              '0%, 100%': { opacity: 0.5, transform: 'scale(1.1)' },
-              '50%': { opacity: 0.9, transform: 'scale(0.9)' }
-            }
+              ? 'radial-gradient(circle, rgba(55, 65, 72, 0.12) 0%, rgba(55, 65, 72, 0) 70%)'
+              : 'radial-gradient(circle, rgba(16, 185, 129, 0.03) 0%, rgba(16, 185, 129, 0) 70%)',
+            filter: 'blur(100px)'
           }}
         />
 
-        {/* Ambient video-like rotating background image matching user's design */}
+        {/* Full-Screen Premium Global Network Constellation */}
         <Box
           sx={{
             position: 'absolute',
             inset: 0,
-            backgroundImage: 'url("/bg.jpg")',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            transformOrigin: 'center center',
             width: '100%',
             height: '100%',
-            opacity: isDarkMode ? 0.08 : 0.45,
             pointerEvents: 'none',
-            zIndex: 0,
-            filter: 'url(#organicWave)', // Apply the wave filter to dynamically animate the mesh/sketch lines
-            animation: 'ambientVideoLike 200s linear infinite',
-            '@keyframes ambientVideoLike': {
-              '0%': {
-                transform: 'rotate(0deg) scale(1.25)'
-              },
-              '50%': {
-                transform: 'rotate(180deg) scale(1.35)'
-              },
-              '100%': {
-                transform: 'rotate(360deg) scale(1.25)'
-              }
-            }
-          }}
-        />
-
-        {/* Counter-rotating high-tech glowing network constellation & flowing data particles */}
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            transformOrigin: 'center center',
-            width: '100%',
-            height: '100%',
-            opacity: isDarkMode ? 0.45 : 0.7,
-            pointerEvents: 'none',
-            zIndex: 1,
-            animation: 'constellationRotate 120s linear infinite',
-            '@keyframes constellationRotate': {
-              '0%': {
-                transform: 'rotate(360deg) scale(1.15)'
-              },
-              '100%': {
-                transform: 'rotate(0deg) scale(1.15)'
-              }
-            },
-            '@keyframes flowParticles': {
-              '0%': { strokeDashoffset: 0 },
-              '100%': { strokeDashoffset: -240 }
-            },
-            '@keyframes flowParticlesReverse': {
-              '0%': { strokeDashoffset: 0 },
-              '100%': { strokeDashoffset: 180 }
-            }
+            zIndex: 0
           }}
         >
-          <svg width="100%" height="100%" viewBox="0 0 1600 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="100%" height="100%" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              {/* Neon Glow Filter */}
-              <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="5" result="blur" />
-                <feComponentTransfer in="blur" result="glow1">
-                  <feFuncA type="linear" slope="0.8"/>
+              <filter id="staticNeonGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feComponentTransfer in="blur" result="glow">
+                  <feFuncA type="linear" slope="0.6"/>
                 </feComponentTransfer>
                 <feMerge>
-                  <feMergeNode in="glow1" />
+                  <feMergeNode in="glow" />
                   <feMergeNode in="SourceGraphic" />
                 </feMerge>
               </filter>
-              
-              {/* Fade Gradients for Concentric Rings */}
-              <radialGradient id="ringGrad1" cx="850" cy="200" r="200" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#66B539" stopOpacity="0.25"/>
-                <stop offset="100%" stopColor="#66B539" stopOpacity="0.01"/>
-              </radialGradient>
-              <radialGradient id="ringGrad2" cx="1050" cy="650" r="250" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#66B539" stopOpacity="0.25"/>
-                <stop offset="100%" stopColor="#66B539" stopOpacity="0.01"/>
-              </radialGradient>
             </defs>
 
-            {/* Fading Concentric Globe Rings around Hub Nodes */}
-            <g stroke="url(#ringGrad1)" strokeWidth="1" fill="none">
-              <circle cx="850" cy="200" r="60"/>
-              <circle cx="850" cy="200" r="120"/>
-              <circle cx="850" cy="200" r="200"/>
-              <ellipse cx="850" cy="200" rx="200" ry="70" transform="rotate(30, 850, 200)"/>
-              <ellipse cx="850" cy="200" rx="200" ry="70" transform="rotate(-30, 850, 200)"/>
-            </g>
-            <g stroke="url(#ringGrad2)" strokeWidth="1" fill="none">
-              <circle cx="1050" cy="650" r="80"/>
-              <circle cx="1050" cy="650" r="160"/>
-              <circle cx="1050" cy="650" r="240"/>
-              <ellipse cx="1050" cy="650" rx="240" ry="90" transform="rotate(45, 1050, 650)"/>
-              <ellipse cx="1050" cy="650" rx="240" ry="90" transform="rotate(-45, 1050, 650)"/>
-            </g>
-
-            {/* Connection Grid Lines (Static) */}
-            <g stroke="#66B539" strokeWidth="1.2" fill="none" opacity="0.15">
-              <path d="M200,250 L850,200 L1200,350 L1450,750 L1050,650 L650,850 L500,600 Z"/>
-              <line x1="850" y1="200" x2="500" y2="600"/>
-              <line x1="1200" y1="350" x2="1050" y2="650"/>
-              <line x1="500" y1="600" x2="1050" y2="650"/>
-              <line x1="850" y1="200" x2="1050" y2="650"/>
-            </g>
-
-            {/* Flowing Pulse Particles (Data flow animation) */}
-            <g stroke="#66B539" strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.8" filter="url(#neonGlow)">
-              <path d="M200,250 L850,200 L1200,350 L1450,750 L1050,650 L650,850 L500,600 Z" 
-                    strokeDasharray="40, 200" 
-                    style={{ animation: 'flowParticles 8s linear infinite' }}/>
-              <path d="M1050,650 L500,600 L850,200 Z" 
-                    strokeDasharray="30, 150" 
-                    style={{ animation: 'flowParticlesReverse 6s linear infinite' }}/>
+            {/* Globe Group (Rotated slightly for elegant tilting) */}
+            <g transform="rotate(-15, 1450, 540)">
+              {/* Outer boundary circle */}
+              <circle cx="1450" cy="540" r="380" stroke={strokeColor} strokeWidth="1.2" opacity={globeOpacity} />
+              
+              {/* Longitude Ellipses */}
+              <ellipse cx="1450" cy="540" rx="90" ry="380" stroke={strokeColor} strokeWidth="1.2" opacity={globeOpacity} />
+              <ellipse cx="1450" cy="540" rx="190" ry="380" stroke={strokeColor} strokeWidth="1.2" opacity={globeOpacity} />
+              <ellipse cx="1450" cy="540" rx="280" ry="380" stroke={strokeColor} strokeWidth="1.2" opacity={globeOpacity} />
+              
+              {/* Latitude Ellipses */}
+              <ellipse cx="1450" cy="540" rx="380" ry="80" stroke={strokeColor} strokeWidth="1.2" opacity={globeOpacity} />
+              <ellipse cx="1450" cy="540" rx="380" ry="180" stroke={strokeColor} strokeWidth="1.2" opacity={globeOpacity} />
+              <ellipse cx="1450" cy="540" rx="380" ry="270" stroke={strokeColor} strokeWidth="1.2" opacity={globeOpacity} />
+              
+              {/* Small grid circles/points on the globe intersections */}
+              <g fill={strokeColor} opacity={nodeOpacity}>
+                <circle cx="1450" cy="160" r="3" />
+                <circle cx="1450" cy="920" r="3" />
+                <circle cx="1070" cy="540" r="3" />
+                <circle cx="1830" cy="540" r="3" />
+                <circle cx="1360" cy="250" r="3" />
+                <circle cx="1540" cy="250" r="3" />
+                <circle cx="1260" cy="360" r="3" />
+                <circle cx="1640" cy="360" r="3" />
+                <circle cx="1170" cy="540" r="3" />
+                <circle cx="1730" cy="540" r="3" />
+              </g>
             </g>
 
-            {/* Glowing Scattered Node Points */}
-            <g fill="#66B539" opacity="0.75" filter="url(#neonGlow)">
-              <circle cx="200" cy="250" r="6"/>
-              <circle cx="500" cy="600" r="6"/>
-              <circle cx="850" cy="200" r="6"/>
-              <circle cx="1200" cy="350" r="6"/>
-              <circle cx="1450" cy="750" r="6"/>
-              <circle cx="650" cy="850" r="6"/>
-              <circle cx="1050" cy="650" r="6"/>
+            {/* Connection lines representing the global network constellation */}
+            <g stroke={strokeColor} strokeWidth="1.3" opacity={lineOpacity} fill="none">
+              {/* Globe to Near-Globe */}
+              <line x1="1350" y1="420" x2="1150" y2="150" />
+              <line x1="1520" y1="360" x2="1700" y2="220" />
+              <line x1="1220" y1="560" x2="1050" y2="320" />
+              <line x1="1320" y1="590" x2="920" y2="650" />
+              <line x1="1400" y1="680" x2="1250" y2="850" />
+              <line x1="1620" y1="600" x2="1780" y2="780" />
+              
+              {/* Constellation lines spanning the screen */}
+              <line x1="1150" y1="150" x2="850" y2="200" />
+              <line x1="1700" y1="220" x2="1780" y2="780" />
+              <line x1="850" y1="200" x2="450" y2="280" />
+              <line x1="850" y1="200" x2="1050" y2="320" />
+              <line x1="450" y1="280" x2="120" y2="220" />
+              <line x1="450" y1="280" x2="680" y2="480" />
+              <line x1="120" y1="220" x2="250" y2="540" />
+              <line x1="250" y1="540" x2="680" y2="480" />
+              <line x1="250" y1="540" x2="320" y2="720" />
+              <line x1="250" y1="540" x2="180" y2="850" />
+              <line x1="180" y1="850" x2="320" y2="720" />
+              <line x1="180" y1="850" x2="550" y2="780" />
+              <line x1="320" y1="720" x2="550" y2="780" />
+              <line x1="320" y1="720" x2="920" y2="650" />
+              <line x1="550" y1="780" x2="780" y2="880" />
+              <line x1="780" y1="880" x2="920" y2="650" />
+              <line x1="780" y1="880" x2="1250" y2="850" />
+              <line x1="1250" y1="850" x2="920" y2="650" />
+              <line x1="920" y1="650" x2="1050" y2="320" />
+              <line x1="1050" y1="320" x2="680" y2="480" />
+              <line x1="680" y1="480" x2="920" y2="650" />
+              <line x1="1050" y1="320" x2="1150" y2="150" />
             </g>
 
-            {/* Glowing WFH Icons at Node Points */}
-            <g filter="url(#neonGlow)" opacity="0.8" stroke="#66B539" strokeWidth="1.5" fill="none">
-              {/* Clock at A (200, 250) */}
-              <circle cx="200" cy="250" r="14"/>
-              <path d="M200,244 L200,250 L205,250" strokeLinecap="round"/>
+            {/* Glowing Nodes */}
+            <g fill={strokeColor} opacity={nodeOpacity} filter="url(#staticNeonGlow)">
+              <circle cx="1150" cy="150" r="6" />
+              <circle cx="1700" cy="220" r="6" />
+              <circle cx="1050" cy="320" r="6" />
+              <circle cx="920" cy="650" r="6" />
+              <circle cx="1250" cy="850" r="6" />
+              <circle cx="1780" cy="780" r="6" />
+              <circle cx="850" cy="200" r="6" />
+              <circle cx="450" cy="280" r="6" />
+              <circle cx="120" cy="220" r="6" />
+              <circle cx="250" cy="540" r="6" />
+              <circle cx="320" cy="720" r="6" />
+              <circle cx="180" cy="850" r="6" />
+              <circle cx="550" cy="780" r="6" />
+              <circle cx="780" cy="880" r="6" />
+              <circle cx="680" cy="480" r="6" />
+            </g>
 
-              {/* Profile at B (500, 600) */}
-              <circle cx="500" cy="596" r="5"/>
-              <path d="M492,606 C492,602 495,601 500,601 C505,601 508,602 508,606"/>
-              <circle cx="500" cy="600" r="14"/>
+            {/* Stylized Vector WFH Icons at selected nodes */}
+            <g stroke={iconColor} strokeWidth="1.5" fill="none" opacity={iconOpacity} filter="url(#staticNeonGlow)">
+              
+              {/* Clock at Node N3 (850, 200) */}
+              <g transform="translate(850, 200)">
+                <circle cx="0" cy="0" r="16" />
+                <path d="M0,-8 L0,0 L5,3" strokeLinecap="round" />
+              </g>
 
-              {/* House at C (850, 200) */}
-              <path d="M842,206 L842,196 L850,188 L858,196 L858,206 Z"/>
-              <path d="M848,206 L848,200 L852,200 L852,206"/>
-              <circle cx="850" cy="200" r="15"/>
+              {/* Laptop at Node N7 (250, 540) */}
+              <g transform="translate(250, 540)">
+                <rect x="-10" y="-12" width="20" height="14" rx="2" />
+                <path d="M-14,5 L14,5 L10,9 L-10,9 Z" />
+                <circle cx="0" cy="0" r="17" strokeWidth="0.8" opacity="0.5" />
+              </g>
 
-              {/* Checkmark at D (1200, 350) */}
-              <path d="M1194,350 L1198,354 L1206,346" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="1200" cy="350" r="14"/>
+              {/* Home at Node N6 (450, 280) */}
+              <g transform="translate(450, 280)">
+                <path d="M-8,6 L-8,-3 L0,-10 L8,-3 L8,6 Z" />
+                <path d="M-3,6 L-3,1 L3,1 L3,6" />
+                <circle cx="0" cy="0" r="16" strokeWidth="0.8" opacity="0.5" />
+              </g>
 
-              {/* Laptop at E (1450, 750) */}
-              <rect x="1440" y="740" width="20" height="14" rx="2"/>
-              <path d="M1436,755 L1464,755 L1460,759 L1440,759 Z"/>
-              <circle cx="1450" cy="750" r="16"/>
+              {/* Wifi at Node N2 (920, 650) */}
+              <g transform="translate(920, 650)">
+                <circle cx="0" cy="0" r="16" strokeWidth="0.8" opacity="0.5" />
+                <circle cx="0" cy="5" r="2" fill={iconColor} />
+                <path d="M-5,1 A7,7 0 0,1 5,1" strokeLinecap="round" />
+                <path d="M-9,-3 A12,12 0 0,1 9,-3" strokeLinecap="round" />
+              </g>
 
-              {/* Wifi at F (650, 850) */}
-              <path d="M645,845 A8,8 0 0,1 655,845" strokeLinecap="round"/>
-              <path d="M641,841 A14,14 0 0,1 659,841" strokeLinecap="round"/>
-              <circle cx="650" cy="850" r="14"/>
+              {/* User Profile at Node N10 (320, 720) */}
+              <g transform="translate(320, 720)">
+                <circle cx="0" cy="0" r="16" />
+                <circle cx="0" cy="-3" r="4" />
+                <path d="M-8,7 C-8,3 -4,2 0,2 C4,2 8,3 8,7" />
+              </g>
 
-              {/* Clock at G (1050, 650) */}
-              <circle cx="1050" cy="650" r="15"/>
-              <path d="M1050,644 L1050,650 L1055,650" strokeLinecap="round"/>
+              {/* Checkmark at Node N12 (1250, 850) */}
+              <g transform="translate(1250, 850)">
+                <circle cx="0" cy="0" r="16" />
+                <path d="M-6,0 L-2,4 L6,-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </g>
+
+              {/* Home at Node N13 (1150, 150) */}
+              <g transform="translate(1150, 150)">
+                <path d="M-7,5 L-7,-3 L0,-9 L7,-3 L7,5 Z" />
+                <path d="M-2,5 L-2,1 L2,1 L2,5" />
+                <circle cx="0" cy="0" r="15" strokeWidth="0.8" opacity="0.5" />
+              </g>
+
+              {/* Clock at Node N15 (1780, 780) */}
+              <g transform="translate(1780, 780)">
+                <circle cx="0" cy="0" r="16" />
+                <path d="M0,-8 L0,0 L5,2" strokeLinecap="round" />
+              </g>
             </g>
           </svg>
         </Box>
@@ -554,7 +551,9 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           top: window.api !== undefined ? '32px' : 0,
           borderBottom: 1,
           borderColor: 'divider',
-          bgcolor: isDarkMode ? 'transparent' : 'background.paper',
+          bgcolor: isDarkMode ? 'rgba(21, 27, 31, 0.88)' : 'rgba(255, 255, 255, 0.88)',
+          backdropFilter: 'none',
+          WebkitBackdropFilter: 'none',
           color: 'text.primary'
         }}
       >
@@ -644,7 +643,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
                     width: 40, 
                     height: 40, 
                     bgcolor: 'primary.main',
-                    border: '2px solid rgba(102, 181, 57, 0.2)',
+                    border: '2px solid rgba(16, 185, 129, 0.2)',
                     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
                   }}
                 >
@@ -690,7 +689,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
                 const style = { fontSize: '1.1rem' };
                 switch (type?.toLowerCase()) {
                    case 'task':
-                    return <TaskIcon sx={{ ...style, color: '#66B539' }} />;
+                    return <TaskIcon sx={{ ...style, color: '#10b981' }} />;
                   case 'attendance':
                   case 'break':
                   case 'checkin':
@@ -707,13 +706,13 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
               const getNotifBg = (type, isRead) => {
                 if (isRead) return 'action.hover';
                 switch (type?.toLowerCase()) {
-                  case 'task': return 'rgba(102, 181, 57, 0.08)';
+                  case 'task': return 'rgba(16, 185, 129, 0.08)';
                   case 'attendance':
                   case 'break':
                   case 'checkin': return 'rgba(16, 185, 129, 0.08)';
                   case 'report': return 'rgba(245, 158, 11, 0.08)';
                   case 'alert': return 'rgba(239, 68, 68, 0.08)';
-                  default: return 'rgba(102, 181, 57, 0.08)';
+                  default: return 'rgba(16, 185, 129, 0.08)';
                 }
               };
 
@@ -802,7 +801,15 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
               boxSizing: 'border-box', 
               width: drawerWidth,
               top: window.api !== undefined ? 32 : 0,
-              height: window.api !== undefined ? 'calc(100% - 32px)' : '100%'
+              height: window.api !== undefined ? 'calc(100% - 32px)' : '100%',
+              background: isDarkMode 
+                ? 'rgba(21, 27, 31, 0.92) !important' 
+                : 'rgba(255, 255, 255, 0.92) !important',
+              backdropFilter: 'none !important',
+              WebkitBackdropFilter: 'none !important',
+              borderRight: isDarkMode 
+                ? '1px solid rgba(255, 255, 255, 0.08) !important' 
+                : '1px solid rgba(16, 185, 129, 0.12) !important'
             }
           }}
         >
@@ -816,7 +823,15 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
               boxSizing: 'border-box', 
               width: drawerWidth,
               top: window.api !== undefined ? 32 : 0,
-              height: window.api !== undefined ? 'calc(100% - 32px)' : '100%'
+              height: window.api !== undefined ? 'calc(100% - 32px)' : '100%',
+              background: isDarkMode 
+                ? 'rgba(21, 27, 31, 0.92) !important' 
+                : 'rgba(255, 255, 255, 0.92) !important',
+              backdropFilter: 'none !important',
+              WebkitBackdropFilter: 'none !important',
+              borderRight: isDarkMode 
+                ? '1px solid rgba(255, 255, 255, 0.08) !important' 
+                : '1px solid rgba(16, 185, 129, 0.12) !important'
             }
           }}
           open

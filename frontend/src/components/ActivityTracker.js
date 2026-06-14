@@ -15,8 +15,8 @@ function ActivityTracker() {
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
-    // Only track if authenticated employee and not on break
-    if (!isAuthenticated || !token || user?.role !== 'Employee' || onBreak) return;
+    // Only track if authenticated employee and not on break, and not running in Electron
+    if (!isAuthenticated || !token || user?.role !== 'Employee' || onBreak || window.api !== undefined) return;
 
     // Interaction handlers with mousemove throttling to prevent lag
     let lastMouseMoveRegistered = 0;

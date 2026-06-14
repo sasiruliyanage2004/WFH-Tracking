@@ -18,8 +18,9 @@ import { Monitor as MonitoringIcon } from '@mui/icons-material';
 
 function ForgotPassword() {
   const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [step, setStep] = useState(1); // 1 = request token, 2 = enter new password
+  const [step, setStep] = useState(1); // 1 = request token, 2 = enter code & new password
   const [loading, setLoading] = useState(false);
   const [infoMsg, setInfoMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -48,14 +49,14 @@ function ForgotPassword() {
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
-    if (!email || !newPassword) return;
+    if (!email || !code || !newPassword) return;
 
     try {
       setLoading(true);
       setErrorMsg('');
       setInfoMsg('');
 
-      const res = await axios.post(`${API_URL}/api/auth/reset-password`, { email, newPassword });
+      const res = await axios.post(`${API_URL}/api/auth/reset-password`, { email, code, newPassword });
       setInfoMsg(res.data.message);
       
       setTimeout(() => {
@@ -121,9 +122,21 @@ function ForgotPassword() {
           ) : (
             <Box component="form" onSubmit={handleResetPassword} sx={{ width: '100%' }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }} align="center">
-                Confirm your identity by setting your new account password.
+                Confirm your identity by entering the code sent to your email and setting your new password.
               </Typography>
               
+              <TextField
+                label="Verification Code"
+                type="text"
+                fullWidth
+                required
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="6-Digit Code"
+                sx={{ mb: 2.5 }}
+                inputProps={{ maxLength: 6, style: { textAlign: 'center', letterSpacing: '4px', fontWeight: 'bold' } }}
+              />
+
               <TextField
                 label="New Password"
                 type="password"

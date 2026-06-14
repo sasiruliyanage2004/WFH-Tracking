@@ -1,7 +1,173 @@
 const { app, BrowserWindow, ipcMain, desktopCapturer, Menu } = require('electron');
 const path = require('path');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const axios = require('axios');
+const fs = require('fs');
+
+// Local persistent cache configuration
+const getOfflineCacheDir = () => path.join(app.getPath('userData'), 'offline-cache');
+const getOfflineScreenshotsDir = () => path.join(getOfflineCacheDir(), 'screenshots');
+
+function ensureCacheDirs() {
+  const cacheDir = getOfflineCacheDir();
+  const ssDir = getOfflineScreenshotsDir();
+  if (!fs.existsSync(cacheDir)) {
+    fs.mkdirSync(cacheDir, { recursive: true });
+  }
+  if (!fs.existsSync(ssDir)) {
+    fs.mkdirSync(ssDir, { recursive: true });
+  }
+}
+
+function appendOfflineLog(filename, payload) {
+  try {
+    ensureCacheDirs();
+    const filePath = path.join(getOfflineCacheDir(), filename);
+    let logs = [];
+    if (fs.existsSync(filePath)) {
+      try {
+        logs = JSON.parse(fs.readFileSync(filePath, 'utf8')) || [];
+      } catch (e) {
+        logs = [];
+      }
+    }
+    logs.push(payload);
+    fs.writeFileSync(filePath, JSON.stringify(logs, null, 2), 'utf8');
+    console.log(`Desktop Agent: Cached offline log to ${filename}`);
+  } catch (err) {
+    console.error(`Desktop Agent: Failed to cache offline log to ${filename}:`, err.message);
+  }
+}
+
+function cacheOfflineUsageLog(log) {
+  appendOfflineLog('usage-logs.json', {
+    appName: log.appName,
+    windowTitle: log.windowTitle,
+    type: log.type,
+    durationMinutes: log.durationMinutes,
+    date: new Date().toISOString().split('T')[0]
+  });
+}
+
+function cacheOfflineActivityLog(log) {
+  appendOfflineLog('activity-logs.json', {
+    activeSeconds: log.activeSeconds,
+    idleSeconds: log.idleSeconds,
+    keyboardCount: log.keyboardCount,
+    mouseCount: log.mouseCount,
+    date: new Date().toISOString().split('T')[0]
+  });
+}
+
+async function flushOfflineCache() {
+  if (!sessionToken) return;
+  try {
+    ensureCacheDirs();
+    
+    // 1. Flush cached usage logs
+    const usagePath = path.join(getOfflineCacheDir(), 'usage-logs.json');
+    if (fs.existsSync(usagePath)) {
+      let logs = [];
+      try {
+        logs = JSON.parse(fs.readFileSync(usagePath, 'utf8')) || [];
+      } catch (e) {
+        logs = [];
+      }
+
+      if (logs.length > 0) {
+        console.log(`Desktop Agent: Found ${logs.length} cached offline usage logs. Attempting to flush...`);
+        const remainingLogs = [];
+        for (const log of logs) {
+          try {
+            await axios.post(
+              `${BACKEND_URL}/api/monitoring/usage-log`,
+              log,
+              { headers: { Authorization: `Bearer ${sessionToken}` } }
+            );
+            console.log(`Desktop Agent: Flushed usage log for ${log.appName}`);
+          } catch (err) {
+            console.error(`Failed to flush cached usage log for ${log.appName}:`, err.message);
+            remainingLogs.push(log);
+          }
+        }
+
+        if (remainingLogs.length === 0) {
+          fs.unlinkSync(usagePath);
+          console.log('Desktop Agent: All cached usage logs successfully flushed.');
+        } else {
+          fs.writeFileSync(usagePath, JSON.stringify(remainingLogs, null, 2), 'utf8');
+        }
+      }
+    }
+
+    // 2. Flush cached activity logs
+    const activityPath = path.join(getOfflineCacheDir(), 'activity-logs.json');
+    if (fs.existsSync(activityPath)) {
+      let logs = [];
+      try {
+        logs = JSON.parse(fs.readFileSync(activityPath, 'utf8')) || [];
+      } catch (e) {
+        logs = [];
+      }
+
+      if (logs.length > 0) {
+        console.log(`Desktop Agent: Found ${logs.length} cached offline activity logs. Attempting to flush...`);
+        const remainingLogs = [];
+        for (const log of logs) {
+          try {
+            await axios.post(
+              `${BACKEND_URL}/api/monitoring/activity`,
+              log,
+              { headers: { Authorization: `Bearer ${sessionToken}` } }
+            );
+            console.log(`Desktop Agent: Flushed activity log for date ${log.date}`);
+          } catch (err) {
+            console.error(`Failed to flush cached activity telemetry:`, err.message);
+            remainingLogs.push(log);
+          }
+        }
+
+        if (remainingLogs.length === 0) {
+          fs.unlinkSync(activityPath);
+          console.log('Desktop Agent: All cached activity logs successfully flushed.');
+        } else {
+          fs.writeFileSync(activityPath, JSON.stringify(remainingLogs, null, 2), 'utf8');
+        }
+      }
+    }
+
+    // 3. Flush cached screenshots
+    const ssDir = getOfflineScreenshotsDir();
+    if (fs.existsSync(ssDir)) {
+      const files = fs.readdirSync(ssDir);
+      const ssFiles = files.filter(f => f.startsWith('screenshot_') && f.endsWith('.json'));
+      
+      if (ssFiles.length > 0) {
+        console.log(`Desktop Agent: Found ${ssFiles.length} cached offline screenshots. Attempting to flush...`);
+        for (const file of ssFiles) {
+          const filePath = path.join(ssDir, file);
+          try {
+            const content = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+            await axios.post(
+              `${BACKEND_URL}/api/monitoring/screenshot`,
+              {
+                image: content.image,
+                timestamp: content.timestamp
+              },
+              { headers: { Authorization: `Bearer ${sessionToken}` } }
+            );
+            fs.unlinkSync(filePath);
+            console.log(`Desktop Agent: Flushed offline screenshot file: ${file}`);
+          } catch (err) {
+            console.error(`Failed to flush cached screenshot file ${file}:`, err.message);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Desktop Agent: Failed to flush offline cache:', err.message);
+  }
+}
 
 const BACKEND_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3001';
@@ -14,6 +180,13 @@ let trackingActive = false;
 let totalTrackedSeconds = 0;
 let usageBuffer = {};
 let tickCount = 0;
+
+// Global input hook telemetry variables
+let activityProcess = null;
+let localKeyboardCount = 0;
+let localMouseCount = 0;
+let activeSecondsInTick = 0;
+let idleSecondsInTick = 0;
 
 let splashWindow = null;
 
@@ -75,6 +248,8 @@ function createWindow() {
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
     if (validatedURL && (validatedURL.includes('localhost:3001') || validatedURL.includes('127.0.0.1:3001'))) {
       mainWindow.loadURL('http://localhost:3002');
+    } else {
+      mainWindow.webContents.openDevTools();
     }
   });
 
@@ -119,6 +294,23 @@ ipcMain.handle('screen:capture', async () => {
   return null;
 });
 
+// Native Screenshot Cache Handler
+ipcMain.on('screenshot:cache', (event, { image }) => {
+  try {
+    ensureCacheDirs();
+    const timestamp = Date.now();
+    const filePath = path.join(getOfflineScreenshotsDir(), `screenshot_${timestamp}.json`);
+    const payload = {
+      image,
+      timestamp
+    };
+    fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
+    console.log(`Desktop Agent: Cached screenshot offline: screenshot_${timestamp}.json`);
+  } catch (err) {
+    console.error('Desktop Agent: Failed to cache screenshot offline:', err.message);
+  }
+});
+
 // Auto-Tracking control from React frontend
 ipcMain.on('tracking:toggle', (event, { active, token }) => {
   if (active && token) {
@@ -155,7 +347,86 @@ function startTracking() {
   usageBuffer = {};
   tickCount = 0;
 
+  // Reset telemetry counters
+  localKeyboardCount = 0;
+  localMouseCount = 0;
+  activeSecondsInTick = 0;
+  idleSecondsInTick = 0;
+
   console.log('Desktop Agent: Active window tracking started.');
+
+  // Spawn the PowerShell activity monitor script
+  try {
+    const monitorPath = path.join(__dirname, 'activity-monitor.ps1');
+    console.log('Desktop Agent: Spawning background activity monitor sidecar...');
+    
+    activityProcess = spawn('powershell', [
+      '-NoProfile',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-File',
+      monitorPath
+    ]);
+
+    activityProcess.stdout.on('data', (data) => {
+      const debugLogPath = path.join(app.getPath('userData'), 'agent_debug.log');
+      const rawText = data.toString('utf8');
+      const cleanText = rawText.replace(/\0/g, '').replace(/\uFEFF/g, '').replace(/\uFFFE/g, '');
+      
+      try {
+        fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Activity Monitor Stdout - Raw length: ${rawText.length}, Clean: "${cleanText.trim()}"\n`);
+      } catch (e) {}
+
+      const outputLines = cleanText.split('\n');
+      for (let line of outputLines) {
+        line = line.trim();
+        if (line.startsWith('KEYS:')) {
+          // Parse "KEYS:X|CLICKS:Y"
+          const parts = line.split('|');
+          const keys = parseInt(parts[0].replace('KEYS:', '')) || 0;
+          const clicks = parseInt(parts[1].replace('CLICKS:', '')) || 0;
+
+          localKeyboardCount += keys;
+          localMouseCount += clicks;
+
+          // If there was any user input (keys or clicks) in this 10-second tick,
+          // it counts as active time, otherwise idle.
+          if (keys > 0 || clicks > 0) {
+            activeSecondsInTick += 10;
+          } else {
+            idleSecondsInTick += 10;
+          }
+          
+          try {
+            fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Parsed Activity - Keys: ${keys}, Clicks: ${clicks}. Cumulative Active in tick: ${activeSecondsInTick}s, Idle: ${idleSecondsInTick}s\n`);
+          } catch (e) {}
+        }
+      }
+    });
+
+    activityProcess.stderr.on('data', (data) => {
+      const debugLogPath = path.join(app.getPath('userData'), 'agent_debug.log');
+      const errText = data.toString();
+      console.error('Activity monitor stderr:', errText);
+      try {
+        fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Activity Monitor STDERR: "${errText.trim()}"\n`);
+      } catch (e) {}
+    });
+
+    activityProcess.on('close', (code) => {
+      const debugLogPath = path.join(app.getPath('userData'), 'agent_debug.log');
+      console.log(`Activity monitor process exited with code ${code}`);
+      try {
+        fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Activity Monitor Process EXITED with code: ${code}\n`);
+      } catch (e) {}
+    });
+  } catch (err) {
+    const debugLogPath = path.join(app.getPath('userData'), 'agent_debug.log');
+    console.error('Failed to start background activity monitor:', err.message);
+    try {
+      fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Failed to start background activity monitor: ${err.message}\n`);
+    } catch (e) {}
+  }
 
   // Run tracking loop every 10 seconds
   trackingInterval = setInterval(() => {
@@ -168,6 +439,8 @@ function startTracking() {
     // Flush local buffer to backend every 60 seconds (6 ticks)
     if (tickCount >= 6) {
       flushUsageBuffer();
+      flushActivityTelemetry();
+      flushOfflineCache();
       tickCount = 0;
     }
   }, 10000);
@@ -185,10 +458,61 @@ function stopTracking() {
     trackingInterval = null;
   }
 
+  // Terminate background activity monitor process
+  if (activityProcess) {
+    console.log('Desktop Agent: Terminating global activity monitor...');
+    activityProcess.kill();
+    activityProcess = null;
+  }
+
   console.log('Desktop Agent: Active window tracking stopped.');
 
   // Flush remaining buffer data before stopping
   flushUsageBuffer();
+  flushActivityTelemetry();
+}
+
+async function flushActivityTelemetry() {
+  if (!sessionToken) return;
+
+  const keys = localKeyboardCount;
+  const clicks = localMouseCount;
+  const activeSecs = activeSecondsInTick;
+  const idleSecs = idleSecondsInTick;
+
+  // Reset local tick counters
+  localKeyboardCount = 0;
+  localMouseCount = 0;
+  activeSecondsInTick = 0;
+  idleSecondsInTick = 0;
+
+  if (activeSecs === 0 && idleSecs === 0) return; // Nothing to sync
+
+  console.log(`Desktop Agent: Syncing global activity (${activeSecs}s active, ${idleSecs}s idle, ${keys} keys, ${clicks} clicks)...`);
+
+  try {
+    await axios.post(
+      `${BACKEND_URL}/api/monitoring/activity`,
+      {
+        activeSeconds: activeSecs,
+        idleSeconds: idleSecs,
+        keyboardCount: keys,
+        mouseCount: clicks
+      },
+      {
+        headers: { Authorization: `Bearer ${sessionToken}` }
+      }
+    );
+  } catch (err) {
+    console.error('Failed to sync global activity telemetry:', err.response?.data?.message || err.message);
+    // Save to offline persistent cache
+    cacheOfflineActivityLog({
+      activeSeconds: activeSecs,
+      idleSeconds: idleSecs,
+      keyboardCount: keys,
+      mouseCount: clicks
+    });
+  }
 }
 
 function captureActiveWindow() {
@@ -291,11 +615,13 @@ async function flushUsageBuffer() {
       );
     } catch (err) {
       console.error(`Failed to log app ${appName}:`, err.response?.data?.message || err.message);
-      // Put back into buffer if it failed, so we try again next time
-      if (!usageBuffer[appName]) {
-        usageBuffer[appName] = { windowTitle: log.windowTitle, type: log.type, seconds: 0 };
-      }
-      usageBuffer[appName].seconds += log.seconds;
+      // Save to offline persistent cache
+      cacheOfflineUsageLog({
+        appName,
+        windowTitle: log.windowTitle,
+        type: log.type,
+        durationMinutes
+      });
     }
   }
 }
@@ -320,3 +646,7 @@ function classifyApp(appName, windowTitle) {
 
   return 'Neutral';
 }
+
+app.on('will-quit', () => {
+  stopTracking();
+});

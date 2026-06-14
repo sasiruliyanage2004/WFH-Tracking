@@ -18,7 +18,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
 const supabase = require('./utils/supabase');
-const { sendWarningEmail } = require('./utils/email');
+const { sendWarningEmail, sendPasswordResetEmail } = require('./utils/email');
 const { authenticate, authorize } = require('./middleware/auth');
 
 const app = express();
@@ -544,6 +544,7 @@ app.put('/api/auth/profile', authenticate, async (req, res) => {
   }
 });
 
+// Database-backed OTP store for password reset verification
 app.post('/api/auth/forgot-password', async (req, res) => {
   const { email } = req.body;
   try {
@@ -554,14 +555,39 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       .maybeSingle();
 
     if (!user) return res.status(404).json({ message: 'User with this email does not exist.' });
-    res.json({ message: 'Password reset link sent to registered email address (simulation).', resetToken: 'mockToken123' });
+
+    // Clean up any expired OTP codes from database first
+    await supabase
+      .from('password_resets')
+      .delete()
+      .lt('expires_at', new Date().toISOString());
+
+    // Generate a 6-digit random OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Store in Supabase password_resets table with 10-minute expiration
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    const { error: dbErr } = await supabase
+      .from('password_resets')
+      .upsert({
+        email: email.toLowerCase(),
+        otp,
+        expires_at: expiresAt
+      });
+
+    if (dbErr) throw dbErr;
+
+    // Send the actual email containing the OTP
+    await sendPasswordResetEmail(email.toLowerCase(), otp);
+
+    res.json({ message: 'Verification code sent to your registered email address.' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
 app.post('/api/auth/reset-password', async (req, res) => {
-  const { email, newPassword } = req.body;
+  const { email, code, newPassword } = req.body;
   try {
     const { data: user } = await supabase
       .from('users')
@@ -570,6 +596,37 @@ app.post('/api/auth/reset-password', async (req, res) => {
       .maybeSingle();
 
     if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    // Verify OTP code from database
+    const { data: storedData, error: dbErr } = await supabase
+      .from('password_resets')
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .maybeSingle();
+
+    if (dbErr) throw dbErr;
+
+    if (!storedData) {
+      return res.status(400).json({ message: 'No reset session found. Please request a new code.' });
+    }
+
+    if (new Date() > new Date(storedData.expires_at)) {
+      await supabase
+        .from('password_resets')
+        .delete()
+        .eq('email', email.toLowerCase());
+      return res.status(400).json({ message: 'Verification code has expired. Please request a new one.' });
+    }
+
+    if (storedData.otp !== code) {
+      return res.status(400).json({ message: 'Invalid verification code.' });
+    }
+
+    // Success - clean up OTP and update password
+    await supabase
+      .from('password_resets')
+      .delete()
+      .eq('email', email.toLowerCase());
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     const { error } = await supabase
@@ -1199,18 +1256,20 @@ app.put('/api/reports/:id/approve', authenticate, authorize(['Manager', 'SuperAd
 
 // 5. MONITORING & ACTIVITY ROUTING
 app.post('/api/monitoring/screenshot', authenticate, async (req, res) => {
-  const { image } = req.body;
+  const { image, timestamp } = req.body;
   if (!image) return res.status(400).json({ message: 'No image uploaded' });
 
   try {
-    const filename = `screenshot_${req.user.id}_${Date.now()}.jpg`;
+    const timeVal = timestamp || Date.now();
+    const filename = `screenshot_${req.user.id}_${timeVal}.jpg`;
     const screenshotUrl = saveBase64Image(image, screenshotsDir, filename);
 
     const { data: ssRecord, error } = await supabase
       .from('screenshots')
       .insert([{
         employee_id: req.user.id,
-        screenshot_url: screenshotUrl
+        screenshot_url: screenshotUrl,
+        timestamp: timestamp ? new Date(timestamp).toISOString() : new Date().toISOString()
       }])
       .select('*')
       .single();
@@ -1347,8 +1406,8 @@ app.post('/api/monitoring/screenshots/delete-bulk', authenticate, authorize(['Ma
 });
 
 app.post('/api/monitoring/activity', authenticate, async (req, res) => {
-  const { activeSeconds, idleSeconds, keyboardCount, mouseCount } = req.body;
-  const today = new Date().toISOString().split('T')[0];
+  const { activeSeconds, idleSeconds, keyboardCount, mouseCount, date } = req.body;
+  const today = date || new Date().toISOString().split('T')[0];
 
   try {
     const { data: log, error: fetchErr } = await supabase
@@ -1472,8 +1531,8 @@ app.get('/api/monitoring/activity/:employeeId', authenticate, authorize(['Manage
 
 // App & Website Usage Tracking - log application usage from agent
 app.post('/api/monitoring/usage-log', authenticate, async (req, res) => {
-  const { appName, windowTitle, type, durationMinutes } = req.body;
-  const today = new Date().toISOString().split('T')[0];
+  const { appName, windowTitle, type, durationMinutes, date } = req.body;
+  const today = date || new Date().toISOString().split('T')[0];
 
   if (!appName || !type || typeof durationMinutes !== 'number') {
     return res.status(400).json({ message: 'Invalid usage payload' });
@@ -1772,7 +1831,8 @@ app.get('/api/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdm
           pendingReportsCount: 0,
           productivityScore: 100,
           attendanceSummary: { present: 0, absent: 0 },
-          liveCheckins: []
+          liveCheckins: [],
+          weeklyTrend: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(name => ({ day: name, score: 0 }))
         });
       }
       checkinsQuery = checkinsQuery.in('employee_id', employeeIds);
@@ -1821,6 +1881,46 @@ app.get('/api/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdm
       avgProductivity = Math.round(sum / activityToday.length);
     }
 
+    // Calculate weekly productivity trend (Monday - Friday of current week in UTC)
+    const now = new Date();
+    const currentDay = now.getUTCDay();
+    const diff = currentDay === 0 ? 6 : currentDay - 1;
+    const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - diff));
+
+    const weekDates = [];
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    for (let i = 0; i < 5; i++) {
+      const d = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + i));
+      weekDates.push(d.toISOString().split('T')[0]);
+    }
+
+    let weeklyActivityQuery = supabase
+      .from('activity_logs')
+      .select('date, productivity_percentage')
+      .in('date', weekDates);
+
+    if (isManager) {
+      weeklyActivityQuery = weeklyActivityQuery.in('employee_id', employeeIds);
+    }
+    const { data: weeklyActivity } = await weeklyActivityQuery;
+
+    const weeklyTrend = dayNames.map((name, index) => {
+      const dateStr = weekDates[index];
+      const logsForDay = weeklyActivity ? weeklyActivity.filter(log => log.date === dateStr) : [];
+      if (logsForDay.length > 0) {
+        const sum = logsForDay.reduce((acc, curr) => acc + curr.productivity_percentage, 0);
+        return {
+          day: name,
+          score: Math.round(sum / logsForDay.length)
+        };
+      } else {
+        return {
+          day: name,
+          score: 0
+        };
+      }
+    });
+
     res.json({
       totalEmployees: totalEmployees || 0,
       onlineEmployees,
@@ -1831,7 +1931,8 @@ app.get('/api/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdm
         present: checkinsToday ? checkinsToday.length : 0,
         absent: Math.max(0, (totalEmployees || 0) - (checkinsToday ? checkinsToday.length : 0))
       },
-      liveCheckins: enrichedCheckins
+      liveCheckins: enrichedCheckins,
+      weeklyTrend
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

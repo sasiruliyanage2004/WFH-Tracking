@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   toggleTracking: (active, token) => ipcRenderer.send('tracking:toggle', { active, token }),
+  cacheOfflineScreenshot: (image) => ipcRenderer.send('screenshot:cache', { image }),
   captureScreen: () => ipcRenderer.invoke('screen:capture'),
   minimizeWindow: () => ipcRenderer.send('window:minimize'),
   maximizeWindow: () => ipcRenderer.send('window:maximize'),

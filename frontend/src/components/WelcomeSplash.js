@@ -115,7 +115,7 @@ const WelcomeSplash = ({ onFinish }) => {
           position: 'absolute',
           top: 0, left: 0, right: 0,
           height: '2px',
-          background: 'linear-gradient(90deg, transparent 0%, #66B539 40%, #85d156 70%, transparent 100%)',
+          background: 'linear-gradient(90deg, transparent 0%, #10b981 40%, #34d399 70%, transparent 100%)',
           opacity: 0.8,
         }}
       />
@@ -149,7 +149,7 @@ const WelcomeSplash = ({ onFinish }) => {
               inset: 0,
               borderRadius: '50%',
               border: '2px solid transparent',
-              borderTopColor: '#66B539',
+              borderTopColor: '#10b981',
               borderRightColor: 'rgba(102,181,57,0.3)',
               animation: 'rotateSlow 2.4s linear infinite',
               '@keyframes rotateSlow': {
@@ -179,8 +179,8 @@ const WelcomeSplash = ({ onFinish }) => {
           >
             {/* Monitor icon SVG inline */}
             <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="2" y="3" width="20" height="14" rx="2" stroke="#66B539" strokeWidth="1.8" fill="none"/>
-              <path d="M8 21h8M12 17v4" stroke="#66B539" strokeWidth="1.8" strokeLinecap="round"/>
+              <rect x="2" y="3" width="20" height="14" rx="2" stroke="#10b981" strokeWidth="1.8" fill="none"/>
+              <path d="M8 21h8M12 17v4" stroke="#10b981" strokeWidth="1.8" strokeLinecap="round"/>
               <circle cx="16" cy="10" r="1.5" fill="#34d399"/>
             </svg>
           </Box>
@@ -242,7 +242,7 @@ const WelcomeSplash = ({ onFinish }) => {
               sx={{
                 height: '100%',
                 width: `${barWidth}%`,
-                 background: 'linear-gradient(90deg, #4d8b28 0%, #66B539 50%, #85d156 100%)',
+                 background: 'linear-gradient(90deg, #059669 0%, #10b981 50%, #34d399 100%)',
                  borderRadius: 99,
                  transition: 'width 0.05s linear',
                  boxShadow: '0 0 8px rgba(102,181,57,0.6)',

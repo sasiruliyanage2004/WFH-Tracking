@@ -56,29 +56,29 @@ function App() {
     palette: {
       mode: isDarkMode ? 'dark' : 'light',
       primary: {
-        main:          '#66B539',
-        light:         isDarkMode ? '#85d156' : '#e2f5d7',
-        dark:          '#4d8b28',
+        main:          '#10b981',
+        light:         isDarkMode ? '#34d399' : '#d1fae5',
+        dark:          '#059669',
         contrastText:  '#ffffff',
       },
       secondary: {
-        main:  isDarkMode ? '#374148' : '#151B1F',
-        light: isDarkMode ? '#4a5560' : '#374148',
-        dark:  isDarkMode ? '#151B1F' : '#0a0d0f',
+        main:  isDarkMode ? '#090d16' : '#090d16',
+        light: isDarkMode ? '#0b1324' : '#1e293b',
+        dark:  isDarkMode ? '#060913' : '#020617',
       },
       error:   { main: '#ef4444' },
       warning: { main: '#f59e0b' },
-      success: { main: '#66B539' },
+      success: { main: '#10b981' },
       info:    { main: '#3b82f6' },
       background: {
-        default: isDarkMode ? '#151B1F' : '#E8F7DD',
-        paper:   isDarkMode ? '#1c242a' : '#ffffff',
+        default: isDarkMode ? '#060913' : '#f8fafc',
+        paper:   isDarkMode ? '#070b14' : '#ffffff',
       },
       text: {
-        primary:   isDarkMode ? '#F3F4F6' : '#151B1F',
-        secondary: isDarkMode ? '#8A949F' : '#374148',
+        primary:   isDarkMode ? '#f8fafc' : '#0f172a',
+        secondary: isDarkMode ? 'rgba(148, 163, 184, 0.7)' : '#475569',
       },
-      divider: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(21, 27, 31, 0.08)',
+      divider: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)',
     },
 
     typography: {
@@ -102,10 +102,10 @@ function App() {
           root: {
             backgroundImage: 'none',
             background: isDarkMode
-              ? 'rgba(28, 36, 42, 0.8)'
-              : '#ffffff',
-            backdropFilter: isDarkMode ? 'blur(20px)' : 'none',
-            WebkitBackdropFilter: isDarkMode ? 'blur(20px)' : 'none',
+              ? 'rgba(7, 11, 20, 0.92)'
+              : 'rgba(255, 255, 255, 0.90)',
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none',
             border: isDarkMode
               ? '1px solid rgba(255, 255, 255, 0.07)'
               : '1px solid rgba(21, 27, 31, 0.06)',
@@ -128,23 +128,23 @@ function App() {
           },
           containedPrimary: {
             background: isDarkMode
-              ? 'linear-gradient(135deg, #66B539 0%, #85d156 100%)'
-              : 'linear-gradient(135deg, #4d8b28 0%, #66B539 100%)',
+              ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+              : 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
             boxShadow: isDarkMode
-              ? '0 4px 16px rgba(102, 181, 57, 0.4)'
-              : '0 4px 12px rgba(77, 139, 40, 0.3)',
+              ? '0 4px 16px rgba(16, 185, 129, 0.4)'
+              : '0 4px 12px rgba(5, 150, 105, 0.3)',
             '&:hover': {
               background: isDarkMode
-                ? 'linear-gradient(135deg, #4d8b28 0%, #66B539 100%)'
-                : 'linear-gradient(135deg, #3c6e1e 0%, #4d8b28 100%)',
+                ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
+                : 'linear-gradient(135deg, #047857 0%, #059669 100%)',
               boxShadow: isDarkMode
-                ? '0 6px 24px rgba(102, 181, 57, 0.5)'
-                : '0 6px 20px rgba(77, 139, 40, 0.4)',
+                ? '0 6px 24px rgba(16, 185, 129, 0.5)'
+                : '0 6px 20px rgba(5, 150, 105, 0.4)',
               transform: 'translateY(-1px)',
             },
           },
           containedSuccess: {
-            background: 'linear-gradient(135deg, #4d8b28 0%, #66B539 100%)',
+            background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
             '&:hover': { transform: 'translateY(-1px)' },
           },
           outlined: {
@@ -162,8 +162,8 @@ function App() {
             transition: 'box-shadow 0.2s',
             '&.Mui-focused': {
               boxShadow: isDarkMode
-                ? '0 0 0 3px rgba(102, 181, 57, 0.2)'
-                : '0 0 0 3px rgba(102, 181, 57, 0.15)',
+                ? '0 0 0 3px rgba(16, 185, 129, 0.2)'
+                : '0 0 0 3px rgba(16, 185, 129, 0.15)',
             },
           },
         },
@@ -174,10 +174,10 @@ function App() {
         styleOverrides: {
           paper: {
             background: isDarkMode
-              ? 'rgba(21, 27, 31, 0.85)'
-              : '#ffffff',
-            backdropFilter: isDarkMode ? 'blur(24px)' : 'none',
-            WebkitBackdropFilter: isDarkMode ? 'blur(24px)' : 'none',
+              ? 'rgba(9, 13, 22, 0.95)'
+              : 'rgba(255, 255, 255, 0.92)',
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none',
             borderRight: isDarkMode
               ? '1px solid rgba(255, 255, 255, 0.07)'
               : '1px solid rgba(0,0,0,0.08)',
@@ -190,10 +190,10 @@ function App() {
         styleOverrides: {
           root: {
             background: isDarkMode
-              ? 'rgba(21, 27, 31, 0.7)'
-              : 'rgba(255,255,255,0.9)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
+              ? 'rgba(9, 13, 22, 0.88)'
+              : 'rgba(255, 255, 255, 0.88)',
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none',
             borderBottom: isDarkMode
               ? '1px solid rgba(255, 255, 255, 0.07)'
               : '1px solid rgba(0,0,0,0.08)',
@@ -208,10 +208,10 @@ function App() {
           root: {
             backgroundImage: 'none',
             background: isDarkMode
-              ? 'rgba(28, 36, 42, 0.85)'
-              : '#ffffff',
-            backdropFilter: isDarkMode ? 'blur(16px)' : 'none',
-            WebkitBackdropFilter: isDarkMode ? 'blur(16px)' : 'none',
+              ? 'rgba(7, 11, 20, 0.92)'
+              : 'rgba(255, 255, 255, 0.92)',
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none',
             border: isDarkMode
               ? '1px solid rgba(255, 255, 255, 0.07)'
               : undefined,
@@ -260,7 +260,7 @@ function App() {
         styleOverrides: {
           root: {
             fontWeight: 700,
-            background: 'linear-gradient(135deg, #66B539, #4d8b28)',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
           },
         },
       },
@@ -306,8 +306,8 @@ function App() {
           flexDirection: 'column',
           minHeight: '100vh',
           pt: isElectron ? '32px' : 0,
-          border: isElectron ? '1px solid rgba(102, 181, 57, 0.2)' : 'none',
-          boxShadow: isElectron ? '0 0 30px rgba(102, 181, 57, 0.15)' : 'none',
+          border: isElectron ? '1px solid rgba(16, 185, 129, 0.2)' : 'none',
+          boxShadow: isElectron ? '0 0 30px rgba(16, 185, 129, 0.15)' : 'none',
           boxSizing: 'border-box',
           overflow: 'hidden'
         }}

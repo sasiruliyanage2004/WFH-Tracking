@@ -398,13 +398,15 @@ function ManagerDashboard() {
     { name: 'Offline', value: summary.offlineEmployees }
   ];
 
-  const productivityTrendData = [
-    { day: 'Mon', score: 85 },
-    { day: 'Tue', score: 92 },
-    { day: 'Wed', score: 88 },
-    { day: 'Thu', score: 94 },
-    { day: 'Fri', score: summary.productivityScore || 90 }
-  ];
+  const productivityTrendData = summary.weeklyTrend && summary.weeklyTrend.length > 0
+    ? summary.weeklyTrend
+    : [
+        { day: 'Mon', score: 0 },
+        { day: 'Tue', score: 0 },
+        { day: 'Wed', score: 0 },
+        { day: 'Thu', score: 0 },
+        { day: 'Fri', score: summary.productivityScore || 0 }
+      ];
 
   const taskCompletionData = [
     { status: 'Pending', count: tasks.filter(t => t.status === 'Pending').length },

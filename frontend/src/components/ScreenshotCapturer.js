@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
-import { Box, Button, Typography, Alert, Paper } from '@mui/material';
+import { Box, Button, Typography, Alert, Paper, FormControlLabel, Switch } from '@mui/material';
 import { CameraAlt as CameraIcon, Monitor as MonitorIcon } from '@mui/icons-material';
 
 function ScreenshotCapturer({ isCheckedIn }) {
@@ -11,8 +11,18 @@ function ScreenshotCapturer({ isCheckedIn }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [isCapturing, setIsCapturing] = useState(false);
   const [productivity, setProductivity] = useState(100);
+  const [privacyBlurEnabled, setPrivacyBlurEnabled] = useState(() => {
+    const saved = localStorage.getItem('privacy_blur_enabled');
+    return saved !== null ? saved === 'true' : true; // Default to true
+  });
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+
+  const handleToggleBlur = (event) => {
+    const val = event.target.checked;
+    setPrivacyBlurEnabled(val);
+    localStorage.setItem('privacy_blur_enabled', String(val));
+  };
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -59,6 +69,26 @@ function ScreenshotCapturer({ isCheckedIn }) {
     }
   };
 
+  // Helper to apply Gaussian blur to base64 image data URL
+  const applyBlur = (base64Data, blurLevel = 15) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = base64Data;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.filter = `blur(${blurLevel}px)`;
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = () => {
+        resolve(base64Data); // Fallback to original image if drawing fails
+      };
+    });
+  };
+
   // Perform actual screenshot capture and upload
   const captureAndUpload = async () => {
     if (onBreak) return;
@@ -69,7 +99,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
         // Native Electron screen capture (silent, no browser prompts!)
         const nativeImg = await window.api.captureScreen();
         if (nativeImg) {
-          imageData = nativeImg;
+          imageData = privacyBlurEnabled ? await applyBlur(nativeImg, 15) : nativeImg; // Apply privacy blur conditionally
         } else {
           throw new Error("Native screenshot captured null image");
         }
@@ -81,6 +111,11 @@ function ScreenshotCapturer({ isCheckedIn }) {
           const ctx = canvas.getContext('2d');
           canvas.width = video.videoWidth || 800;
           canvas.height = video.videoHeight || 600;
+          if (privacyBlurEnabled) {
+            ctx.filter = 'blur(15px)'; // Apply privacy blur directly to canvas
+          } else {
+            ctx.filter = 'none'; // Capture screen without blur
+          }
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           imageData = canvas.toDataURL('image/jpeg', 0.7);
         }
@@ -143,14 +178,24 @@ function ScreenshotCapturer({ isCheckedIn }) {
       }
 
       if (imageData) {
-        await axios.post(
-          `${API_URL}/api/monitoring/screenshot`,
-          { image: imageData },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        console.log('Screenshot uploaded successfully.');
-        // Refresh local productivity state after logging a new screenshot
-        fetchProductivity();
+        try {
+          await axios.post(
+            `${API_URL}/api/monitoring/screenshot`,
+            { image: imageData },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          console.log('Screenshot uploaded successfully.');
+          // Refresh local productivity state after logging a new screenshot
+          fetchProductivity();
+        } catch (postErr) {
+          console.warn('Screenshot upload failed. Checking for offline caching wrapper...', postErr.message);
+          if (window.api && window.api.cacheOfflineScreenshot) {
+            window.api.cacheOfflineScreenshot(imageData);
+            console.log('Screenshot cached locally for offline mode.');
+          } else {
+            throw postErr;
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to capture and upload screenshot:', err.message);
@@ -222,6 +267,41 @@ function ScreenshotCapturer({ isCheckedIn }) {
 
       {isCheckedIn ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Privacy Shield Blur Toggle */}
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              bgcolor: 'rgba(255, 255, 255, 0.02)', 
+              p: 2, 
+              borderRadius: 3,
+              border: '1px solid',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+              backdropFilter: 'blur(10px)'
+            }}
+          >
+            <Box sx={{ pr: 2 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                Privacy Shield Blur
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                Apply Gaussian blur to screen captures to protect your personal and confidential data.
+              </Typography>
+            </Box>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={privacyBlurEnabled}
+                  onChange={handleToggleBlur}
+                  color="primary"
+                />
+              }
+              label=""
+              sx={{ mr: 0 }}
+            />
+          </Box>
+
           <Typography variant="body2" color="text.secondary">
             {window.api
               ? 'Desktop application wrapper: Real screen capture is active and running silently in the background.'

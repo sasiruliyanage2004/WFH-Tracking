@@ -21,17 +21,17 @@ import {
   Visibility,
   VisibilityOff,
   Monitor as MonitorIcon,
-  CheckCircle as CheckIcon,
   ArrowForward as ArrowIcon,
 } from '@mui/icons-material';
 import { authStart, authSuccess, authFail } from '../redux/store';
+import DeveloperSignature from '../components/DeveloperSignature';
 
 /* ── Left panel feature bullets ─────────────────────── */
 const features = [
-  { icon: '🛡️', title: 'Verified Check-In', desc: 'GPS + Selfie identity verification for every shift start.' },
-  { icon: '📊', title: 'Live Analytics',     desc: 'Real-time productivity tracking and team heatmaps.' },
-  { icon: '📸', title: 'Screen Monitoring',  desc: 'Scheduled screenshot captures with privacy controls.' },
-  { icon: '📋', title: 'Smart Reports',      desc: 'Auto-generated daily work reports and manager approvals.' },
+  { icon: '🛡️', title: 'Verified Check-in', desc: 'GPS + identity verification for secure site attendance.' },
+  { icon: '📈', title: 'Live Analytics',     desc: 'Real-time productivity tracking and workload balancing.' },
+  { icon: '📸', title: 'Screen Monitoring',  desc: 'Privacy-controlled screenshots and activity metrics.' },
+  { icon: '📋', title: 'Smart Reports',      desc: 'Automated reporting systems with AI-driven insights.' },
 ];
 
 /* ── Animated floating orb ────────────────────────── */
@@ -43,16 +43,56 @@ const Orb = ({ size, top, left, right, bottom, color, delay = 0, dur = 7 }) => (
       top, left, right, bottom,
       borderRadius: '50%',
       background: color,
-      filter: 'blur(70px)',
+      filter: 'blur(80px)',
       opacity: 0.5,
       animation: `orbFloat ${dur}s ease-in-out ${delay}s infinite alternate`,
       '@keyframes orbFloat': {
         '0%':   { transform: 'translateY(0) scale(1)' },
-        '100%': { transform: 'translateY(-28px) scale(1.08)' },
+        '100%': { transform: 'translateY(-35px) scale(1.1)' },
       },
       pointerEvents: 'none',
     }}
   />
+);
+
+/* ── Circuit Board Line Vector Background ──────────── */
+const CircuitBackground = () => (
+  <svg
+    width="100%"
+    height="100%"
+    viewBox="0 0 1000 1000"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{
+      position: 'absolute',
+      inset: 0,
+      width: '100%',
+      height: '100%',
+      opacity: 0.12,
+      pointerEvents: 'none',
+      zIndex: 0
+    }}
+  >
+    {/* Microchip tracks branching outward from the center area */}
+    <path d="M 500 250 L 500 120 L 350 120" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" />
+    <path d="M 500 550 L 500 680 L 650 680" stroke="#34d399" strokeWidth="2" strokeLinecap="round" />
+    <path d="M 350 400 L 220 400 L 120 300" stroke="#10b981" strokeWidth="2" strokeLinecap="round" />
+    <path d="M 650 400 L 780 400 L 880 500" stroke="#10b981" strokeWidth="2" strokeLinecap="round" />
+    <path d="M 380 270 L 280 170 L 180 170" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M 620 270 L 720 170 L 820 170" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M 380 530 L 280 630 L 180 630" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M 620 530 L 720 630 L 820 630" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" />
+
+    {/* Terminal Connector Nodes */}
+    <circle cx="350" cy="120" r="4" fill="#4ade80" />
+    <circle cx="650" cy="680" r="4" fill="#34d399" />
+    <circle cx="120" cy="300" r="4" fill="#10b981" />
+    <circle cx="880" cy="500" r="4" fill="#10b981" />
+    <circle cx="180" cy="170" r="4" fill="#4ade80" />
+    <circle cx="820" cy="170" r="4" fill="#4ade80" />
+    <circle cx="180" cy="630" r="4" fill="#34d399" />
+    <circle cx="820" cy="630" r="4" fill="#34d399" />
+  </svg>
 );
 
 function Login() {
@@ -94,7 +134,7 @@ function Login() {
       const updated = [
         { email: loginEmail, password: loginPassword },
         ...savedAccounts.filter(a => a.email !== loginEmail),
-      ]; // Keep all logged-in accounts
+      ];
       localStorage.setItem('wfh_saved_accounts', JSON.stringify(updated));
       setSavedAccounts(updated);
     } catch (err) {
@@ -117,6 +157,7 @@ function Login() {
         display: 'flex',
         bgcolor: '#060913',
         overflow: 'hidden',
+        position: 'relative',
       }}
     >
       {/* ══════════════════════════════════════════════
@@ -133,161 +174,131 @@ function Login() {
           py:             6,
           position:       'relative',
           overflow:       'hidden',
-          background: 'radial-gradient(ellipse at 25% 30%, #0f2060 0%, #060913 65%)',
-          animation: 'leftPanelIn 0.7s cubic-bezier(0.16,1,0.3,1) forwards',
+          background: 'radial-gradient(ellipse at 30% 30%, #0a1945 0%, #060913 70%)',
+          animation: 'leftPanelIn 0.8s cubic-bezier(0.16,1,0.3,1) forwards',
           '@keyframes leftPanelIn': {
-            from: { opacity: 0, transform: 'translateX(-30px)' },
+            from: { opacity: 0, transform: 'translateX(-40px)' },
             to:   { opacity: 1, transform: 'translateX(0)' },
           },
         }}
       >
-        {/* Orbs */}
-        <Orb size="380px" top="-80px"  left="-100px" color="rgba(102,181,57,0.4)"   delay={0} dur={8} />
-        <Orb size="300px" bottom="-60px" right="-60px" color="rgba(55,65,72,0.35)" delay={1} dur={9} />
-        <Orb size="220px" top="40%"    left="55%"    color="rgba(102,181,57,0.2)"  delay={2} dur={10}/>
+        {/* Left Side Glow Orbs */}
+        <Orb size="400px" top="-100px" left="-120px" color="rgba(16,185,129,0.3)" delay={0} dur={9} />
+        <Orb size="300px" bottom="-80px" right="-40px" color="rgba(9,79,165,0.25)" delay={2} dur={10} />
 
-        {/* Dotted pattern (dot matrix) and tech circles instead of boxes */}
+        {/* Dotted pattern overlay */}
         <Box
           sx={{
             position: 'absolute',
             inset: 0,
-            backgroundImage: 'radial-gradient(rgba(102, 181, 57, 0.07) 1px, transparent 1px)',
-            backgroundSize: '28px 28px',
+            backgroundImage: 'radial-gradient(rgba(16, 185, 129, 0.08) 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
             pointerEvents: 'none',
+            zIndex: 1,
           }}
         />
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '20%',
-            left: '-10%',
-            width: '600px',
-            height: '600px',
-            borderRadius: '50%',
-            border: '1px solid rgba(102, 181, 57, 0.04)',
-            pointerEvents: 'none',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              inset: '80px',
-              borderRadius: '50%',
-              border: '1px solid rgba(55, 65, 72, 0.03)',
-            },
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              inset: '160px',
-              borderRadius: '50%',
-              border: '1px solid rgba(102, 181, 57, 0.02)',
-            }
-          }}
-        />
-
-        {/* Top accent bar */}
-        <Box sx={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
-          background: 'linear-gradient(90deg, transparent, #66B539 40%, #85d156 70%, transparent)',
-          opacity: 0.7,
-        }} />
 
         {/* Brand logo */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 6, zIndex: 2 }}>
           <Box
             sx={{
-              width: 48, height: 48,
-              borderRadius: '14px',
-              background: 'linear-gradient(135deg, #66B539 0%, #374148 100%)',
+              width: 52, height: 52,
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, #10b981 0%, #060913 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 8px 24px rgba(102,181,57,0.45)',
+              boxShadow: '0 8px 30px rgba(16,185,129,0.4)',
+              border: '1px solid rgba(16,185,129,0.2)',
             }}
           >
-            <MonitorIcon sx={{ color: '#fff', fontSize: 26 }} />
+            <MonitorIcon sx={{ color: '#fff', fontSize: 28 }} />
           </Box>
           <Box>
             <Typography sx={{
               fontFamily: "'Outfit', sans-serif",
-              fontWeight: 800, fontSize: '1.35rem', color: '#fff', letterSpacing: '1px',
+              fontWeight: 900, fontSize: '1.45rem', color: '#fff', letterSpacing: '1px',
             }}>
               WorkforceOS
             </Typography>
-            <Typography sx={{ fontSize: '0.65rem', color: 'rgba(148,163,184,0.6)', fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase' }}>
-              Enterprise Platform
+            <Typography sx={{ fontSize: '0.68rem', color: 'rgba(16,185,129,0.7)', fontWeight: 700, letterSpacing: '3px', textTransform: 'uppercase' }}>
+              Remote Work Management
             </Typography>
           </Box>
         </Box>
 
         {/* Headline */}
-        <Typography
-          variant="h2"
-          sx={{
-            fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif",
-            fontWeight: 800,
-            lineHeight: 1.15,
-            mb: 2.5,
-            fontSize: { md: '2.6rem', lg: '3rem' },
-            background: 'linear-gradient(135deg, #ffffff 0%, #e2f5d7 50%, #85d156 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}
-        >
-          Monitor your team,{'\n'}
-          <Box component="span" sx={{
-            background: 'linear-gradient(135deg, #66B539 0%, #85d156 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}>
-            from anywhere.
-          </Box>
-        </Typography>
-
-        <Typography sx={{ color: 'rgba(148,163,184,0.75)', mb: 5, lineHeight: 1.7, maxWidth: 420, fontSize: '1rem' }}>
-          The complete remote work management platform built for modern distributed teams.
-        </Typography>
-
-        {/* Feature bullets */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {features.map((f, i) => (
-            <Box
-              key={i}
-              sx={{
-                display: 'flex', alignItems: 'flex-start', gap: 2,
-                animation: `featureIn 0.5s ease ${0.3 + i * 0.1}s both`,
-                '@keyframes featureIn': {
-                  from: { opacity: 0, transform: 'translateX(-16px)' },
-                  to:   { opacity: 1, transform: 'translateX(0)' },
-                },
-              }}
-            >
-              <Box sx={{
-                width: 38, height: 38, borderRadius: '10px', flexShrink: 0,
-                background: 'rgba(255,255,255,0.07)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.1rem',
-              }}>
-                {f.icon}
-              </Box>
-              <Box>
-                <Typography sx={{ color: '#e2e8f0', fontWeight: 700, fontSize: '0.9rem', mb: 0.2 }}>
-                  {f.title}
-                </Typography>
-                <Typography sx={{ color: 'rgba(148,163,184,0.6)', fontSize: '0.8rem', lineHeight: 1.5 }}>
-                  {f.desc}
-                </Typography>
-              </Box>
+        <Box sx={{ zIndex: 2 }}>
+          <Typography
+            variant="h2"
+            sx={{
+              fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif",
+              fontWeight: 900,
+              lineHeight: 1.15,
+              mb: 3,
+              fontSize: { md: '2.8rem', lg: '3.4rem' },
+              color: '#ffffff',
+            }}
+          >
+            Monitor your team, <br />
+            <Box component="span" sx={{
+              background: 'linear-gradient(90deg, #10b981 0%, #34d399 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}>
+              from anywhere.
             </Box>
-          ))}
+          </Typography>
+
+          <Typography sx={{ color: 'rgba(148,163,184,0.7)', mb: 5, lineHeight: 1.7, maxWidth: 440, fontSize: '1.05rem' }}>
+            The complete remote work management platform built for modern distributed teams.
+          </Typography>
+
+          {/* Feature bullets */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            {features.map((f, i) => (
+              <Box
+                key={i}
+                sx={{
+                  display: 'flex', alignItems: 'center', gap: 2.5,
+                  p: 2, borderRadius: 4,
+                  bgcolor: 'rgba(255, 255, 255, 0.01)',
+                  border: '1px solid rgba(255,255,255,0.03)',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    bgcolor: 'rgba(16,185,129,0.04)',
+                    borderColor: 'rgba(16,185,129,0.15)',
+                    transform: 'translateX(4px)',
+                  },
+                  animation: `featureIn 0.5s ease ${0.3 + i * 0.1}s both`,
+                  '@keyframes featureIn': {
+                    from: { opacity: 0, transform: 'translateX(-20px)' },
+                    to:   { opacity: 1, transform: 'translateX(0)' },
+                  },
+                }}
+              >
+                <Box sx={{
+                  width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+                  background: 'rgba(16,185,129,0.08)',
+                  border: '1.5px solid rgba(16,185,129,0.25)',
+                  boxShadow: '0 0 15px rgba(16,185,129,0.15)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '1.25rem',
+                }}>
+                  {f.icon}
+                </Box>
+                <Box>
+                  <Typography sx={{ color: '#f8fafc', fontWeight: 800, fontSize: '0.92rem', mb: 0.2 }}>
+                    {f.title}
+                  </Typography>
+                  <Typography sx={{ color: 'rgba(148,163,184,0.6)', fontSize: '0.82rem', lineHeight: 1.5 }}>
+                    {f.desc}
+                  </Typography>
+                </Box>
+              </Box>
+            ))}
+          </Box>
         </Box>
 
-        {/* Bottom badge */}
-        <Box sx={{ mt: 6, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <CheckIcon sx={{ color: '#34d399', fontSize: 16 }} />
-          <Typography sx={{ color: 'rgba(148,163,184,0.5)', fontSize: '0.75rem', fontWeight: 500 }}>
-            Trusted by 500+ remote teams worldwide
-          </Typography>
-        </Box>
       </Box>
 
       {/* ══════════════════════════════════════════════
@@ -303,52 +314,81 @@ function Login() {
           py: 6,
           bgcolor: '#070b14',
           position: 'relative',
-          animation: 'rightPanelIn 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s both',
+          overflow: 'hidden',
+          animation: 'rightPanelIn 0.8s cubic-bezier(0.16,1,0.3,1) 0.1s both',
           '@keyframes rightPanelIn': {
-            from: { opacity: 0, transform: 'translateX(20px)' },
+            from: { opacity: 0, transform: 'translateX(30px)' },
             to:   { opacity: 1, transform: 'translateX(0)' },
           },
         }}
       >
-        {/* Subtle ambient orb */}
-        <Orb size="300px" top="-60px" right="-60px" color="rgba(102,181,57,0.2)" delay={0} dur={8} />
+        {/* Glow Ambient Orbs behind Card */}
+        <Orb size="380px" top="10%" right="-50px" color="rgba(16,185,129,0.25)" delay={0} dur={8} />
+        <Orb size="300px" bottom="15%" left="50px" color="rgba(13,148,136,0.2)" delay={1} dur={7} />
 
-        <Box sx={{ width: '100%', maxWidth: 420, position: 'relative', zIndex: 1 }}>
+        {/* Circuit Vector Lines Background */}
+        <CircuitBackground />
 
-          {/* Mobile brand */}
-          <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 1.5, mb: 5 }}>
+
+        {/* Glassmorphism Card */}
+        <Paper
+          elevation={0}
+          sx={{
+            width: '100%',
+            maxWidth: 440,
+            p: { xs: 3.5, sm: 5 },
+            borderRadius: 6,
+            background: 'rgba(255, 255, 255, 0.02)',
+            backdropFilter: 'blur(35px)',
+            WebkitBackdropFilter: 'blur(35px)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            boxShadow: '0 24px 80px rgba(0, 0, 0, 0.55)',
+            position: 'relative',
+            zIndex: 1,
+            overflow: 'hidden',
+          }}
+        >
+          {/* Subtle top edge glow on card */}
+          <Box sx={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: '1.5px',
+            background: 'linear-gradient(90deg, transparent, rgba(16,185,129,0.5), transparent)',
+          }} />
+
+          {/* Mobile brand branding */}
+          <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 1.5, mb: 4 }}>
             <Box sx={{
-              width: 40, height: 40, borderRadius: '12px',
-              background: 'linear-gradient(135deg, #66B539, #374148)',
+              width: 44, height: 44, borderRadius: '12px',
+              background: 'linear-gradient(135deg, #10b981, #060913)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 8px 20px rgba(16,185,129,0.3)',
             }}>
-              <MonitorIcon sx={{ color: '#fff', fontSize: 22 }} />
+              <MonitorIcon sx={{ color: '#fff', fontSize: 24 }} />
             </Box>
-            <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, color: '#fff', fontSize: '1.2rem' }}>
+            <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 900, color: '#fff', fontSize: '1.35rem' }}>
               WorkforceOS
             </Typography>
           </Box>
 
           {/* Heading */}
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#e2e8f0', mb: 0.5 }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: '#f8fafc', mb: 0.8, letterSpacing: '-0.5px' }}>
             Welcome back
           </Typography>
-          <Typography sx={{ color: 'rgba(148,163,184,0.7)', mb: 4, fontSize: '0.95rem' }}>
+          <Typography sx={{ color: 'rgba(148,163,184,0.7)', mb: 4.5, fontSize: '0.95rem' }}>
             Sign in to your workspace to continue.
           </Typography>
 
-          {/* Error */}
+          {/* Error message */}
           {errorMsg && (
             <Alert
               severity="error"
-              sx={{ mb: 3, borderRadius: 3, bgcolor: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.25)', color: '#fca5a5' }}
+              sx={{ mb: 3.5, borderRadius: 3, bgcolor: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5' }}
             >
               {errorMsg}
             </Alert>
           )}
 
           {/* Form */}
-          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 
             {/* Email field with quick-select dropdown */}
             <Box sx={{ position: 'relative' }}>
@@ -360,45 +400,46 @@ function Login() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 onFocus={() => setShowDropdown(true)}
-                onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 180)}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <EmailIcon sx={{ color: 'rgba(148,163,184,0.5)', fontSize: 20 }} />
+                      <EmailIcon sx={{ color: 'rgba(148,163,184,0.45)', fontSize: 20 }} />
                     </InputAdornment>
                   ),
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    bgcolor: 'rgba(255,255,255,0.04)',
-                    '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-                    '&:hover fieldset': { borderColor: 'rgba(102,181,57,0.4)' },
-                    '&.Mui-focused fieldset': { borderColor: '#66B539' },
+                    borderRadius: '14px',
+                    bgcolor: 'rgba(255,255,255,0.02)',
+                    '& fieldset': { borderColor: 'rgba(255,255,255,0.08)' },
+                    '&:hover fieldset': { borderColor: 'rgba(16,185,129,0.4)' },
+                    '&.Mui-focused fieldset': { borderColor: '#10b981', boxShadow: '0 0 15px rgba(16,185,129,0.15)' },
                   },
-                  '& .MuiInputLabel-root': { color: 'rgba(148,163,184,0.6)' },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#66B539' },
-                  '& input': { color: '#e2e8f0' },
+                  '& .MuiInputLabel-root': { color: 'rgba(148,163,184,0.55)' },
+                  '& .MuiInputLabel-root.Mui-focused': { color: '#10b981' },
+                  '& input': { color: '#f8fafc' },
                 }}
               />
               {/* Quick-select saved accounts dropdown */}
               {showDropdown && savedAccounts.length > 0 && (
                 <Paper
-                  elevation={8}
+                  elevation={12}
                   sx={{
                     position: 'absolute',
                     top: '100%', left: 0, right: 0,
-                    mt: 0.5, zIndex: 20,
-                    borderRadius: 3,
+                    mt: 1, zIndex: 20,
+                    borderRadius: 3.5,
                     maxHeight: 220,
                     overflowY: 'auto',
                     border: '1px solid rgba(255,255,255,0.08)',
-                    bgcolor: 'rgba(13,17,23,0.97)',
-                    backdropFilter: 'blur(20px)',
-                    // Custom scrollbar
-                    '&::-webkit-scrollbar': { width: '6px' },
+                    bgcolor: 'rgba(9,13,22,0.96)',
+                    backdropFilter: 'blur(30px)',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+                    '&::-webkit-scrollbar': { width: '5px' },
                     '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
-                    '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.15)', borderRadius: '3px' },
-                    '&::-webkit-scrollbar-thumb:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
+                    '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.12)', borderRadius: '3px' },
+                    '&::-webkit-scrollbar-thumb:hover': { bgcolor: 'rgba(255,255,255,0.25)' }
                   }}
                 >
                   {savedAccounts.map((acc, idx) => (
@@ -407,20 +448,20 @@ function Login() {
                       onMouseDown={e => e.preventDefault()}
                       onClick={() => { setEmail(acc.email); setPassword(acc.password); setShowDropdown(false); }}
                       sx={{
-                        px: 2, py: 1.5,
+                        px: 2.5, py: 1.8,
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         cursor: 'pointer',
-                        borderBottom: idx < savedAccounts.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-                        transition: 'background 0.15s',
-                        '&:hover': { bgcolor: 'rgba(102,181,57,0.08)' },
+                        borderBottom: idx < savedAccounts.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                        transition: 'background 0.2s',
+                        '&:hover': { bgcolor: 'rgba(16,185,129,0.06)' },
                       }}
                     >
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                         <Box sx={{
-                          width: 28, height: 28, borderRadius: '8px',
-                          background: 'linear-gradient(135deg, #66B539, #374148)',
+                          width: 30, height: 30, borderRadius: '8px',
+                          background: 'linear-gradient(135deg, #10b981, #060913)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '0.7rem', fontWeight: 700, color: '#fff',
+                          fontSize: '0.75rem', fontWeight: 800, color: '#fff',
                         }}>
                           {acc.email[0].toUpperCase()}
                         </Box>
@@ -437,9 +478,9 @@ function Login() {
                           setSavedAccounts(updated);
                         }}
                         sx={{
-                          fontSize: '0.7rem', fontWeight: 600, color: 'rgba(148,163,184,0.5)',
-                          px: 1, py: 0.4, borderRadius: 1,
-                          '&:hover': { bgcolor: 'rgba(220,38,38,0.15)', color: '#f87171' },
+                          fontSize: '0.7rem', fontWeight: 700, color: 'rgba(148,163,184,0.4)',
+                          px: 1, py: 0.5, borderRadius: 1,
+                          '&:hover': { bgcolor: 'rgba(239,68,68,0.15)', color: '#f87171' },
                         }}
                       >
                         ✕
@@ -461,7 +502,7 @@ function Login() {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <LockIcon sx={{ color: 'rgba(148,163,184,0.5)', fontSize: 20 }} />
+                    <LockIcon sx={{ color: 'rgba(148,163,184,0.45)', fontSize: 20 }} />
                   </InputAdornment>
                 ),
                 endAdornment: (
@@ -469,7 +510,7 @@ function Login() {
                     <IconButton
                       onClick={() => setShowPassword(v => !v)}
                       edge="end"
-                      sx={{ color: 'rgba(148,163,184,0.5)', '&:hover': { color: '#66B539' } }}
+                      sx={{ color: 'rgba(148,163,184,0.45)', '&:hover': { color: '#10b981' } }}
                     >
                       {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                     </IconButton>
@@ -478,14 +519,15 @@ function Login() {
               }}
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  bgcolor: 'rgba(255,255,255,0.04)',
-                  '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-                  '&:hover fieldset': { borderColor: 'rgba(102,181,57,0.4)' },
-                  '&.Mui-focused fieldset': { borderColor: '#66B539' },
+                  borderRadius: '14px',
+                  bgcolor: 'rgba(255,255,255,0.02)',
+                  '& fieldset': { borderColor: 'rgba(255,255,255,0.08)' },
+                  '&:hover fieldset': { borderColor: 'rgba(16,185,129,0.4)' },
+                  '&.Mui-focused fieldset': { borderColor: '#10b981', boxShadow: '0 0 15px rgba(16,185,129,0.15)' },
                 },
-                '& .MuiInputLabel-root': { color: 'rgba(148,163,184,0.6)' },
-                '& .MuiInputLabel-root.Mui-focused': { color: '#66B539' },
-                '& input': { color: '#e2e8f0' },
+                '& .MuiInputLabel-root': { color: 'rgba(148,163,184,0.55)' },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#10b981' },
+                '& input': { color: '#f8fafc' },
               }}
             />
 
@@ -494,14 +536,14 @@ function Login() {
               <Link
                 component={RouterLink}
                 to="/forgot-password"
-                sx={{ fontSize: '0.85rem', color: '#66B539', fontWeight: 600, textDecoration: 'none',
-                      '&:hover': { color: '#85d156' } }}
+                sx={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 700, textDecoration: 'none',
+                      '&:hover': { color: '#34d399' } }}
               >
                 Forgot password?
               </Link>
             </Box>
 
-            {/* Submit button */}
+            {/* Submit Button */}
             <Button
               type="submit"
               variant="contained"
@@ -510,18 +552,18 @@ function Login() {
               disabled={loading}
               endIcon={loading ? null : <ArrowIcon />}
               sx={{
-                py: 1.6,
-                borderRadius: 3,
-                fontWeight: 700,
-                fontSize: '0.95rem',
-                letterSpacing: '0.03em',
-                background: 'linear-gradient(135deg, #4d8b28 0%, #66B539 50%, #85d156 100%)',
-                boxShadow: '0 8px 24px rgba(102,181,57,0.5)',
-                transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
+                py: 1.8,
+                borderRadius: '30px',
+                fontWeight: 750,
+                fontSize: '0.98rem',
+                textTransform: 'none',
+                background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
+                boxShadow: '0 8px 25px rgba(16,185,129,0.3)',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 '&:hover': {
-                  background: 'linear-gradient(135deg, #4d8b28 0%, #66B539 100%)',
-                  boxShadow: '0 12px 32px rgba(102,181,57,0.65)',
-                  transform: 'translateY(-2px)',
+                  background: 'linear-gradient(90deg, #34d399 0%, #10b981 100%)',
+                  boxShadow: '0 12px 30px rgba(16,185,129,0.5)',
+                  transform: 'translateY(-2.5px)',
                 },
                 '&:active': { transform: 'translateY(0)' },
                 '&.Mui-disabled': { opacity: 0.6 },
@@ -531,35 +573,38 @@ function Login() {
             </Button>
           </Box>
 
-          {/* Register link */}
-          <Box sx={{ mt: 4, textAlign: 'center' }}>
-            <Typography sx={{ color: 'rgba(148,163,184,0.6)', fontSize: '0.875rem' }}>
-              Don't have an account?{' '}
+          {/* Register Link */}
+          <Box sx={{ mt: 4.5, textAlign: 'center' }}>
+            <Typography sx={{ color: 'rgba(148,163,184,0.55)', fontSize: '0.88rem' }}>
+              New to WorkforceOS?{' '}
               <Link
                 component={RouterLink}
                 to="/register"
-                sx={{ color: '#66B539', fontWeight: 700, textDecoration: 'none', '&:hover': { color: '#85d156' } }}
+                sx={{ color: '#10b981', fontWeight: 800, textDecoration: 'none', '&:hover': { color: '#34d399' } }}
               >
                 Create one
               </Link>
             </Typography>
           </Box>
 
-          {/* Security badge */}
-          <Box sx={{ mt: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+          {/* Security badge footer */}
+          <Box sx={{ mt: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.2 }}>
             <Box sx={{
-              width: 7, height: 7, borderRadius: '50%', bgcolor: '#34d399',
-              animation: 'pingGreen 2s ease-in-out infinite',
+              width: 7, height: 7, borderRadius: '50%', bgcolor: '#10b981',
+              animation: 'pingGreen 2.5s ease-in-out infinite',
               '@keyframes pingGreen': {
                 '0%,100%': { opacity: 1, transform: 'scale(1)' },
-                '50%':     { opacity: 0.6, transform: 'scale(1.4)' },
+                '50%':     { opacity: 0.5, transform: 'scale(1.4)' },
               },
             }} />
-            <Typography sx={{ color: 'rgba(100,116,139,0.6)', fontSize: '0.72rem', fontWeight: 500 }}>
+            <Typography sx={{ color: 'rgba(100,116,139,0.65)', fontSize: '0.75rem', fontWeight: 600 }}>
               256-bit TLS encrypted · SOC 2 compliant
             </Typography>
           </Box>
-        </Box>
+          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+            <DeveloperSignature />
+          </Box>
+        </Paper>
       </Box>
     </Box>
   );

@@ -29,7 +29,7 @@ function CustomTitlebar() {
     <Box
       sx={{
         height: 32,
-        bgcolor: '#151B1F',
+        bgcolor: '#060913',
         borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
         display: 'flex',
         alignItems: 'center',
@@ -48,7 +48,7 @@ function CustomTitlebar() {
     >
       {/* Brand Logo & Name */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <LogoIcon sx={{ color: '#66B539', fontSize: '1rem' }} />
+        <LogoIcon sx={{ color: '#10b981', fontSize: '1rem' }} />
         <Typography
           variant="caption"
           sx={{
