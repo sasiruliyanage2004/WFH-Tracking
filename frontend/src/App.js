@@ -12,6 +12,7 @@ import CustomTitlebar from './components/CustomTitlebar';
 // Background Trackers
 import ActivityTracker from './components/ActivityTracker';
 import WelcomeSplash from './components/WelcomeSplash';
+import DeveloperBadge from './components/DeveloperBadge';
 
 // Pages
 import Login from './pages/Login';
@@ -398,6 +399,7 @@ function App() {
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Router>
+      <DeveloperBadge />
       </Box>
     </ThemeProvider>
   );

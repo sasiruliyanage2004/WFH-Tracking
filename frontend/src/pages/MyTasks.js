@@ -7,7 +7,6 @@ import {
   Button,
   Card,
   CardContent,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -24,6 +23,8 @@ import {
   MenuItem
 } from '@mui/material';
 import { AddTask as TaskIcon } from '@mui/icons-material';
+
+import CustomLoader from '../components/CustomLoader';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -121,7 +122,7 @@ function MyTasks() {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-        <CircularProgress />
+        <CustomLoader />
       </Box>
     );
   }

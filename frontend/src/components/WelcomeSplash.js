@@ -133,55 +133,82 @@ const WelcomeSplash = ({ onFinish }) => {
           },
         }}
       >
-        {/* Logo ring */}
+        {/* Logo ring with S loader */}
         <Box
           sx={{
             position: 'relative',
-            width: 100,
-            height: 100,
+            width: 110,
+            height: 110,
             mb: 3,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          {/* Outer spinning ring */}
+          {/* Outer glowing rotating ring */}
           <Box
             sx={{
               position: 'absolute',
               inset: 0,
               borderRadius: '50%',
-              border: '2px solid transparent',
-              borderTopColor: '#10b981',
-              borderRightColor: 'rgba(102,181,57,0.3)',
-              animation: 'rotateSlow 2.4s linear infinite',
+              border: '2px dashed #10b981',
+              animation: 'rotateSlow 6s linear infinite',
               '@keyframes rotateSlow': {
                 from: { transform: 'rotate(0deg)' },
                 to:   { transform: 'rotate(360deg)' },
               },
             }}
           />
-          {/* Inner glow circle */}
+          {/* Inner glow circle containing animated S */}
           <Box
             sx={{
               position: 'absolute',
-              inset: 8,
+              inset: 10,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, rgba(102,181,57,0.25) 0%, rgba(55,65,72,0.15) 100%)',
-              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(55, 65, 72, 0.1) 100%)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 0 30px rgba(102,181,57,0.3), inset 0 1px 0 rgba(255,255,255,0.15)',
+              boxShadow: '0 0 35px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
               animation: 'float 3s ease-in-out infinite',
               '@keyframes float': {
                 '0%,100%': { transform: 'translateY(0)' },
-                '50%':     { transform: 'translateY(-6px)' },
+                '50%':     { transform: 'translateY(-5px)' },
               },
             }}
           >
-            {/* Monitor icon SVG inline */}
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="2" y="3" width="20" height="14" rx="2" stroke="#10b981" strokeWidth="1.8" fill="none"/>
-              <path d="M8 21h8M12 17v4" stroke="#10b981" strokeWidth="1.8" strokeLinecap="round"/>
-              <circle cx="16" cy="10" r="1.5" fill="#34d399"/>
+            {/* Animated S SVG Logo */}
+            <svg
+              width="45"
+              height="45"
+              viewBox="0 0 100 100"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ filter: 'drop-shadow(0px 0px 6px rgba(16, 185, 129, 0.5))' }}
+            >
+              <path
+                d="M 72 28 C 72 12, 28 12, 28 35 C 28 50, 72 50, 72 65 C 72 88, 28 88, 28 72"
+                stroke="#10b981"
+                strokeWidth="12"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  strokeDasharray: 300,
+                  strokeDashoffset: 300,
+                  animation: 'drawSplashS 2.4s ease-in-out infinite alternate',
+                }}
+              />
+              <style>{`
+                @keyframes drawSplashS {
+                  0% {
+                    stroke-dashoffset: 300;
+                  }
+                  100% {
+                    stroke-dashoffset: 0;
+                  }
+                }
+              `}</style>
             </svg>
           </Box>
         </Box>

@@ -8,7 +8,6 @@ import {
   Button,
   Card,
   CardContent,
-  CircularProgress,
   Grid,
   Typography,
   Paper,
@@ -37,6 +36,7 @@ import {
   Circle as CircleIcon,
   Groups as GroupsIcon
 } from '@mui/icons-material';
+import CustomLoader from '../components/CustomLoader';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -377,7 +377,7 @@ function ManagerMonitoring() {
           {/* Leaderboard Table */}
           {loadingLeaderboard ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-              <CircularProgress />
+              <CustomLoader />
             </Box>
           ) : leaderboardError ? (
             <Paper sx={{ py: 6, textAlign: 'center', borderRadius: 3, px: 3 }}>
@@ -562,7 +562,7 @@ function ManagerMonitoring() {
           {/* Stats summary boxes */}
           {loadingSummary ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress />
+              <CustomLoader />
             </Box>
           ) : summaryError ? (
             <Paper sx={{ py: 4, textAlign: 'center', mb: 4, borderRadius: 3 }}>

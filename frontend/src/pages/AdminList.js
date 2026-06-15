@@ -17,7 +17,6 @@ import {
   Select,
   FormControl,
   InputLabel,
-  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -37,6 +36,7 @@ import {
   CalendarToday as JoinedIcon,
   FilterList as FilterIcon
 } from '@mui/icons-material';
+import CustomLoader from '../components/CustomLoader';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -118,7 +118,7 @@ function AdminList() {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <CircularProgress />
+        <CustomLoader />
       </Box>
     );
   }

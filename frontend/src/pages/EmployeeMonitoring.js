@@ -34,6 +34,7 @@ import {
   Close as CloseIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
+import CustomLoader from '../components/CustomLoader';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -132,7 +133,7 @@ function EmployeeMonitoring() {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-        <CircularProgress />
+        <CustomLoader />
       </Box>
     );
   }

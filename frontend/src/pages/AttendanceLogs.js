@@ -4,7 +4,6 @@ import { useSelector } from 'react-redux';
 import axios from 'axios';
 import {
   Box,
-  CircularProgress,
   Paper,
   Table,
   TableBody,
@@ -19,6 +18,7 @@ import {
   IconButton
 } from '@mui/material';
 import { Close as CloseIcon, Visibility as ViewIcon } from '@mui/icons-material';
+import CustomLoader from '../components/CustomLoader';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -48,7 +48,7 @@ function AttendanceLogs() {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-        <CircularProgress />
+        <CustomLoader />
       </Box>
     );
   }

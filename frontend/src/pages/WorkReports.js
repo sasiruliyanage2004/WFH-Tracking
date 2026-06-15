@@ -7,7 +7,6 @@ import {
   Button,
   Card,
   CardContent,
-  CircularProgress,
   Divider,
   Grid,
   TextField,
@@ -24,6 +23,8 @@ import {
   HourglassEmpty as PendingIcon,
   CancelOutlined as RejectIcon
 } from '@mui/icons-material';
+
+import CustomLoader from '../components/CustomLoader';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -89,7 +90,7 @@ function WorkReports() {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-        <CircularProgress />
+        <CustomLoader />
       </Box>
     );
   }

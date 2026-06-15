@@ -5,7 +5,6 @@ import axios from 'axios';
 import {
   Box,
   Button,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -28,6 +27,7 @@ import {
   Undo as UndoIcon,
   Comment as CommentIcon
 } from '@mui/icons-material';
+import CustomLoader from '../components/CustomLoader';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -266,7 +266,7 @@ function ManagerReports() {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-        <CircularProgress />
+        <CustomLoader />
       </Box>
     );
   }
