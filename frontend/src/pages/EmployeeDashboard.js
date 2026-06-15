@@ -50,6 +50,8 @@ import ScreenshotCapturer from '../components/ScreenshotCapturer';
 import SkeletonCard from '../components/SkeletonCard';
 import AnimatedCounter from '../components/AnimatedCounter';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 function EmployeeDashboard() {
   const { token, user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
@@ -93,8 +95,6 @@ function EmployeeDashboard() {
   const [challengesText, setChallengesText] = useState('');
   const [tomorrowText, setTomorrowText] = useState('');
   const [workedHoursInput, setWorkedHoursInput] = useState(8);
-
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   // Get status, tasks, and reports on load
   const fetchData = async () => {

@@ -25,6 +25,8 @@ import {
 } from '@mui/material';
 import { AddTask as TaskIcon } from '@mui/icons-material';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 function MyTasks() {
   const { token, user } = useSelector((state) => state.auth);
   const [tasks, setTasks] = useState([]);
@@ -36,23 +38,20 @@ function MyTasks() {
   const [taskPriority, setTaskPriority] = useState('Medium');
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-
-  const fetchTasks = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.get(`${API_URL}/api/tasks`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setTasks(res.data);
-    } catch (err) {
-      console.error(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get(`${API_URL}/api/tasks`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setTasks(res.data);
+      } catch (err) {
+        console.error(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchTasks();
   }, [token]);
 

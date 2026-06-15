@@ -20,6 +20,8 @@ import {
   Save as SaveIcon
 } from '@mui/icons-material';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 function ManagerSettings() {
   const { token } = useSelector((state) => state.auth);
 
@@ -29,8 +31,6 @@ function ManagerSettings() {
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState({ show: false, text: '', severity: 'success' });
   const [initialLoading, setInitialLoading] = useState(true);
-
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -47,7 +47,7 @@ function ManagerSettings() {
     };
 
     fetchSettings();
-  }, [token, API_URL]);
+  }, [token]);
 
   const handleAddEmail = () => {
     const emailVal = newEmail.trim().toLowerCase();

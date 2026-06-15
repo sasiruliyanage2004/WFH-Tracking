@@ -35,6 +35,8 @@ import {
   Delete as DeleteIcon
 } from '@mui/icons-material';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 function EmployeeMonitoring() {
   const { employeeId } = useParams();
   const navigate = useNavigate();
@@ -89,7 +91,7 @@ function EmployeeMonitoring() {
     }
   };
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 
   useEffect(() => {
     const fetchEmployeeDetails = async () => {

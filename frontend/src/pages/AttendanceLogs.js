@@ -4,8 +4,6 @@ import { useSelector } from 'react-redux';
 import axios from 'axios';
 import {
   Box,
-  Card,
-  CardContent,
   CircularProgress,
   Paper,
   Table,
@@ -22,13 +20,13 @@ import {
 } from '@mui/material';
 import { Close as CloseIcon, Visibility as ViewIcon } from '@mui/icons-material';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 function AttendanceLogs() {
   const { token } = useSelector((state) => state.auth);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
-
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const fetchHistory = async () => {

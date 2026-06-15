@@ -38,6 +38,8 @@ import {
   Groups as GroupsIcon
 } from '@mui/icons-material';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 function ManagerMonitoring() {
   const navigate = useNavigate();
   const { token, user } = useSelector((state) => state.auth);
@@ -61,7 +63,6 @@ function ManagerMonitoring() {
   const [leaderboardTab, setLeaderboardTab] = useState('USERS'); // USERS or GROUPS
   const [viewMode, setViewMode] = useState('SUMMARY'); // SUMMARY VIEW or DETAILED VIEW
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
   const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
   // Fetch Live Directory Summary

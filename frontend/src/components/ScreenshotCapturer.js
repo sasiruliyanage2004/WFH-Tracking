@@ -1,9 +1,11 @@
 // frontend/src/components/ScreenshotCapturer.js
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
 import { Box, Button, Typography, Alert, Paper, FormControlLabel, Switch } from '@mui/material';
 import { CameraAlt as CameraIcon, Monitor as MonitorIcon } from '@mui/icons-material';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function ScreenshotCapturer({ isCheckedIn }) {
   const { token, isAuthenticated, user, onBreak } = useSelector((state) => state.auth);
@@ -24,9 +26,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
     localStorage.setItem('privacy_blur_enabled', String(val));
   };
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-
-  const fetchProductivity = async () => {
+  const fetchProductivity = useCallback(async () => {
     try {
       const res = await axios.get(`${API_URL}/api/monitoring/my-activity`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -35,7 +35,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
     } catch (err) {
       console.warn('Could not fetch productivity score.');
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     if (isAuthenticated && token && isCheckedIn && !onBreak) {
@@ -43,7 +43,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
       const interval = setInterval(fetchProductivity, 60000); // refresh every minute
       return () => clearInterval(interval);
     }
-  }, [isAuthenticated, token, isCheckedIn, onBreak]);
+  }, [isAuthenticated, token, isCheckedIn, onBreak, fetchProductivity]);
 
   // Request display media for capturing screenshots
   const startScreenCapture = async () => {
@@ -90,7 +90,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
   };
 
   // Perform actual screenshot capture and upload
-  const captureAndUpload = async () => {
+  const captureAndUpload = useCallback(async () => {
     if (onBreak) return;
     try {
       let imageData = '';
@@ -200,7 +200,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
     } catch (err) {
       console.error('Failed to capture and upload screenshot:', err.message);
     }
-  };
+  }, [onBreak, privacyBlurEnabled, isCapturing, stream, token, user, fetchProductivity]);
 
   // Wire video stream
   useEffect(() => {
@@ -235,7 +235,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
       clearTimeout(initialTimeout);
       clearInterval(interval);
     };
-  }, [isAuthenticated, token, user, isCheckedIn, onBreak, isCapturing, stream]);
+  }, [isAuthenticated, token, user, isCheckedIn, onBreak, isCapturing, stream, captureAndUpload]);
 
   if (!isAuthenticated || user?.role !== 'Employee') return null;
 

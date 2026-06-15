@@ -51,8 +51,7 @@ import { logout } from '../redux/store';
 import DeveloperSignature from './DeveloperSignature';
 
 const drawerWidth = 260;
-
-
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
   const navigate = useNavigate();
@@ -65,9 +64,6 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
   const [anchorElNotifications, setAnchorElNotifications] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [toast, setToast] = useState({ open: false, message: '', severity: 'info' });
-
-  // Get backend API URL
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   // Toggle mobile drawer
   const handleDrawerToggle = () => {
@@ -103,7 +99,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
     return () => {
       socket.disconnect();
     };
-  }, [token, user?.id, API_URL]);
+  }, [token, user]);
 
   // Read notifications
   const handleNotificationClick = async (notif) => {

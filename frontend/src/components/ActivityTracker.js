@@ -3,6 +3,8 @@ import { useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 function ActivityTracker() {
   const { token, isAuthenticated, user, onBreak } = useSelector((state) => state.auth);
   
@@ -11,8 +13,6 @@ function ActivityTracker() {
   const activeSeconds = useRef(0);
   const idleSeconds = useRef(0);
   const lastActivityTime = useRef(Date.now());
-  
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     // Only track if authenticated employee and not on break, and not running in Electron
@@ -83,7 +83,7 @@ function ActivityTracker() {
       clearInterval(secondInterval);
       clearInterval(syncInterval);
     };
-  }, [isAuthenticated, token, user, onBreak, API_URL]);
+  }, [isAuthenticated, token, user, onBreak]);
 
   return null; // Silent telemetry tracking component
 }

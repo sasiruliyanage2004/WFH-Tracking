@@ -26,6 +26,8 @@ import {
 import { authStart, authSuccess, authFail } from '../redux/store';
 import DeveloperSignature from '../components/DeveloperSignature';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 /* ── Left panel feature bullets ─────────────────────── */
 const features = [
   { icon: '🛡️', title: 'Verified Check-in', desc: 'GPS + identity verification for secure site attendance.' },
@@ -115,8 +117,6 @@ function Login() {
   const navigate  = useNavigate();
   const dispatch  = useDispatch();
   const { loading, isAuthenticated, user } = useSelector((s) => s.auth);
-
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     if (isAuthenticated && user) {

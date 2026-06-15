@@ -16,6 +16,8 @@ import {
 } from '@mui/material';
 import { Monitor as MonitoringIcon } from '@mui/icons-material';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -26,7 +28,6 @@ function ForgotPassword() {
   const [errorMsg, setErrorMsg] = useState('');
 
   const navigate = useNavigate();
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   const handleRequestToken = async (e) => {
     e.preventDefault();

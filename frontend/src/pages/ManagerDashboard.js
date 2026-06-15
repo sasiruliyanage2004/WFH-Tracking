@@ -68,6 +68,7 @@ import SkeletonCard from '../components/SkeletonCard';
 import AnimatedCounter from '../components/AnimatedCounter';
 
 const COLORS = ['#fbbf24', '#4f8ef7', '#34d399', '#f87171'];
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const CustomTooltip = ({ active, payload, label }) => {
   const theme = useTheme();
@@ -222,8 +223,6 @@ function ManagerDashboard() {
   const [taskDesc, setTaskDesc] = useState('');
   const [taskAssignedTo, setTaskAssignedTo] = useState('');
   const [taskPriority, setTaskPriority] = useState('Medium');
-
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   const fetchData = async () => {
     try {

@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
+
 import {
   Box,
   Button,
@@ -27,6 +28,8 @@ import {
   Undo as UndoIcon,
   Comment as CommentIcon
 } from '@mui/icons-material';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function ManagerReports() {
   const { token } = useSelector((state) => state.auth);
@@ -136,9 +139,7 @@ function ManagerReports() {
     performRejection(reportId, 'Instant rejection');
   };
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/api/reports`, {
@@ -150,11 +151,11 @@ function ManagerReports() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchReports();
-  }, [token]);
+  }, [fetchReports]);
 
   const handleOpenDialog = (reportId, type) => {
     setActiveReportId(reportId);

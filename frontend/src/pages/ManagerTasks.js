@@ -1,18 +1,14 @@
-// frontend/src/pages/ManagerTasks.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  Grid,
   TextField,
   Typography,
   Chip,
@@ -31,6 +27,8 @@ import {
 } from '@mui/material';
 import { AddTask as TaskIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 function ManagerTasks() {
   const { token } = useSelector((state) => state.auth);
   const [tasks, setTasks] = useState([]);
@@ -44,9 +42,7 @@ function ManagerTasks() {
   const [priority, setPriority] = useState('Medium');
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -74,11 +70,11 @@ function ManagerTasks() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchData();
-  }, [token]);
+  }, [fetchData]);
 
   const handleCreateTask = async () => {
     if (!taskName || !assignedTo) return;

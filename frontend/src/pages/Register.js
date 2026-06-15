@@ -22,6 +22,8 @@ import {
 import { Monitor as MonitoringIcon } from '@mui/icons-material';
 import { authSuccess } from '../redux/store';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -35,8 +37,6 @@ function Register() {
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   const handleSubmit = async (e) => {
     e.preventDefault();

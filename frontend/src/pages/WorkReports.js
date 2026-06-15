@@ -16,8 +16,7 @@ import {
   Paper,
   Tabs,
   Tab,
-  List,
-  ListItem
+  List
 } from '@mui/material';
 import {
   Send as SendIcon,
@@ -25,6 +24,8 @@ import {
   HourglassEmpty as PendingIcon,
   CancelOutlined as RejectIcon
 } from '@mui/icons-material';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function WorkReports() {
   const { token } = useSelector((state) => state.auth);
@@ -40,23 +41,20 @@ function WorkReports() {
   const [tomorrowText, setTomorrowText] = useState('');
   const [workedHours, setWorkedHours] = useState(8);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-
-  const fetchReports = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.get(`${API_URL}/api/reports`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setReports(res.data);
-    } catch (err) {
-      console.error(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get(`${API_URL}/api/reports`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setReports(res.data);
+      } catch (err) {
+        console.error(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchReports();
   }, [token]);
 

@@ -5,10 +5,7 @@ import axios from 'axios';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Divider,
-  Grid,
   TextField,
   Typography,
   Avatar,
@@ -20,8 +17,10 @@ import {
   FormControl,
   InputLabel
 } from '@mui/material';
-import { Save as SaveIcon, AccountBox as ProfileIcon } from '@mui/icons-material';
+import { Save as SaveIcon } from '@mui/icons-material';
 import { updateProfileSuccess } from '../redux/store';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function Profile() {
   const { token, user } = useSelector((state) => state.auth);
@@ -35,8 +34,6 @@ function Profile() {
   
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
-
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
