@@ -275,16 +275,14 @@ function ManagerMonitoring() {
                 >
                   {user?.role === 'Manager' ? (
                     <MenuItem value={user.department || 'Engineering'}>{user.department || 'Engineering'}</MenuItem>
-                  ) : (
-                    <>
-                      <MenuItem value="All">All Departments</MenuItem>
-                      <MenuItem value="Product">Product</MenuItem>
-                      <MenuItem value="Operations">Operations</MenuItem>
-                      <MenuItem value="Engineering">Engineering</MenuItem>
-                      <MenuItem value="Marketing">Marketing</MenuItem>
-                      <MenuItem value="HR">HR</MenuItem>
-                    </>
-                  )}
+                  ) : [
+                    <MenuItem key="All" value="All">All Departments</MenuItem>,
+                    <MenuItem key="Product" value="Product">Product</MenuItem>,
+                    <MenuItem key="Operations" value="Operations">Operations</MenuItem>,
+                    <MenuItem key="Engineering" value="Engineering">Engineering</MenuItem>,
+                    <MenuItem key="Marketing" value="Marketing">Marketing</MenuItem>,
+                    <MenuItem key="HR" value="HR">HR</MenuItem>
+                  ]}
                 </Select>
               </FormControl>
 
