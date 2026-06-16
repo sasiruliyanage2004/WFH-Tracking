@@ -358,7 +358,7 @@ const saveBase64Image = (base64String, folder, filename) => {
 // --- API ROUTES ---
 
 // 0. EMPLOYEE LIST ROUTES (SuperAdmin and Manager)
-app.get('/api/users/employees', authenticate, authorize('SuperAdmin', 'Manager'), async (req, res) => {
+app.get('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Manager']), async (req, res) => {
   try {
     let query = supabase
       .from('users')
@@ -414,7 +414,7 @@ app.get('/api/users/employees', authenticate, authorize('SuperAdmin', 'Manager')
   }
 });
 
-app.delete('/api/users/employees/:id', authenticate, authorize('SuperAdmin', 'Manager'), async (req, res) => {
+app.delete('/api/users/employees/:id', authenticate, authorize(['SuperAdmin', 'Manager']), async (req, res) => {
   try {
     const { data: emp, error: fetchErr } = await supabase
       .from('users')
