@@ -15,9 +15,11 @@ import {
   MenuItem,
   Select,
   FormControl,
-  InputLabel
+  InputLabel,
+  IconButton,
+  InputAdornment
 } from '@mui/material';
-import { Save as SaveIcon } from '@mui/icons-material';
+import { Save as SaveIcon, Visibility, VisibilityOff } from '@mui/icons-material';
 import { updateProfileSuccess } from '../redux/store';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -31,6 +33,7 @@ function Profile() {
   const [department, setDepartment] = useState(user?.department || 'Engineering');
   const [profilePic, setProfilePic] = useState(user?.profilePic || '');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
@@ -129,10 +132,23 @@ function Profile() {
 
           <TextField
             label="Update Password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Leave blank to keep current password"
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowPassword((v) => !v)}
+                    edge="end"
+                    sx={{ color: 'rgba(255, 255, 255, 0.45)', '&:hover': { color: '#10b981' } }}
+                  >
+                    {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
             fullWidth
           />
 

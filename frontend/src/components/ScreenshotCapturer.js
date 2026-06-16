@@ -94,16 +94,24 @@ function ScreenshotCapturer({ isCheckedIn }) {
     if (onBreak) return;
     try {
       let imageData = '';
+      let captureSuccess = false;
 
       if (window.api && window.api.captureScreen) {
-        // Native Electron screen capture (silent, no browser prompts!)
-        const nativeImg = await window.api.captureScreen();
-        if (nativeImg) {
-          imageData = privacyBlurEnabled ? await applyBlur(nativeImg, 15) : nativeImg; // Apply privacy blur conditionally
-        } else {
-          throw new Error("Native screenshot captured null image");
+        try {
+          // Native Electron screen capture (silent, no browser prompts!)
+          const nativeImg = await window.api.captureScreen();
+          if (nativeImg && nativeImg.length > 200) {
+            imageData = privacyBlurEnabled ? await applyBlur(nativeImg, 15) : nativeImg; // Apply privacy blur conditionally
+            captureSuccess = true;
+          } else {
+            console.warn("Native screenshot captured empty or invalid image, falling back to simulator");
+          }
+        } catch (err) {
+          console.warn("Native screen capture failed, falling back to simulator:", err.message);
         }
-      } else if (isCapturing && stream) {
+      }
+
+      if (!captureSuccess && isCapturing && stream) {
         // Capture from screen stream
         const canvas = canvasRef.current;
         const video = videoRef.current;
@@ -118,8 +126,11 @@ function ScreenshotCapturer({ isCheckedIn }) {
           }
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           imageData = canvas.toDataURL('image/jpeg', 0.7);
+          captureSuccess = true;
         }
-      } else {
+      }
+
+      if (!captureSuccess) {
         // Simulator Fallback: Create a simulated canvas screenshot with user work info
         const canvas = document.createElement('canvas');
         canvas.width = 1024;

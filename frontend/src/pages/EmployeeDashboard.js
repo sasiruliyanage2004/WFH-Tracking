@@ -30,7 +30,9 @@ import {
   Slider,
   Backdrop,
   Menu,
-  InputAdornment
+  InputAdornment,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import {
   PlayArrow as CheckInIcon,
@@ -58,6 +60,7 @@ function EmployeeDashboard() {
 
   // States
   const [attendance, setAttendance] = useState(null);
+  const [successSnackbar, setSuccessSnackbar] = useState(false);
   const [loading, setLoading] = useState(true);
   const [gpsData, setGpsData] = useState({ latitude: null, longitude: null, address: '' });
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -76,6 +79,7 @@ function EmployeeDashboard() {
   const [webcamOpen, setWebcamOpen] = useState(false);
   const [webcamStream, setWebcamStream] = useState(null);
   const [capturedPhoto, setCapturedPhoto] = useState('');
+  const [webcamError, setWebcamError] = useState('');
   const videoRef = useRef(null);
 
   // Tabs (Tasks vs Reports)
@@ -135,6 +139,13 @@ function EmployeeDashboard() {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  useEffect(() => {
+    if (localStorage.getItem('register_success') === 'true') {
+      setSuccessSnackbar(true);
+      localStorage.removeItem('register_success');
+    }
+  }, []);
 
   // Auto-trigger Electron desktop active window tracking based on Check-In and Break states
   useEffect(() => {
@@ -263,16 +274,21 @@ function EmployeeDashboard() {
     // Automatically trigger GPS trapping under the hood when camera is opened
     requestGPS();
     setWebcamOpen(true);
+    setWebcamError('');
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       setWebcamStream(stream);
       setTimeout(() => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(e => {
+            console.error('Error starting video playback:', e.message);
+          });
         }
       }, 500);
     } catch (err) {
       console.error('Camera access denied:', err.message);
+      setWebcamError(err.message || String(err));
       // Create mock photo capture if blocked
       const canvas = document.createElement('canvas');
       canvas.width = 320;
@@ -294,6 +310,7 @@ function EmployeeDashboard() {
       setWebcamStream(null);
     }
     setWebcamOpen(false);
+    setWebcamError('');
   };
 
   // Break Event Handlers
@@ -612,7 +629,7 @@ function EmployeeDashboard() {
               </Box>
 
               {/* GPS & Webcam configuration options with auto-GPS capture */}
-              {!attendance && (
+              {!isCheckedIn && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>Verification Step:</Typography>
                   <Button
@@ -653,7 +670,7 @@ function EmployeeDashboard() {
 
               {/* Action Buttons */}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {!attendance && (
+                {!isCheckedIn && (
                   <Button
                     variant="contained"
                     color="primary"
@@ -664,7 +681,7 @@ function EmployeeDashboard() {
                     onClick={handleCheckIn}
                     sx={{ py: 1.8, borderRadius: 3, fontWeight: 700, fontSize: '1rem', bgcolor: '#0038a8' }}
                   >
-                    Start Work Shift (Check-In)
+                    {attendance ? 'Re-Start Work Shift (Check-In)' : 'Start Work Shift (Check-In)'}
                   </Button>
                 )}
 
@@ -842,18 +859,7 @@ function EmployeeDashboard() {
                   </Button>
                 )}
 
-                {attendance && !isCheckedIn && (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    size="large"
-                    fullWidth
-                    disabled
-                    sx={{ py: 1.8, borderRadius: 3 }}
-                  >
-                    Shift Completed Today
-                  </Button>
-                )}
+
               </Box>
 
               {attendance && (
@@ -1270,8 +1276,14 @@ function EmployeeDashboard() {
             ref={videoRef}
             autoPlay
             playsInline
+            muted
             style={{ width: '100%', height: 'auto', borderRadius: 8, transform: 'scaleX(-1)', backgroundColor: '#000' }}
           />
+          {webcamError && (
+            <Typography variant="body2" color="error" sx={{ mt: 1.5, textAlign: 'center', fontWeight: 'bold' }}>
+              Camera Blocked/Error: {webcamError}
+            </Typography>
+          )}
           <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5 }}>
             Look directly into the camera and click Capture to confirm identity.
           </Typography>
@@ -1440,6 +1452,17 @@ function EmployeeDashboard() {
           </Button>
         </Box>
       </Backdrop>
+
+      <Snackbar
+        open={successSnackbar}
+        autoHideDuration={6000}
+        onClose={() => setSuccessSnackbar(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSuccessSnackbar(false)} severity="success" sx={{ width: '100%', borderRadius: 2 }}>
+          Registration successful! Welcome to your WorkforceOS WFH dashboard.
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

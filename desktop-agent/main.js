@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, desktopCapturer, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, desktopCapturer, Menu, session } = require('electron');
 const path = require('path');
 const { exec, spawn } = require('child_process');
 const axios = require('axios');
@@ -232,6 +232,7 @@ function createWindow() {
   mainWindow.loadURL(FRONTEND_URL);
 
   mainWindow.webContents.on('did-finish-load', () => {
+    // mainWindow.webContents.openDevTools();
     // Smooth transition from splash to main window
     setTimeout(() => {
       if (splashWindow) {
@@ -249,7 +250,7 @@ function createWindow() {
     if (validatedURL && (validatedURL.includes('localhost:3001') || validatedURL.includes('127.0.0.1:3001'))) {
       mainWindow.loadURL('http://localhost:3002');
     } else {
-      mainWindow.webContents.openDevTools();
+      // mainWindow.webContents.openDevTools();
     }
   });
 
@@ -260,6 +261,23 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Automatically approve geolocation and media (webcam/mic) permission requests
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    console.log(`[DEBUG] Permission request: ${permission}`);
+    if (permission === 'geolocation' || permission === 'media' || permission === 'display-capture') {
+      return callback(true);
+    }
+    callback(false);
+  });
+
+  session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+    console.log(`[DEBUG] Permission check: ${permission}`);
+    if (permission === 'geolocation' || permission === 'media') {
+      return true;
+    }
+    return false;
+  });
+
   Menu.setApplicationMenu(null);
   createSplashWindow();
   createWindow();
@@ -353,11 +371,30 @@ function startTracking() {
   activeSecondsInTick = 0;
   idleSecondsInTick = 0;
 
+  const debugLogPath = path.join(app.getPath('userData'), 'agent_debug.log');
+  try {
+    fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: startTracking() called. Active window tracking started.\n`);
+  } catch (e) {}
+
   console.log('Desktop Agent: Active window tracking started.');
 
   // Spawn the PowerShell activity monitor script
   try {
-    const monitorPath = path.join(__dirname, 'activity-monitor.ps1');
+    const monitorSourcePath = path.join(__dirname, 'activity-monitor.ps1');
+    const monitorPath = path.join(app.getPath('userData'), 'activity-monitor.ps1');
+
+    try {
+      const scriptContent = fs.readFileSync(monitorSourcePath);
+      fs.writeFileSync(monitorPath, scriptContent);
+      fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: Copied activity-monitor.ps1 to userData successfully.\n`);
+    } catch (err) {
+      fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: Failed to copy activity-monitor.ps1: ${err.message}\n`);
+    }
+
+    const pathExists = fs.existsSync(monitorPath);
+    try {
+      fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: Spawning background activity monitor sidecar. monitorPath="${monitorPath}" exists=${pathExists}\n`);
+    } catch (e) {}
     console.log('Desktop Agent: Spawning background activity monitor sidecar...');
     
     activityProcess = spawn('powershell', [
@@ -368,8 +405,11 @@ function startTracking() {
       monitorPath
     ]);
 
+    try {
+      fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: Spawned powershell. PID=${activityProcess.pid}\n`);
+    } catch (e) {}
+
     activityProcess.stdout.on('data', (data) => {
-      const debugLogPath = path.join(app.getPath('userData'), 'agent_debug.log');
       const rawText = data.toString('utf8');
       const cleanText = rawText.replace(/\0/g, '').replace(/\uFEFF/g, '').replace(/\uFFFE/g, '');
       
@@ -418,6 +458,14 @@ function startTracking() {
       console.log(`Activity monitor process exited with code ${code}`);
       try {
         fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Activity Monitor Process EXITED with code: ${code}\n`);
+      } catch (e) {}
+    });
+
+    activityProcess.on('error', (err) => {
+      const debugLogPath = path.join(app.getPath('userData'), 'agent_debug.log');
+      console.error('Activity monitor process error:', err.message);
+      try {
+        fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Activity Monitor Process ERROR: ${err.message}\n`);
       } catch (e) {}
     });
   } catch (err) {

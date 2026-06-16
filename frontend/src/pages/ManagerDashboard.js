@@ -33,7 +33,9 @@ import {
   Avatar,
   Tooltip as MuiTooltip,
   LinearProgress,
-  useTheme
+  useTheme,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import {
   BarChart as RechartsBarChart,
@@ -106,6 +108,7 @@ function ManagerDashboard() {
 
   // States
   const [summary, setSummary] = useState(null);
+  const [successSnackbar, setSuccessSnackbar] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [reports, setReports] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -272,6 +275,13 @@ function ManagerDashboard() {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  useEffect(() => {
+    if (localStorage.getItem('register_success') === 'true') {
+      setSuccessSnackbar(true);
+      localStorage.removeItem('register_success');
+    }
+  }, []);
 
   // Report Approvals
   const handleOpenReportDialog = (reportId, type) => {
@@ -1217,7 +1227,16 @@ function ManagerDashboard() {
         </DialogActions>
       </Dialog>
 
-
+      <Snackbar
+        open={successSnackbar}
+        autoHideDuration={6000}
+        onClose={() => setSuccessSnackbar(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSuccessSnackbar(false)} severity="success" sx={{ width: '100%', borderRadius: 2 }}>
+          Registration successful! Welcome to your WorkforceOS Manager dashboard.
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

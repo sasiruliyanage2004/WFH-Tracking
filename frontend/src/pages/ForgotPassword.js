@@ -12,9 +12,11 @@ import {
   Typography,
   Link,
   CircularProgress,
-  Alert
+  Alert,
+  IconButton,
+  InputAdornment
 } from '@mui/material';
-import { Monitor as MonitoringIcon } from '@mui/icons-material';
+import { Monitor as MonitoringIcon, Visibility, VisibilityOff } from '@mui/icons-material';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -23,6 +25,7 @@ function ForgotPassword() {
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [step, setStep] = useState(1); // 1 = request token, 2 = enter code & new password
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [infoMsg, setInfoMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -140,11 +143,24 @@ function ForgotPassword() {
 
               <TextField
                 label="New Password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 fullWidth
                 required
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword((v) => !v)}
+                        edge="end"
+                        sx={{ color: 'rgba(255, 255, 255, 0.45)', '&:hover': { color: '#10b981' } }}
+                      >
+                        {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
                 sx={{ mb: 3 }}
               />
               

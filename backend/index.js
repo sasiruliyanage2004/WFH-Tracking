@@ -18,8 +18,68 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
 const supabase = require('./utils/supabase');
-const { sendWarningEmail, sendPasswordResetEmail } = require('./utils/email');
+const { sendWarningEmail, sendPasswordResetEmail, sendRegistrationOTPEmail } = require('./utils/email');
 const { authenticate, authorize } = require('./middleware/auth');
+
+// In-memory cache for rolling 1-hour activity details to prevent warning email spam
+// Structure: { [employeeId]: { logs: Array<{ timestamp, activeSeconds, idleSeconds }>, lastWarningSentAt: number } }
+const rollingActivityCache = {};
+
+function checkRollingWarning(employee, activeSeconds, idleSeconds, minMinutesSetting) {
+  const employeeId = employee.id;
+  const now = Date.now();
+
+  if (!rollingActivityCache[employeeId]) {
+    rollingActivityCache[employeeId] = {
+      logs: [],
+      lastWarningSentAt: 0
+    };
+  }
+
+  const cache = rollingActivityCache[employeeId];
+
+  // 1. Add current activity chunk
+  cache.logs.push({
+    timestamp: now,
+    activeSeconds: parseFloat(activeSeconds) || 0,
+    idleSeconds: parseFloat(idleSeconds) || 0
+  });
+
+  // 2. Clear entries older than 60 minutes
+  const oneHourAgo = now - (60 * 60 * 1000);
+  cache.logs = cache.logs.filter(log => log.timestamp >= oneHourAgo);
+
+  // 3. Sum active and idle seconds in the 1-hour window
+  let totalActive = 0;
+  let totalIdle = 0;
+  for (const log of cache.logs) {
+    totalActive += log.activeSeconds;
+    totalIdle += log.idleSeconds;
+  }
+
+  const totalSeconds = totalActive + totalIdle;
+  const totalMinutes = totalSeconds / 60;
+  const productivityPercentage = totalSeconds > 0 ? Math.round((totalActive / totalSeconds) * 100) : 100;
+
+  // 4. Check conditions to send warning email:
+  // - Monitored for at least minMinutesForRolling (default 10 mins, or lower if warning_min_minutes setting is lower for testing)
+  // - Productivity average in this 1-hour window is <= 50%
+  // - Cooldown: At least 1 hour (3600000 ms) has elapsed since the last warning email was sent to this employee
+  const minMinutesForRolling = Math.min(10, minMinutesSetting || 60);
+  const cooldownPeriod = 60 * 60 * 1000; // 1 hour
+  const hasMinData = totalMinutes >= minMinutesForRolling;
+  const isBelowThreshold = productivityPercentage <= 50;
+  const isCooldownOver = (now - cache.lastWarningSentAt) >= cooldownPeriod;
+
+  if (hasMinData && isBelowThreshold && isCooldownOver) {
+    cache.lastWarningSentAt = now;
+    // Send email warning asynchronously
+    sendWarningEmail(employee, productivityPercentage);
+    return { send: true, productivityPercentage };
+  }
+
+  return { send: false, productivityPercentage };
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -58,9 +118,19 @@ const authLimiter = rateLimit({
   message: { message: 'Too many authentication attempts from this IP, please try again after 15 minutes.' }
 });
 
+const otpSpamLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 OTP requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many OTP requests from this IP, please try again after 15 minutes.' }
+});
+
 // Apply rate limiters
 app.use('/api/', apiLimiter);
 app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/forgot-password', otpSpamLimiter);
+app.use('/api/auth/register-otp', otpSpamLimiter);
 app.use('/api/auth/register', authLimiter);
 
 // Body parser
@@ -267,7 +337,15 @@ const saveBase64Image = (base64String, folder, filename) => {
   if (!base64String) return '';
   try {
     const base64Data = base64String.replace(/^data:image\/\w+;base64,/, '');
+    if (!base64Data || base64Data.trim().length < 50) {
+      console.error('Base64 image save error: empty or invalid image payload.');
+      return '';
+    }
     const buffer = Buffer.from(base64Data, 'base64');
+    if (buffer.length < 50) {
+      console.error('Base64 image save error: decoded buffer is too small (empty image).');
+      return '';
+    }
     const filePath = path.join(folder, filename);
     fs.writeFileSync(filePath, buffer);
     return `/uploads/${folder === webcamsDir ? 'webcams' : 'screenshots'}/${filename}`;
@@ -406,9 +484,85 @@ app.delete('/api/users/admins/:id', authenticate, authorize('SuperAdmin'), async
 });
 
 // 1. AUTH ROUTES
-app.post('/api/auth/register', async (req, res) => {
-  const { name, email, password, role, department, managerKey, superAdminKey } = req.body;
+// Request verification OTP for registration
+app.post('/api/auth/register-otp', async (req, res) => {
+  const { email } = req.body;
   try {
+    if (!email) return res.status(400).json({ message: 'Email address is required.' });
+
+    // Check if user already exists
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .maybeSingle();
+
+    if (existingUser) return res.status(400).json({ message: 'User already exists with this email address.' });
+
+    // Clean up any expired OTP codes from database first
+    await supabase
+      .from('password_resets')
+      .delete()
+      .lt('expires_at', new Date().toISOString());
+
+    // Generate a 6-digit random OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Store in Supabase password_resets table with 10-minute expiration
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    const { error: dbErr } = await supabase
+      .from('password_resets')
+      .upsert({
+        email: email.toLowerCase(),
+        otp,
+        expires_at: expiresAt
+      });
+
+    if (dbErr) throw dbErr;
+
+    // Send email verification containing the OTP
+    await sendRegistrationOTPEmail(email.toLowerCase(), otp);
+
+    res.json({ message: 'Verification code sent to your email.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/auth/register', async (req, res) => {
+  const { name, email, password, role, department, managerKey, superAdminKey, otp } = req.body;
+  try {
+    if (!otp) return res.status(400).json({ message: 'Verification code is required.' });
+
+    // Check password complexity
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&).' });
+    }
+
+    // Verify OTP from password_resets table
+    const { data: storedData, error: otpErr } = await supabase
+      .from('password_resets')
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .maybeSingle();
+
+    if (otpErr || !storedData) {
+      return res.status(400).json({ message: 'Verification code not found or expired. Please request a new code.' });
+    }
+
+    if (new Date() > new Date(storedData.expires_at)) {
+      await supabase
+        .from('password_resets')
+        .delete()
+        .eq('email', email.toLowerCase());
+      return res.status(400).json({ message: 'Verification code has expired. Please request a new one.' });
+    }
+
+    if (storedData.otp !== otp) {
+      return res.status(400).json({ message: 'Invalid verification code.' });
+    }
+
     if (role === 'Manager') {
       const systemManagerKey = process.env.MANAGER_REGISTRATION_KEY || 'workforce-manager-sec';
       if (managerKey !== systemManagerKey) {
@@ -428,6 +582,12 @@ app.post('/api/auth/register', async (req, res) => {
       .maybeSingle();
 
     if (existingUser) return res.status(400).json({ message: 'User already exists.' });
+
+    // Success - clean up OTP and register
+    await supabase
+      .from('password_resets')
+      .delete()
+      .eq('email', email.toLowerCase());
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const userId = generateId();
@@ -654,30 +814,59 @@ app.post('/api/attendance/checkin', authenticate, async (req, res) => {
       .eq('date', today)
       .maybeSingle();
 
-    if (existing) {
-      return res.status(400).json({ message: 'You have already checked in today.' });
-    }
-
     let webcamUrl = '';
     if (webcamImage) {
       const filename = `webcam_${req.user.id}_${Date.now()}.jpg`;
       webcamUrl = saveBase64Image(webcamImage, webcamsDir, filename);
     }
 
-    const { data: att, error } = await supabase
-      .from('attendance')
-      .insert([{
-        employee_id: req.user.id,
-        date: today,
-        check_in_time: new Date(),
-        latitude,
-        longitude,
-        address: address || '',
-        webcam_image: webcamUrl,
-        status: 'Present'
-      }])
-      .select('*')
-      .single();
+    let att;
+    let error;
+
+    if (existing) {
+      // If there is an active session, they cannot check in again
+      if (existing.check_out_time === null) {
+        return res.status(400).json({ message: 'You are already checked in. Please check out first before checking in again.' });
+      }
+
+      // If they already checked out earlier today, update the existing record (re-opening the check-in session)
+      const { data, error: updateErr } = await supabase
+        .from('attendance')
+        .update({
+          check_in_time: new Date(),
+          check_out_time: null,
+          latitude,
+          longitude,
+          address: address || '',
+          webcam_image: webcamUrl || existing.webcam_image,
+          status: 'Present'
+        })
+        .eq('id', existing.id)
+        .select('*')
+        .single();
+      
+      att = data;
+      error = updateErr;
+    } else {
+      // First check-in of the day: insert new record
+      const { data, error: insertErr } = await supabase
+        .from('attendance')
+        .insert([{
+          employee_id: req.user.id,
+          date: today,
+          check_in_time: new Date(),
+          latitude,
+          longitude,
+          address: address || '',
+          webcam_image: webcamUrl,
+          status: 'Present'
+        }])
+        .select('*')
+        .single();
+      
+      att = data;
+      error = insertErr;
+    }
 
     if (error) throw error;
 
@@ -708,14 +897,16 @@ app.post('/api/attendance/checkout', authenticate, async (req, res) => {
     if (fetchErr || !att) {
       return res.status(400).json({ message: 'No check-in record found for today.' });
     }
-    if (att.check_out_time) {
+    if (att.check_out_time !== null) {
       return res.status(400).json({ message: 'You have already checked out today.' });
     }
 
     const checkOutTime = new Date();
     const checkIn = new Date(att.check_in_time);
-    const durationMs = checkOutTime - checkIn;
-    const hours = Math.round((durationMs / (1000 * 60 * 60)) * 100) / 100;
+    const sessionMs = checkOutTime - checkIn;
+    const sessionHours = sessionMs / (1000 * 60 * 60);
+    const totalHours = (att.duration_hours || 0) + sessionHours;
+    const hours = Math.round(totalHours * 100) / 100;
 
     const { data: updatedAtt, error: updateErr } = await supabase
       .from('attendance')
@@ -732,6 +923,18 @@ app.post('/api/attendance/checkout', authenticate, async (req, res) => {
 
     // Check productivity score for today at checkout and send warning email if <= 50%
     try {
+      let minMinutes = 60;
+      try {
+        const { data: minMinSetting } = await supabase
+          .from('settings')
+          .select('value')
+          .eq('key', 'warning_min_minutes')
+          .maybeSingle();
+        if (minMinSetting && minMinSetting.value) {
+          minMinutes = parseFloat(minMinSetting.value) || 60;
+        }
+      } catch (e) {}
+
       const { data: log } = await supabase
         .from('activity_logs')
         .select('*')
@@ -741,7 +944,7 @@ app.post('/api/attendance/checkout', authenticate, async (req, res) => {
 
       if (log) {
         const totalMinutes = log.active_minutes + log.idle_minutes;
-        if (totalMinutes >= 60 && log.productivity_percentage <= 50 && !log.warning_email_sent) {
+        if (totalMinutes >= minMinutes && log.productivity_percentage <= 50 && !log.warning_email_sent) {
           sendWarningEmail(req.user, log.productivity_percentage);
           await supabase
             .from('activity_logs')
@@ -771,13 +974,11 @@ app.post('/api/attendance/break/start', authenticate, async (req, res) => {
       .select('*')
       .eq('employee_id', req.user.id)
       .eq('date', today)
+      .is('check_out_time', null)
       .maybeSingle();
 
     if (fetchErr || !att) {
       return res.status(400).json({ message: 'You must check in before taking a break.' });
-    }
-    if (att.check_out_time) {
-      return res.status(400).json({ message: 'You have already checked out.' });
     }
     if (att.on_break) {
       return res.status(400).json({ message: 'You are already on a break.' });
@@ -830,6 +1031,7 @@ app.post('/api/attendance/break/end', authenticate, async (req, res) => {
       .select('*')
       .eq('employee_id', req.user.id)
       .eq('date', today)
+      .is('check_out_time', null)
       .maybeSingle();
 
     if (fetchErr || !att) {
@@ -877,12 +1079,14 @@ app.post('/api/attendance/break/end', authenticate, async (req, res) => {
 app.get('/api/attendance/status', authenticate, async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   try {
-    const { data: att } = await supabase
+    const { data: atts } = await supabase
       .from('attendance')
       .select('*')
       .eq('employee_id', req.user.id)
       .eq('date', today)
-      .maybeSingle();
+      .order('check_in_time', { ascending: false });
+
+    const att = atts && atts.length > 0 ? atts[0] : null;
 
     res.json({ attendance: formatAttendance(att) });
   } catch (err) {
@@ -1264,6 +1468,10 @@ app.post('/api/monitoring/screenshot', authenticate, async (req, res) => {
     const filename = `screenshot_${req.user.id}_${timeVal}.jpg`;
     const screenshotUrl = saveBase64Image(image, screenshotsDir, filename);
 
+    if (!screenshotUrl) {
+      return res.status(400).json({ message: 'Failed to process image data: image is empty or invalid' });
+    }
+
     const { data: ssRecord, error } = await supabase
       .from('screenshots')
       .insert([{
@@ -1409,6 +1617,18 @@ app.post('/api/monitoring/activity', authenticate, async (req, res) => {
   const { activeSeconds, idleSeconds, keyboardCount, mouseCount, date } = req.body;
   const today = date || new Date().toISOString().split('T')[0];
 
+  let minMinutes = 60;
+  try {
+    const { data: minMinSetting } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'warning_min_minutes')
+      .maybeSingle();
+    if (minMinSetting && minMinSetting.value) {
+      minMinutes = parseFloat(minMinSetting.value) || 60;
+    }
+  } catch (e) {}
+
   try {
     const { data: log, error: fetchErr } = await supabase
       .from('activity_logs')
@@ -1418,6 +1638,7 @@ app.post('/api/monitoring/activity', authenticate, async (req, res) => {
       .maybeSingle();
 
     let updatedLog;
+    const rollingWarning = checkRollingWarning(req.user, activeSeconds, idleSeconds, minMinutes);
 
     if (log) {
       // Calculate minutes and percentages
@@ -1426,11 +1647,7 @@ app.post('/api/monitoring/activity', authenticate, async (req, res) => {
       const totalMinutes = activeMinutes + idleMinutes;
       const productivityPercentage = totalMinutes > 0 ? Math.round((activeMinutes / totalMinutes) * 100) : 100;
       
-      let warningEmailSent = log.warning_email_sent;
-      if (totalMinutes >= 60 && productivityPercentage <= 50 && !warningEmailSent) {
-        warningEmailSent = true;
-        sendWarningEmail(req.user, productivityPercentage);
-      }
+      let warningEmailSent = log.warning_email_sent || rollingWarning.send;
 
       const { data, error } = await supabase
         .from('activity_logs')
@@ -1454,11 +1671,7 @@ app.post('/api/monitoring/activity', authenticate, async (req, res) => {
       const totalMinutes = activeMinutes + idleMinutes;
       const productivityPercentage = totalMinutes > 0 ? Math.round((activeMinutes / totalMinutes) * 100) : 100;
 
-      let warningEmailSent = false;
-      if (totalMinutes >= 60 && productivityPercentage <= 50) {
-        warningEmailSent = true;
-        sendWarningEmail(req.user, productivityPercentage);
-      }
+      let warningEmailSent = rollingWarning.send;
 
       const { data, error } = await supabase
         .from('activity_logs')
@@ -1843,13 +2056,22 @@ app.get('/api/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdm
     let enrichedCheckins = [];
 
     if (checkinsToday && checkinsToday.length > 0) {
-      const userIds = [...new Set(checkinsToday.map(c => c.employee_id))];
+      // Keep only the latest check-in record per employee to prevent duplicates on the dashboard
+      const latestMap = new Map();
+      for (const c of checkinsToday) {
+        const existing = latestMap.get(c.employee_id);
+        if (!existing || new Date(c.check_in_time) > new Date(existing.check_in_time)) {
+          latestMap.set(c.employee_id, c);
+        }
+      }
+      const uniqueCheckinsToday = Array.from(latestMap.values());
+      const userIds = [...new Set(uniqueCheckinsToday.map(c => c.employee_id))];
       const { data: users } = await supabase.from('users').select('id, name, email, department').in('id', userIds);
       const userMap = new Map(users ? users.map(u => [u.id, u]) : []);
 
-      onlineEmployees = checkinsToday.filter(c => !c.check_out_time).length;
+      onlineEmployees = uniqueCheckinsToday.filter(c => !c.check_out_time).length;
 
-      enrichedCheckins = checkinsToday.map(c => ({
+      enrichedCheckins = uniqueCheckinsToday.map(c => ({
         ...formatAttendance(c),
         employee: toMongo(userMap.get(c.employee_id))
       }));
@@ -2110,8 +2332,136 @@ const seedDatabase = async () => {
   }
 };
 
+// Automated webcam cleanup task (runs daily)
+const cleanupOldWebcams = async () => {
+  console.log('Starting automated webcam selfie cleanup task...');
+  try {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 5);
+    const cutoffIso = cutoffDate.toISOString();
+
+    const { data: logs, error } = await supabase
+      .from('attendance')
+      .select('id, webcam_image')
+      .lt('created_at', cutoffIso)
+      .not('webcam_image', 'is', null);
+
+    if (error) throw error;
+
+    if (!logs || logs.length === 0) {
+      console.log('No old webcam selfies to clean up.');
+      return;
+    }
+
+    console.log(`Found ${logs.length} old attendance records with webcam images to clean up.`);
+
+    let deletedCount = 0;
+    let dbUpdatedCount = 0;
+
+    for (const log of logs) {
+      const imgPath = log.webcam_image;
+      if (!imgPath) continue;
+
+      if (imgPath.startsWith('/uploads/webcams/')) {
+        const localPath = path.join(__dirname, imgPath);
+        try {
+          if (fs.existsSync(localPath)) {
+            fs.unlinkSync(localPath);
+            deletedCount++;
+          }
+        } catch (fileErr) {
+          console.error(`Failed to delete file ${localPath}:`, fileErr.message);
+        }
+      }
+
+      try {
+        const { error: updateErr } = await supabase
+          .from('attendance')
+          .update({ webcam_image: null })
+          .eq('id', log.id);
+
+        if (updateErr) {
+          console.error(`Failed to update database for attendance ID ${log.id}:`, updateErr.message);
+        } else {
+          dbUpdatedCount++;
+        }
+      } catch (dbErr) {
+        console.error(`Failed to update database for attendance ID ${log.id}:`, dbErr.message);
+      }
+    }
+
+    console.log(`Webcam cleanup completed: deleted ${deletedCount} files from disk, updated ${dbUpdatedCount} database rows.`);
+  } catch (err) {
+    console.error('Failed to run automated webcam cleanup:', err.message);
+  }
+};
+
+// Automated screenshots cleanup task (runs daily, deletes screenshots older than 14 days to preserve disk space)
+const cleanupOldScreenshots = async () => {
+  console.log('Starting automated screenshots cleanup task...');
+  try {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 14); // 14 days ago
+    const cutoffIso = cutoffDate.toISOString();
+
+    const { data: list, error } = await supabase
+      .from('screenshots')
+      .select('id, screenshot_url')
+      .lt('timestamp', cutoffIso);
+
+    if (error) throw error;
+
+    if (!list || list.length === 0) {
+      console.log('No old screenshots to clean up.');
+      return;
+    }
+
+    console.log(`Found ${list.length} old screenshot records to clean up.`);
+
+    let deletedFilesCount = 0;
+    const idsToDelete = [];
+
+    for (const ss of list) {
+      const imgPath = ss.screenshot_url;
+      if (imgPath && imgPath.startsWith('/uploads/screenshots/')) {
+        const localPath = path.join(__dirname, imgPath);
+        try {
+          if (fs.existsSync(localPath)) {
+            fs.unlinkSync(localPath);
+            deletedFilesCount++;
+          }
+        } catch (fileErr) {
+          console.error(`Failed to delete screenshot file ${localPath}:`, fileErr.message);
+        }
+      }
+      idsToDelete.push(ss.id);
+    }
+
+    if (idsToDelete.length > 0) {
+      const { error: delError } = await supabase
+        .from('screenshots')
+        .delete()
+        .in('id', idsToDelete);
+
+      if (delError) {
+        console.error('Failed to delete screenshot records from database:', delError.message);
+      } else {
+        console.log(`Screenshots cleanup completed: deleted ${deletedFilesCount} files from disk, removed ${idsToDelete.length} rows from database.`);
+      }
+    }
+  } catch (err) {
+    console.error('Failed to run automated screenshots cleanup:', err.message);
+  }
+};
+
 // Seed database on startup
 seedDatabase().then(() => {
+  // Run cleanup tasks once on startup, then every 24 hours
+  cleanupOldWebcams();
+  cleanupOldScreenshots();
+  setInterval(cleanupOldWebcams, 24 * 60 * 60 * 1000);
+  setInterval(cleanupOldScreenshots, 24 * 60 * 60 * 1000);
+
   server.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
   });
