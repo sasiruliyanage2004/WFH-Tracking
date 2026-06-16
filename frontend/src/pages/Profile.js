@@ -17,14 +17,20 @@ import {
   FormControl,
   InputLabel,
   IconButton,
-  InputAdornment
+  InputAdornment,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { Save as SaveIcon, Visibility, VisibilityOff } from '@mui/icons-material';
 import { updateProfileSuccess } from '../redux/store';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function Profile() {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
   const { token, user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
 
@@ -142,7 +148,7 @@ function Profile() {
                   <IconButton
                     onClick={() => setShowPassword((v) => !v)}
                     edge="end"
-                    sx={{ color: 'rgba(255, 255, 255, 0.45)', '&:hover': { color: '#10b981' } }}
+                    sx={{ color: 'text.secondary', '&:hover': { color: '#10b981' } }}
                   >
                     {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                   </IconButton>
@@ -151,6 +157,27 @@ function Profile() {
             }}
             fullWidth
           />
+
+          <Divider sx={{ my: 1 }} />
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              Theme Settings
+            </Typography>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={isDark}
+                  onChange={(e) => {
+                    localStorage.setItem('wfh_dark_mode', JSON.stringify(e.target.checked));
+                    window.dispatchEvent(new Event('wfh_theme_changed'));
+                  }}
+                  color="primary"
+                />
+              }
+              label={isDark ? "Dark/Sci-Fi Theme Enabled" : "Dark/Sci-Fi Theme Disabled"}
+            />
+          </Box>
 
           <Button
             type="submit"

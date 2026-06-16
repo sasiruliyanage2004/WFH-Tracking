@@ -302,10 +302,12 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
+  const isDashboardPage = location.pathname === '/dashboard' || location.pathname === '/manager/dashboard';
+
   const strokeColor = '#10b981';
-  const lineOpacity = isDarkMode ? 0.24 : 0.26;
-  const globeOpacity = isDarkMode ? 0.28 : 0.30;
-  const nodeOpacity = isDarkMode ? 0.85 : 0.75;
+  const lineOpacity = isDarkMode ? 0.08 : 0.06;
+  const globeOpacity = isDarkMode ? 0.10 : 0.08;
+  const nodeOpacity = isDarkMode ? 0.30 : 0.20;
   const iconColor = '#10b981';
   const iconOpacity = isDarkMode ? 0.80 : 0.70;
 
@@ -316,9 +318,11 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
         display: 'flex', 
         width: '100%', 
         minHeight: '100vh', 
-        background: isDarkMode 
-          ? 'linear-gradient(135deg, #060913 0%, #070b14 50%, #090d16 100%)'
-          : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+        background: !isDashboardPage
+          ? (isDarkMode ? '#060913' : '#f8fafc')
+          : (isDarkMode 
+              ? 'linear-gradient(135deg, #060913 0%, #070b14 50%, #090d16 100%)'
+              : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)'),
         position: 'relative',
         color: 'text.primary'
       }}
@@ -326,18 +330,19 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
       <CssBaseline />
 
       {/* Premium Static WFH Global Network Background */}
-      <Box 
-        sx={{ 
-          position: 'fixed', 
-          width: '100%', 
-          height: '100%', 
-          top: 0, 
-          left: 0, 
-          zIndex: 0, 
-          overflow: 'hidden', 
-          pointerEvents: 'none' 
-        }}
-      >
+      {isDashboardPage && (
+        <Box 
+          sx={{ 
+            position: 'fixed', 
+            width: '100%', 
+            height: '100%', 
+            top: 0, 
+            left: 0, 
+            zIndex: 0, 
+            overflow: 'hidden', 
+            pointerEvents: 'none' 
+          }}
+        >
         {/* Ambient Static Glowing Orbs */}
         <Box
           sx={{
@@ -537,6 +542,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           </svg>
         </Box>
       </Box>
+      )}
 
       <AppBar
         position="fixed"

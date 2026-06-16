@@ -1,5 +1,5 @@
 // frontend/src/App.js
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -40,17 +40,29 @@ function App() {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [showSplash, setShowSplash] = useState(true);
 
-  // Dark mode — default true for premium look
+  // Default to Light Mode
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('wfh_dark_mode');
     if (saved !== null) return JSON.parse(saved);
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return false; // Default to Light Mode
   });
 
   const toggleTheme = (val) => {
     setIsDarkMode(val);
     localStorage.setItem('wfh_dark_mode', JSON.stringify(val));
+    window.dispatchEvent(new Event('wfh_theme_changed'));
   };
+
+  useEffect(() => {
+    const handleThemeChange = () => {
+      const saved = localStorage.getItem('wfh_dark_mode');
+      if (saved !== null) {
+        setIsDarkMode(JSON.parse(saved));
+      }
+    };
+    window.addEventListener('wfh_theme_changed', handleThemeChange);
+    return () => window.removeEventListener('wfh_theme_changed', handleThemeChange);
+  }, []);
 
   // ── PREMIUM THEME ─────────────────────────────────────────────────
   const theme = useMemo(() => createTheme({
