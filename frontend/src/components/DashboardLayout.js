@@ -150,7 +150,6 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
 
   const links = (user?.role === 'Manager' || user?.role === 'SuperAdmin')
     ? managerLinks.filter(link => {
-        if (link.text === 'Employee List') return user?.role === 'SuperAdmin';
         if (link.text === 'Admin List') return user?.role === 'SuperAdmin';
         return true;
       })

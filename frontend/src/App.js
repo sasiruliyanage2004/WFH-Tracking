@@ -392,7 +392,7 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/manager/employees" element={
-            <ProtectedRoute allowedRoles={['SuperAdmin']}>
+            <ProtectedRoute allowedRoles={['Manager', 'SuperAdmin']}>
               <EmployeeList />
             </ProtectedRoute>
           } />

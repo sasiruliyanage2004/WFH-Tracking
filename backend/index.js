@@ -357,14 +357,23 @@ const saveBase64Image = (base64String, folder, filename) => {
 
 // --- API ROUTES ---
 
-// 0. EMPLOYEE LIST ROUTES (SuperAdmin only)
-app.get('/api/users/employees', authenticate, authorize('SuperAdmin'), async (req, res) => {
+// 0. EMPLOYEE LIST ROUTES (SuperAdmin and Manager)
+app.get('/api/users/employees', authenticate, authorize('SuperAdmin', 'Manager'), async (req, res) => {
   try {
-    const { data: employees, error } = await supabase
+    let query = supabase
       .from('users')
       .select('id, name, email, department, role, profile_pic, created_at')
-      .eq('role', 'Employee')
-      .order('created_at', { ascending: false });
+      .eq('role', 'Employee');
+
+    if (req.user.role === 'Manager') {
+      if (req.user.department) {
+        query = query.eq('department', req.user.department);
+      } else {
+        return res.json([]);
+      }
+    }
+
+    const { data: employees, error } = await query.order('created_at', { ascending: false });
 
     if (error) throw error;
 
@@ -405,7 +414,7 @@ app.get('/api/users/employees', authenticate, authorize('SuperAdmin'), async (re
   }
 });
 
-app.delete('/api/users/employees/:id', authenticate, authorize('SuperAdmin'), async (req, res) => {
+app.delete('/api/users/employees/:id', authenticate, authorize('SuperAdmin', 'Manager'), async (req, res) => {
   try {
     const { data: emp, error: fetchErr } = await supabase
       .from('users')
@@ -415,6 +424,11 @@ app.delete('/api/users/employees/:id', authenticate, authorize('SuperAdmin'), as
 
     if (fetchErr || !emp) return res.status(404).json({ message: 'Employee not found.' });
     if (emp.role === 'Manager' || emp.role === 'SuperAdmin') return res.status(403).json({ message: 'Cannot delete a Manager or SuperAdmin account.' });
+
+    // If Manager, check if the employee belongs to the same department
+    if (req.user.role === 'Manager' && emp.department !== req.user.department) {
+      return res.status(403).json({ message: 'You are only authorized to delete employees in your own department.' });
+    }
 
     const { error: deleteErr } = await supabase
       .from('users')
