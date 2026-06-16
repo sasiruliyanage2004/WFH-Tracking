@@ -51,21 +51,8 @@ function ManagerTasks() {
       const tasksRes = await axios.get(`${API_URL}/api/tasks`, authHeader);
       setTasks(tasksRes.data);
 
-      const summaryRes = await axios.get(`${API_URL}/api/monitoring/summary`, authHeader);
-      // Extract unique list of employees from reports or use a mock list
-      const employeeMap = new Map();
-      summaryRes.data.liveCheckins.forEach(c => {
-        if (c.employee) employeeMap.set(c.employee._id || c.employee.id, c.employee);
-      });
-      // Add default seeds if empty
-      let list = Array.from(employeeMap.values());
-      if (list.length === 0) {
-        list = [
-          { _id: 'e1', name: 'Alice Green', department: 'Engineering' },
-          { _id: 'e2', name: 'John Smith', department: 'Design' }
-        ];
-      }
-      setEmployees(list);
+      const employeesRes = await axios.get(`${API_URL}/api/users/employees`, authHeader);
+      setEmployees(employeesRes.data);
     } catch (err) {
       console.error(err.message);
     } finally {

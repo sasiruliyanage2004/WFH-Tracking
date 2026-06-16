@@ -243,26 +243,9 @@ function ManagerDashboard() {
 
 
 
-      // Get list of employees
-      // For simplicity, we get users from reports and checkins, or query a mock list
-      // Let's query reports populate users to extract employee directory
-      const employeeMap = new Map();
-      reportsRes.data.forEach(r => {
-        if (r.employee) employeeMap.set(r.employee._id || r.employee.id, r.employee);
-      });
-      summaryRes.data.liveCheckins.forEach(c => {
-        if (c.employee) employeeMap.set(c.employee._id || c.employee.id, c.employee);
-      });
-      
-      // Fallback: If map empty, insert seeded users
-      let employeeList = Array.from(employeeMap.values());
-      if (employeeList.length === 0) {
-        employeeList = [
-          { _id: 'e1', name: 'Alice Green', email: 'employee1@wfh.com', department: 'Engineering' },
-          { _id: 'e2', name: 'John Smith', email: 'employee2@wfh.com', department: 'Design' }
-        ];
-      }
-      setEmployees(employeeList);
+      // Get list of employees from database
+      const employeesRes = await axios.get(`${API_URL}/api/users/employees`, authHeader);
+      setEmployees(employeesRes.data);
 
     } catch (err) {
       console.error('Fetch manager details error:', err.message);
