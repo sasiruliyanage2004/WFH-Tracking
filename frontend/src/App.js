@@ -40,18 +40,71 @@ function App() {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [showSplash, setShowSplash] = useState(true);
 
-  // Load zoom factor on startup
+  // Global Zoom State and Logic
+  const [zoomLevel, setZoomLevel] = useState(() => {
+    const saved = localStorage.getItem('wfh_zoom_level');
+    return saved ? parseFloat(saved) : 1.0;
+  });
+
   useEffect(() => {
-    const savedZoom = localStorage.getItem('wfh_zoom_level');
-    if (savedZoom) {
-      const zoomLevel = parseFloat(savedZoom);
-      if (window.api && typeof window.api.setZoomFactor === 'function') {
-        window.api.setZoomFactor(zoomLevel);
-      } else {
-        document.body.style.zoom = zoomLevel;
-      }
+    if (isAuthenticated) {
+      localStorage.setItem('wfh_zoom_level', zoomLevel.toString());
+      window.dispatchEvent(new Event('wfh_zoom_changed'));
     }
-  }, []);
+    
+    // Force zoom factor to 1.0 on authentication screens
+    const activeZoom = isAuthenticated ? zoomLevel : 1.0;
+    
+    if (window.api && typeof window.api.setZoomFactor === 'function') {
+      window.api.setZoomFactor(activeZoom);
+    } else {
+      document.body.style.zoom = activeZoom;
+    }
+  }, [zoomLevel, isAuthenticated]);
+
+  const handleZoomIn = () => {
+    setZoomLevel((prev) => Math.round(Math.min(1.5, prev + 0.1) * 10) / 10);
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel((prev) => Math.round(Math.max(0.7, prev - 0.1) * 10) / 10);
+  };
+
+  useEffect(() => {
+    const handleZoomChange = () => {
+      const saved = localStorage.getItem('wfh_zoom_level');
+      if (saved) {
+        const parsed = parseFloat(saved);
+        if (parsed !== zoomLevel) {
+          setZoomLevel(parsed);
+        }
+      }
+    };
+    window.addEventListener('wfh_zoom_changed', handleZoomChange);
+    return () => window.removeEventListener('wfh_zoom_changed', handleZoomChange);
+  }, [zoomLevel]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Disallow keyboard zoom control on login/register pages
+      if (!isAuthenticated) return;
+
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === '=' || e.key === '+') {
+          e.preventDefault();
+          handleZoomIn();
+        } else if (e.key === '-') {
+          e.preventDefault();
+          handleZoomOut();
+        } else if (e.key === '0') {
+          e.preventDefault();
+          setZoomLevel(1.0);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isAuthenticated]);
 
   // Default to Light Mode
   const [isDarkMode, setIsDarkMode] = useState(() => {

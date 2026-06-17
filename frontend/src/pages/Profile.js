@@ -41,6 +41,30 @@ function Profile() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   
+  // Display Zoom Settings State
+  const [zoomSetting, setZoomSetting] = useState(() => {
+    const saved = localStorage.getItem('wfh_zoom_level');
+    return saved ? parseFloat(saved) : 1.0;
+  });
+
+  React.useEffect(() => {
+    const handleZoomChange = () => {
+      const saved = localStorage.getItem('wfh_zoom_level');
+      if (saved) {
+        setZoomSetting(parseFloat(saved));
+      }
+    };
+    window.addEventListener('wfh_zoom_changed', handleZoomChange);
+    return () => window.removeEventListener('wfh_zoom_changed', handleZoomChange);
+  }, []);
+
+  const handleZoomChangeSetting = (newZoom) => {
+    const roundedZoom = Math.round(newZoom * 10) / 10;
+    localStorage.setItem('wfh_zoom_level', roundedZoom.toString());
+    setZoomSetting(roundedZoom);
+    window.dispatchEvent(new Event('wfh_zoom_changed'));
+  };
+
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
 
@@ -177,6 +201,51 @@ function Profile() {
               }
               label={isDark ? "Dark/Sci-Fi Theme Enabled" : "Dark/Sci-Fi Theme Disabled"}
             />
+          </Box>
+
+          <Divider sx={{ my: 1 }} />
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              Display Zoom Settings
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Adjust the dashboard application text and layout size to fit your display screen.
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Button 
+                variant="outlined" 
+                size="small" 
+                onClick={() => handleZoomChangeSetting(zoomSetting - 0.1)}
+                disabled={zoomSetting <= 0.7}
+                sx={{ minWidth: 40 }}
+              >
+                -
+              </Button>
+              <Typography sx={{ minWidth: 60, textAlign: 'center', fontWeight: 600 }}>
+                {Math.round(zoomSetting * 100)}%
+              </Typography>
+              <Button 
+                variant="outlined" 
+                size="small" 
+                onClick={() => handleZoomChangeSetting(zoomSetting + 0.1)}
+                disabled={zoomSetting >= 1.5}
+                sx={{ minWidth: 40 }}
+              >
+                +
+              </Button>
+              <Button 
+                variant="text" 
+                size="small" 
+                onClick={() => handleZoomChangeSetting(1.0)}
+                disabled={zoomSetting === 1.0}
+              >
+                Reset
+              </Button>
+            </Box>
+            <Typography variant="caption" color="text.secondary">
+              Shortcut: Use <kbd style={{ background: isDark ? '#334155' : '#e2e8f0', color: isDark ? '#f8fafc' : '#0f172a', padding: '2px 4px', borderRadius: '4px', fontFamily: 'monospace' }}>Ctrl +</kbd>, <kbd style={{ background: isDark ? '#334155' : '#e2e8f0', color: isDark ? '#f8fafc' : '#0f172a', padding: '2px 4px', borderRadius: '4px', fontFamily: 'monospace' }}>Ctrl -</kbd>, or <kbd style={{ background: isDark ? '#334155' : '#e2e8f0', color: isDark ? '#f8fafc' : '#0f172a', padding: '2px 4px', borderRadius: '4px', fontFamily: 'monospace' }}>Ctrl 0</kbd> anywhere inside the dashboard.
+            </Typography>
           </Box>
 
           <Button

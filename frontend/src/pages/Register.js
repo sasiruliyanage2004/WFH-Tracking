@@ -27,6 +27,7 @@ import { authSuccess } from '../redux/store';
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function Register() {
+  const isElectron = window.api !== undefined;
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -110,16 +111,65 @@ function Register() {
   };
 
   return (
-    <Container maxWidth="xs" sx={{ height: '100vh', display: 'flex', alignItems: 'center' }}>
+    <Container
+      maxWidth="xs"
+      sx={{
+        height: isElectron ? 'calc(100vh - 32px)' : '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        py: { xs: 2, lg: 4 },
+        '@media (max-height: 850px)': { py: 2 },
+        '@media (max-height: 720px)': { py: 1 }
+      }}
+    >
       <Card sx={{ width: '100%', borderRadius: 4, boxShadow: '0px 10px 30px rgba(0,0,0,0.1)' }}>
-        <CardContent sx={{ p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
-            <MonitoringIcon sx={{ fontSize: 36 }} />
-            <Typography variant="h6" sx={{ fontWeight: 800 }}>
+        <CardContent
+          sx={{
+            p: { xs: 3, sm: 4 },
+            '@media (max-height: 850px)': { p: { xs: 2.5, sm: 3 } },
+            '@media (max-height: 720px)': { p: { xs: 2, sm: 2.5 } },
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center'
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              color: 'primary.main',
+              mb: { xs: 0.5, lg: 1 },
+              '@media (max-height: 720px)': { mb: 0.2 }
+            }}
+          >
+            <MonitoringIcon sx={{
+              fontSize: 36,
+              '@media (max-height: 850px)': { fontSize: 30 },
+              '@media (max-height: 720px)': { fontSize: 24 }
+            }} />
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 800,
+                fontSize: '1.25rem',
+                '@media (max-height: 850px)': { fontSize: '1.1rem' },
+                '@media (max-height: 720px)': { fontSize: '1.0rem' }
+              }}
+            >
               CREATE ACCOUNT
             </Typography>
           </Box>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }} align="center">
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              mb: { xs: 2, lg: 3 },
+              '@media (max-height: 850px)': { mb: 2 },
+              '@media (max-height: 720px)': { mb: 1.2 }
+            }}
+            align="center"
+          >
             Register to join your corporate WFH tracker.
           </Typography>
 
@@ -139,7 +189,11 @@ function Register() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  sx={{ mb: 2 }}
+                  sx={{
+                    mb: { xs: 1.5, lg: 2 },
+                    '@media (max-height: 850px)': { mb: 1.5 },
+                    '@media (max-height: 720px)': { mb: 1 }
+                  }}
                 />
                 <TextField
                   label="Email Address"
@@ -148,7 +202,11 @@ function Register() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  sx={{ mb: 2 }}
+                  sx={{
+                    mb: { xs: 1.5, lg: 2 },
+                    '@media (max-height: 850px)': { mb: 1.5 },
+                    '@media (max-height: 720px)': { mb: 1 }
+                  }}
                 />
                 <TextField
                   label="Password"
@@ -170,9 +228,20 @@ function Register() {
                       </InputAdornment>
                     )
                   }}
-                  sx={{ mb: 2 }}
+                  sx={{
+                    mb: { xs: 1.5, lg: 2 },
+                    '@media (max-height: 850px)': { mb: 1.5 },
+                    '@media (max-height: 720px)': { mb: 1 }
+                  }}
                 />
-                <FormControl fullWidth sx={{ mb: 2 }}>
+                <FormControl
+                  fullWidth
+                  sx={{
+                    mb: { xs: 1.5, lg: 2 },
+                    '@media (max-height: 850px)': { mb: 1.5 },
+                    '@media (max-height: 720px)': { mb: 1 }
+                  }}
+                >
                   <InputLabel>Role Type</InputLabel>
                   <Select
                     value={role}
@@ -194,7 +263,11 @@ function Register() {
                     value={managerKey}
                     onChange={(e) => setManagerKey(e.target.value)}
                     placeholder="Enter company manager registration code..."
-                    sx={{ mb: 2 }}
+                    sx={{
+                      mb: { xs: 1.5, lg: 2 },
+                      '@media (max-height: 850px)': { mb: 1.5 },
+                      '@media (max-height: 720px)': { mb: 1 }
+                    }}
                   />
                 )}
 
@@ -207,12 +280,23 @@ function Register() {
                     value={superAdminKey}
                     onChange={(e) => setSuperAdminKey(e.target.value)}
                     placeholder="Enter company super admin key..."
-                    sx={{ mb: 2 }}
+                    sx={{
+                      mb: { xs: 1.5, lg: 2 },
+                      '@media (max-height: 850px)': { mb: 1.5 },
+                      '@media (max-height: 720px)': { mb: 1 }
+                    }}
                   />
                 )}
 
                 {role !== 'SuperAdmin' && (
-                  <FormControl fullWidth sx={{ mb: 3 }}>
+                  <FormControl
+                    fullWidth
+                    sx={{
+                      mb: { xs: 2, lg: 3 },
+                      '@media (max-height: 850px)': { mb: 2 },
+                      '@media (max-height: 720px)': { mb: 1.5 }
+                    }}
+                  >
                     <InputLabel>Department</InputLabel>
                     <Select
                       value={department}
@@ -234,7 +318,12 @@ function Register() {
                   fullWidth
                   size="large"
                   disabled={loading}
-                  sx={{ py: 1.5, borderRadius: 2, fontWeight: 700 }}
+                  sx={{
+                    py: { xs: 1.2, lg: 1.5 },
+                    borderRadius: 2,
+                    fontWeight: 700,
+                    '@media (max-height: 850px)': { py: 1.2 }
+                  }}
                 >
                   {loading ? <CircularProgress size={24} /> : 'Register'}
                 </Button>
@@ -252,7 +341,11 @@ function Register() {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   inputProps={{ maxLength: 6, style: { textAlign: 'center', letterSpacing: '8px', fontSize: '20px', fontWeight: 'bold' } }}
-                  sx={{ mb: 3 }}
+                  sx={{
+                    mb: { xs: 2, lg: 3 },
+                    '@media (max-height: 850px)': { mb: 2 },
+                    '@media (max-height: 720px)': { mb: 1.5 }
+                  }}
                   placeholder="------"
                 />
                 <Button
@@ -261,7 +354,13 @@ function Register() {
                   fullWidth
                   size="large"
                   disabled={loading}
-                  sx={{ py: 1.5, borderRadius: 2, fontWeight: 700, mb: 1.5 }}
+                  sx={{
+                    py: { xs: 1.2, lg: 1.5 },
+                    borderRadius: 2,
+                    fontWeight: 700,
+                    mb: { xs: 1, lg: 1.5 },
+                    '@media (max-height: 850px)': { py: 1.2, mb: 1 }
+                  }}
                 >
                   {loading ? <CircularProgress size={24} /> : 'Verify & Complete'}
                 </Button>
@@ -278,7 +377,13 @@ function Register() {
             )}
           </Box>
 
-          <Box sx={{ mt: 3 }}>
+          <Box
+            sx={{
+              mt: { xs: 2, lg: 3 },
+              '@media (max-height: 850px)': { mt: 2 },
+              '@media (max-height: 720px)': { mt: 1 }
+            }}
+          >
             <Typography variant="body2" color="text.secondary">
               Already have an account?{' '}
               <Link component={RouterLink} to="/login" color="primary" sx={{ fontWeight: 600 }}>

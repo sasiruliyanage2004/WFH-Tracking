@@ -65,47 +65,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
   const [notifications, setNotifications] = useState([]);
   const [toast, setToast] = useState({ open: false, message: '', severity: 'info' });
 
-  // Zoom State and Logic
-  const [zoomLevel, setZoomLevel] = useState(() => {
-    const saved = localStorage.getItem('wfh_zoom_level');
-    return saved ? parseFloat(saved) : 1.0;
-  });
 
-  useEffect(() => {
-    localStorage.setItem('wfh_zoom_level', zoomLevel.toString());
-    if (window.api && typeof window.api.setZoomFactor === 'function') {
-      window.api.setZoomFactor(zoomLevel);
-    } else {
-      document.body.style.zoom = zoomLevel;
-    }
-  }, [zoomLevel]);
-
-  const handleZoomIn = () => {
-    setZoomLevel((prev) => Math.min(1.5, prev + 0.1));
-  };
-
-  const handleZoomOut = () => {
-    setZoomLevel((prev) => Math.max(0.7, prev - 0.1));
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === '=' || e.key === '+') {
-          e.preventDefault();
-          handleZoomIn();
-        } else if (e.key === '-') {
-          e.preventDefault();
-          handleZoomOut();
-        } else if (e.key === '0') {
-          e.preventDefault();
-          setZoomLevel(1.0);
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   // Toggle mobile drawer
   const handleDrawerToggle = () => {

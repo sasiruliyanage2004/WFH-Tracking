@@ -98,6 +98,7 @@ const CircuitBackground = () => (
 );
 
 function Login() {
+  const isElectron = window.api !== undefined;
   const [email,           setEmail]           = useState('');
   const [password,        setPassword]        = useState('');
   const [showPassword,    setShowPassword]    = useState(false);
@@ -147,7 +148,7 @@ function Login() {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
+        height: isElectron ? 'calc(100vh - 32px)' : '100vh',
         display: 'flex',
         bgcolor: '#060913',
         overflow: 'hidden',
@@ -164,8 +165,16 @@ function Login() {
           flexDirection:  'column',
           justifyContent: 'center',
           alignItems:     'flex-start',
-          px:             8,
-          py:             6,
+          px:             { xs: 4, lg: 8 },
+          py:             { xs: 4, lg: 6 },
+          '@media (max-height: 850px)': {
+            py: 4,
+            px: 6,
+          },
+          '@media (max-height: 720px)': {
+            py: 3,
+            px: 4,
+          },
           position:       'relative',
           overflow:       'hidden',
           background: 'radial-gradient(ellipse at 30% 30%, #0a1945 0%, #060913 70%)',
@@ -193,27 +202,55 @@ function Login() {
         />
 
         {/* Brand logo */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 6, zIndex: 2 }}>
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          mb: { xs: 4, lg: 6 },
+          '@media (max-height: 850px)': { mb: 3 },
+          '@media (max-height: 720px)': { mb: 2 },
+          zIndex: 2
+        }}>
           <Box
             sx={{
-              width: 52, height: 52,
-              borderRadius: '16px',
+              width: { xs: 40, lg: 52 },
+              height: { xs: 40, lg: 52 },
+              borderRadius: { xs: '12px', lg: '16px' },
+              '@media (max-height: 850px)': { width: 44, height: 44, borderRadius: '14px' },
+              '@media (max-height: 720px)': { width: 38, height: 38, borderRadius: '10px' },
               background: 'linear-gradient(135deg, #10b981 0%, #060913 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: '0 8px 30px rgba(16,185,129,0.4)',
               border: '1px solid rgba(16,185,129,0.2)',
             }}
           >
-            <MonitorIcon sx={{ color: '#fff', fontSize: 28 }} />
+            <MonitorIcon sx={{
+              color: '#fff',
+              fontSize: { xs: 22, lg: 28 },
+              '@media (max-height: 850px)': { fontSize: 24 },
+              '@media (max-height: 720px)': { fontSize: 20 }
+            }} />
           </Box>
           <Box>
             <Typography sx={{
               fontFamily: "'Outfit', sans-serif",
-              fontWeight: 900, fontSize: '1.45rem', color: '#fff', letterSpacing: '1px',
+              fontWeight: 900,
+              fontSize: { xs: '1.25rem', lg: '1.45rem' },
+              '@media (max-height: 850px)': { fontSize: '1.3rem' },
+              '@media (max-height: 720px)': { fontSize: '1.15rem' },
+              color: '#fff',
+              letterSpacing: '1px',
             }}>
               WorkforceOS
             </Typography>
-            <Typography sx={{ fontSize: '0.68rem', color: 'rgba(16,185,129,0.7)', fontWeight: 700, letterSpacing: '3px', textTransform: 'uppercase' }}>
+            <Typography sx={{
+              fontSize: { xs: '0.62rem', lg: '0.68rem' },
+              '@media (max-height: 720px)': { fontSize: '0.58rem' },
+              color: 'rgba(16,185,129,0.7)',
+              fontWeight: 700,
+              letterSpacing: '3px',
+              textTransform: 'uppercase'
+            }}>
               Remote Work Management
             </Typography>
           </Box>
@@ -227,8 +264,10 @@ function Login() {
               fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif",
               fontWeight: 900,
               lineHeight: 1.15,
-              mb: 3,
-              fontSize: { md: '2.8rem', lg: '3.4rem' },
+              mb: { xs: 2, lg: 3 },
+              fontSize: { md: '2.4rem', lg: '3.4rem' },
+              '@media (max-height: 850px)': { fontSize: '2.5rem', mb: 2 },
+              '@media (max-height: 720px)': { fontSize: '2.0rem', mb: 1.5 },
               color: '#ffffff',
             }}
           >
@@ -243,18 +282,37 @@ function Login() {
             </Box>
           </Typography>
 
-          <Typography sx={{ color: 'rgba(148,163,184,0.7)', mb: 5, lineHeight: 1.7, maxWidth: 440, fontSize: '1.05rem' }}>
+          <Typography sx={{
+            color: 'rgba(148,163,184,0.7)',
+            mb: { xs: 3, lg: 5 },
+            lineHeight: 1.7,
+            maxWidth: 440,
+            fontSize: { xs: '0.95rem', lg: '1.05rem' },
+            '@media (max-height: 850px)': { mb: 3, fontSize: '0.95rem' },
+            '@media (max-height: 720px)': { mb: 2, fontSize: '0.88rem', lineHeight: 1.5 }
+          }}>
             The complete remote work management platform built for modern distributed teams.
           </Typography>
 
           {/* Feature bullets */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: { xs: 1.8, lg: 2.5 },
+            '@media (max-height: 850px)': { gap: 1.5 },
+            '@media (max-height: 720px)': { gap: 1 }
+          }}>
             {features.map((f, i) => (
               <Box
                 key={i}
                 sx={{
-                  display: 'flex', alignItems: 'center', gap: 2.5,
-                  p: 2, borderRadius: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: { xs: 1.8, lg: 2.5 },
+                  p: { xs: 1.5, lg: 2 },
+                  borderRadius: { xs: 3, lg: 4 },
+                  '@media (max-height: 850px)': { p: 1.5, gap: 1.5, borderRadius: 3 },
+                  '@media (max-height: 720px)': { p: 1.1, gap: 1.2, borderRadius: 2.5 },
                   bgcolor: 'rgba(255, 255, 255, 0.01)',
                   border: '1px solid rgba(255,255,255,0.03)',
                   transition: 'all 0.3s ease',
@@ -271,20 +329,46 @@ function Login() {
                 }}
               >
                 <Box sx={{
-                  width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+                  width: { xs: 36, lg: 44 },
+                  height: { xs: 36, lg: 44 },
+                  borderRadius: '50%',
+                  flexShrink: 0,
                   background: 'rgba(16,185,129,0.08)',
                   border: '1.5px solid rgba(16,185,129,0.25)',
                   boxShadow: '0 0 15px rgba(16,185,129,0.15)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '1.25rem',
+                  fontSize: { xs: '1.1rem', lg: '1.25rem' },
+                  '@media (max-height: 850px)': {
+                    width: 38,
+                    height: 38,
+                    fontSize: '1.15rem'
+                  },
+                  '@media (max-height: 720px)': {
+                    width: 32,
+                    height: 32,
+                    fontSize: '0.95rem'
+                  },
                 }}>
                   {f.icon}
                 </Box>
                 <Box>
-                  <Typography sx={{ color: '#f8fafc', fontWeight: 800, fontSize: '0.92rem', mb: 0.2 }}>
+                  <Typography sx={{
+                    color: '#f8fafc',
+                    fontWeight: 800,
+                    fontSize: { xs: '0.85rem', lg: '0.92rem' },
+                    '@media (max-height: 850px)': { fontSize: '0.88rem' },
+                    '@media (max-height: 720px)': { fontSize: '0.8rem', mb: 0 },
+                    mb: 0.2
+                  }}>
                     {f.title}
                   </Typography>
-                  <Typography sx={{ color: 'rgba(148,163,184,0.6)', fontSize: '0.82rem', lineHeight: 1.5 }}>
+                  <Typography sx={{
+                    color: 'rgba(148,163,184,0.6)',
+                    fontSize: { xs: '0.78rem', lg: '0.82rem' },
+                    '@media (max-height: 850px)': { fontSize: '0.78rem' },
+                    '@media (max-height: 720px)': { fontSize: '0.72rem', lineHeight: 1.3 },
+                    lineHeight: 1.5
+                  }}>
                     {f.desc}
                   </Typography>
                 </Box>
@@ -305,7 +389,9 @@ function Login() {
           alignItems: 'center',
           justifyContent: 'center',
           px: { xs: 3, sm: 6 },
-          py: 6,
+          py: { xs: 4, lg: 6 },
+          '@media (max-height: 850px)': { py: 4 },
+          '@media (max-height: 720px)': { py: 3 },
           bgcolor: '#070b14',
           position: 'relative',
           overflow: 'hidden',
@@ -330,8 +416,16 @@ function Login() {
           sx={{
             width: '100%',
             maxWidth: 440,
-            p: { xs: 3.5, sm: 5 },
-            borderRadius: 6,
+            p: { xs: 3, sm: 5 },
+            borderRadius: { xs: 4, lg: 6 },
+            '@media (max-height: 850px)': {
+              p: { xs: 2.5, sm: 3.5 },
+              borderRadius: 5
+            },
+            '@media (max-height: 720px)': {
+              p: { xs: 2, sm: 3 },
+              borderRadius: 4
+            },
             background: 'rgba(255, 255, 255, 0.02)',
             backdropFilter: 'blur(35px)',
             WebkitBackdropFilter: 'blur(35px)',
@@ -349,7 +443,14 @@ function Login() {
           }} />
 
           {/* Mobile brand branding */}
-          <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 1.5, mb: 4 }}>
+          <Box sx={{
+            display: { xs: 'flex', md: 'none' },
+            alignItems: 'center',
+            gap: 1.5,
+            mb: { xs: 3, md: 4 },
+            '@media (max-height: 850px)': { mb: 2 },
+            '@media (max-height: 720px)': { mb: 1.5 }
+          }}>
             <Box sx={{
               width: 44, height: 44, borderRadius: '12px',
               background: 'linear-gradient(135deg, #10b981, #060913)',
@@ -364,10 +465,27 @@ function Login() {
           </Box>
 
           {/* Heading */}
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#f8fafc', mb: 0.8, letterSpacing: '-0.5px' }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              color: '#f8fafc',
+              mb: 0.8,
+              letterSpacing: '-0.5px',
+              fontSize: { xs: '1.8rem', lg: '2.125rem' },
+              '@media (max-height: 850px)': { fontSize: '1.8rem' },
+              '@media (max-height: 720px)': { fontSize: '1.5rem', mb: 0.4 }
+            }}
+          >
             Welcome back
           </Typography>
-          <Typography sx={{ color: 'rgba(148,163,184,0.7)', mb: 4.5, fontSize: '0.95rem' }}>
+          <Typography sx={{
+            color: 'rgba(148,163,184,0.7)',
+            mb: { xs: 3, lg: 4.5 },
+            fontSize: { xs: '0.88rem', lg: '0.95rem' },
+            '@media (max-height: 850px)': { mb: 3, fontSize: '0.88rem' },
+            '@media (max-height: 720px)': { mb: 2, fontSize: '0.82rem' }
+          }}>
             Sign in to your workspace to continue.
           </Typography>
 
@@ -375,14 +493,32 @@ function Login() {
           {errorMsg && (
             <Alert
               severity="error"
-              sx={{ mb: 3.5, borderRadius: 3, bgcolor: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5' }}
+              sx={{
+                mb: 3.5,
+                '@media (max-height: 850px)': { mb: 2 },
+                '@media (max-height: 720px)': { mb: 1.5 },
+                borderRadius: 3,
+                bgcolor: 'rgba(239,68,68,0.12)',
+                border: '1px solid rgba(239,68,68,0.2)',
+                color: '#fca5a5'
+              }}
             >
               {errorMsg}
             </Alert>
           )}
 
           {/* Form */}
-          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: { xs: 2, lg: 3 },
+              '@media (max-height: 850px)': { gap: 2 },
+              '@media (max-height: 720px)': { gap: 1.5 }
+            }}
+          >
 
             {/* Email field with quick-select dropdown */}
             <Box sx={{ position: 'relative' }}>
@@ -546,7 +682,9 @@ function Login() {
               disabled={loading}
               endIcon={loading ? null : <ArrowIcon />}
               sx={{
-                py: 1.8,
+                py: { xs: 1.5, lg: 1.8 },
+                '@media (max-height: 850px)': { py: 1.5 },
+                '@media (max-height: 720px)': { py: 1.2 },
                 borderRadius: '30px',
                 fontWeight: 750,
                 fontSize: '0.98rem',
@@ -568,7 +706,12 @@ function Login() {
           </Box>
 
           {/* Register Link */}
-          <Box sx={{ mt: 4.5, textAlign: 'center' }}>
+          <Box sx={{
+            mt: { xs: 3, lg: 4.5 },
+            textAlign: 'center',
+            '@media (max-height: 850px)': { mt: 3 },
+            '@media (max-height: 720px)': { mt: 2 }
+          }}>
             <Typography sx={{ color: 'rgba(148,163,184,0.55)', fontSize: '0.88rem' }}>
               New to WorkforceOS?{' '}
               <Link
@@ -582,7 +725,15 @@ function Login() {
           </Box>
 
           {/* Security badge footer */}
-          <Box sx={{ mt: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.2 }}>
+          <Box sx={{
+            mt: { xs: 3.5, lg: 5 },
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1.2,
+            '@media (max-height: 850px)': { mt: 3 },
+            '@media (max-height: 720px)': { mt: 2 }
+          }}>
             <Box sx={{
               width: 7, height: 7, borderRadius: '50%', bgcolor: '#10b981',
               animation: 'pingGreen 2.5s ease-in-out infinite',
@@ -595,7 +746,13 @@ function Login() {
               256-bit TLS encrypted · SOC 2 compliant
             </Typography>
           </Box>
-          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+          <Box sx={{
+            mt: { xs: 2, lg: 3 },
+            display: 'flex',
+            justifyContent: 'center',
+            '@media (max-height: 850px)': { mt: 2 },
+            '@media (max-height: 720px)': { mt: 1.5 }
+          }}>
             <DeveloperSignature />
           </Box>
         </Paper>
