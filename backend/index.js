@@ -2282,69 +2282,7 @@ app.post('/api/settings/warning-emails', authenticate, authorize(['Manager', 'Su
 // --- DATABASE SEEDING & SERVER LAUNCH ---
 const PORT = process.env.PORT || 5000;
 
-const seedDatabase = async () => {
-  try {
-    // Check if users exist in Supabase
-    const { data: users, error } = await supabase
-      .from('users')
-      .select('id');
 
-    if (error) {
-      console.error('Error checking users for seeding:', error.message);
-      return;
-    }
-
-    if (!users || users.length === 0) {
-      console.log('No users found in Supabase. Seeding default accounts...');
-
-      const passHash = await bcrypt.hash('password123', 10);
-
-      const defaultUsers = [
-        {
-          id: '60c72b2f9b1d8e1f88c1a111', // StaticObjectID Manager Bob
-          name: 'Manager Bob',
-          email: 'manager@wfh.com',
-          password: passHash,
-          role: 'Manager',
-          department: 'Operations'
-        },
-        {
-          id: '60c72b2f9b1d8e1f88c1a222', // StaticObjectID Alice Green
-          name: 'Alice Green',
-          email: 'employee1@wfh.com',
-          password: passHash,
-          role: 'Employee',
-          department: 'Engineering'
-        },
-        {
-          id: '60c72b2f9b1d8e1f88c1a333', // StaticObjectID John Smith
-          name: 'John Smith',
-          email: 'employee2@wfh.com',
-          password: passHash,
-          role: 'Employee',
-          department: 'Design'
-        }
-      ];
-
-      const { error: seedErr } = await supabase
-        .from('users')
-        .insert(defaultUsers);
-
-      if (seedErr) {
-        console.error('Failed to seed default users:', seedErr.message);
-      } else {
-        console.log('Seeding complete! Logins:');
-        console.log('1. Manager  : manager@wfh.com  / password123');
-        console.log('2. Employee : employee1@wfh.com / password123');
-        console.log('3. Employee : employee2@wfh.com / password123');
-      }
-    } else {
-      console.log('Users already exist in Supabase. Skipping seeding.');
-    }
-  } catch (err) {
-    console.error('Seeding database failed:', err.message);
-  }
-};
 
 // Automated webcam cleanup task (runs daily)
 const cleanupOldWebcams = async () => {
@@ -2469,14 +2407,12 @@ const cleanupOldScreenshots = async () => {
 };
 
 // Seed database on startup
-seedDatabase().then(() => {
-  // Run cleanup tasks once on startup, then every 24 hours
-  cleanupOldWebcams();
-  cleanupOldScreenshots();
-  setInterval(cleanupOldWebcams, 24 * 60 * 60 * 1000);
-  setInterval(cleanupOldScreenshots, 24 * 60 * 60 * 1000);
+// Run cleanup tasks once on startup, then every 24 hours
+cleanupOldWebcams();
+cleanupOldScreenshots();
+setInterval(cleanupOldWebcams, 24 * 60 * 60 * 1000);
+setInterval(cleanupOldScreenshots, 24 * 60 * 60 * 1000);
 
-  server.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
-  });
+server.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
 });

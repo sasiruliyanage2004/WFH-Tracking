@@ -105,13 +105,7 @@ function Login() {
   const [showDropdown,    setShowDropdown]    = useState(false);
   const [savedAccounts,   setSavedAccounts]   = useState(() => {
     const saved = localStorage.getItem('wfh_saved_accounts');
-    if (saved) return JSON.parse(saved);
-    const demo = [
-      { email: 'employee1@wfh.com', password: 'password123' },
-      { email: 'manager@wfh.com',   password: 'password123' },
-    ];
-    localStorage.setItem('wfh_saved_accounts', JSON.stringify(demo));
-    return demo;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const navigate  = useNavigate();
