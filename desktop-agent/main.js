@@ -189,6 +189,7 @@ let activeSecondsInTick = 0;
 let idleSecondsInTick = 0;
 
 let splashWindow = null;
+let currentActiveAppType = 'Neutral';
 
 // Idle Break detection variables
 let wasIdleBefore = false;
@@ -476,8 +477,9 @@ function startTracking() {
           localMouseCount += clicks;
 
           // If there was any user input (keys or clicks) in this 10-second tick,
+          // or if the current active app is classified as 'Productive',
           // it counts as active time, otherwise idle.
-          if (keys > 0 || clicks > 0) {
+          if (keys > 0 || clicks > 0 || currentActiveAppType === 'Productive') {
             activeSecondsInTick += 10;
           } else {
             idleSecondsInTick += 10;
@@ -669,6 +671,7 @@ try {
       const windowTitle = parts[1] ? parts[1].replace('Title:', '').trim() : 'Active Window';
       
       const type = classifyApp(appName, windowTitle);
+      currentActiveAppType = type;
 
       // Add to local buffer
       if (!usageBuffer[appName]) {
