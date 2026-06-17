@@ -102,11 +102,26 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 function ManagerDashboard() {
   const navigate = useNavigate();
-  const { token } = useSelector((state) => state.auth);
+  const { token, user } = useSelector((state) => state.auth);
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
 
   // States
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const getGreeting = () => {
+    const hour = currentTime.getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
   const [summary, setSummary] = useState(null);
   const [successSnackbar, setSuccessSnackbar] = useState(false);
   const [employees, setEmployees] = useState([]);
@@ -418,6 +433,16 @@ function ManagerDashboard() {
 
   return (
     <Box sx={{ pb: 5 }}>
+      {/* Top Greeting and Ticking Clock Banner */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.025em' }}>
+          {getGreeting()}, {user?.name ? user.name.split(' ')[0] : 'Admin'}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, mt: 0.5 }}>
+          {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} • {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} • Hybrid Workspace
+        </Typography>
+      </Box>
+
       {/* Visual Analytics top summary cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         

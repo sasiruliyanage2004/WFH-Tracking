@@ -78,6 +78,15 @@ function EmployeeDashboard() {
   // Webcam States
   const [webcamOpen, setWebcamOpen] = useState(false);
   const [webcamStream, setWebcamStream] = useState(null);
+
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
   const [capturedPhoto, setCapturedPhoto] = useState('');
   const [webcamError, setWebcamError] = useState('');
   const videoRef = useRef(null);
@@ -529,7 +538,7 @@ function EmployeeDashboard() {
   const shiftProgressPercent = getShiftProgressPercent();
 
   const getGreeting = () => {
-    const hour = new Date().getHours();
+    const hour = currentTime.getHours();
     if (hour < 12) return 'Good Morning';
     if (hour < 18) return 'Good Afternoon';
     return 'Good Evening';
@@ -557,7 +566,7 @@ function EmployeeDashboard() {
             {getGreeting()}, {user?.name.split(' ')[0]}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, mt: 0.5 }}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} • Hybrid Workspace
+            {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} • {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} • Hybrid Workspace
           </Typography>
         </Box>
         {attendance && (
