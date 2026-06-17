@@ -546,9 +546,14 @@ function EmployeeDashboard() {
 
   const breakOptions = [
     { name: 'Breakfast', label: 'Breakfast', icon: '☕', action: () => handleStartBreak('Breakfast') },
+    { name: 'Tea', label: 'Tea / Coffee Break', icon: '🍵', action: () => handleStartBreak('Tea / Coffee Break') },
     { name: 'Lunch', label: 'Lunch Break', icon: '🍔', action: () => handleStartBreak('Lunch') },
     { name: 'Dinner', label: 'Dinner', icon: '🍽️', action: () => handleStartBreak('Dinner') },
     { name: 'Washroom', label: 'Washroom', icon: '🚽', action: () => handleStartBreak('Washroom') },
+    { name: 'PowerCut', label: 'Power Cut', icon: '⚡', action: () => handleStartBreak('Power Cut') },
+    { name: 'InternetIssue', label: 'Internet Issue', icon: '🌐', action: () => handleStartBreak('Internet Issue') },
+    { name: 'Stretch', label: 'Stretch / Wellness Break', icon: '🧘', action: () => handleStartBreak('Stretch / Wellness Break') },
+    { name: 'OfflineMeeting', label: 'Offline Meeting / Call', icon: '🤝', action: () => handleStartBreak('Offline Meeting / Call') },
     { name: 'Outgoing', label: 'Outgoing', icon: '🚗', action: () => handleStartBreak('Outgoing') },
     { name: 'Other', label: 'Other', icon: '📝', action: () => setOtherBreakOpen(true) }
   ];
