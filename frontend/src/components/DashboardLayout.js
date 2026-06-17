@@ -45,9 +45,7 @@ import {
   Settings as SettingsIcon,
   ArrowBack as BackIcon,
   ArrowForward as ForwardIcon,
-  Warning as AlertIcon,
-  ZoomIn as ZoomInIcon,
-  ZoomOut as ZoomOutIcon
+  Warning as AlertIcon
 } from '@mui/icons-material';
 import { logout } from '../redux/store';
 import DeveloperSignature from './DeveloperSignature';
@@ -637,48 +635,6 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {/* Zoom Controls */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                bgcolor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
-                borderRadius: 2,
-                px: 1,
-                py: 0.25,
-                gap: 0.5,
-                mr: 1
-              }}
-            >
-              <Tooltip title="Zoom Out (Ctrl -)">
-                <IconButton size="small" onClick={handleZoomOut} color="inherit">
-                  <ZoomOutIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Reset Zoom (Ctrl 0)">
-                <Typography
-                  variant="body2"
-                  onClick={() => setZoomLevel(1.0)}
-                  sx={{
-                    fontWeight: 700,
-                    minWidth: 42,
-                    textAlign: 'center',
-                    userSelect: 'none',
-                    cursor: 'pointer',
-                    '&:hover': {
-                      color: 'primary.main'
-                    }
-                  }}
-                >
-                  {Math.round(zoomLevel * 100)}%
-                </Typography>
-              </Tooltip>
-              <Tooltip title="Zoom In (Ctrl +)">
-                <IconButton size="small" onClick={handleZoomIn} color="inherit">
-                  <ZoomInIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
 
             {/* Dark Mode toggle */}
             <Tooltip title="Toggle Theme">
