@@ -224,18 +224,20 @@ function Register() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowPassword((v) => !v)}
-                          edge="end"
-                          sx={{ color: '#94a3b8', '&:hover': { color: '#10b981' } }}
-                        >
-                          {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                        </IconButton>
-                      </InputAdornment>
-                    )
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword((v) => !v)}
+                            edge="end"
+                            sx={{ color: '#94a3b8', '&:hover': { color: '#10b981' } }}
+                          >
+                            {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                          </IconButton>
+                        </InputAdornment>
+                      )
+                    }
                   }}
                   sx={{
                     mb: { xs: 1.5, lg: 2 },
@@ -251,18 +253,20 @@ function Register() {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowConfirmPassword((v) => !v)}
-                          edge="end"
-                          sx={{ color: '#94a3b8', '&:hover': { color: '#10b981' } }}
-                        >
-                          {showConfirmPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                        </IconButton>
-                      </InputAdornment>
-                    )
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowConfirmPassword((v) => !v)}
+                            edge="end"
+                            sx={{ color: '#94a3b8', '&:hover': { color: '#10b981' } }}
+                          >
+                            {showConfirmPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                          </IconButton>
+                        </InputAdornment>
+                      )
+                    }
                   }}
                   sx={{
                     mb: { xs: 1.5, lg: 2 },

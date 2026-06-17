@@ -235,6 +235,26 @@ function createWindow() {
   });
 
   mainWindow.removeMenu();
+
+  // Intercept input for reload (Ctrl+R) and DevTools (Ctrl+Shift+I)
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.control && input.key.toLowerCase() === 'r') {
+      mainWindow.webContents.session.clearCache().then(() => {
+        mainWindow.reload();
+      });
+      event.preventDefault();
+    }
+    if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+      mainWindow.webContents.openDevTools();
+      event.preventDefault();
+    }
+  });
+
+  // Log all console messages from the renderer process
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`[RENDERER CONSOLE] [Level ${level}] ${message} (at ${sourceId}:${line})`);
+  });
+
   mainWindow.loadURL(FRONTEND_URL);
 
   mainWindow.webContents.on('did-finish-load', () => {

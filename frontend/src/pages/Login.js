@@ -629,23 +629,25 @@ function Login() {
               required
               value={password}
               onChange={e => setPassword(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LockIcon sx={{ color: 'rgba(148,163,184,0.45)', fontSize: 20 }} />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowPassword(v => !v)}
-                      edge="end"
-                      sx={{ color: 'rgba(148,163,184,0.45)', '&:hover': { color: '#10b981' } }}
-                    >
-                      {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon sx={{ color: 'rgba(148,163,184,0.45)', fontSize: 20 }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(v => !v)}
+                        edge="end"
+                        sx={{ color: 'rgba(148,163,184,0.45)', '&:hover': { color: '#10b981' } }}
+                      >
+                        {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }
               }}
               sx={{
                 '& .MuiOutlinedInput-root': {
