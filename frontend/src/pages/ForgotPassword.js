@@ -155,6 +155,7 @@ function ForgotPassword() {
               
               <TextField
                 label="Email Address"
+                variant="outlined"
                 type="email"
                 fullWidth
                 required
@@ -200,6 +201,7 @@ function ForgotPassword() {
               
               <TextField
                 label="Verification Code"
+                variant="outlined"
                 type="text"
                 fullWidth
                 required
@@ -216,6 +218,7 @@ function ForgotPassword() {
 
               <TextField
                 label="New Password"
+                variant="outlined"
                 type={showPassword ? 'text' : 'password'}
                 fullWidth
                 required
@@ -227,7 +230,7 @@ function ForgotPassword() {
                       <IconButton
                         onClick={() => setShowPassword((v) => !v)}
                         edge="end"
-                        sx={{ color: 'text.secondary', '&:hover': { color: '#10b981' } }}
+                        sx={{ color: '#94a3b8', '&:hover': { color: '#10b981' } }}
                       >
                         {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                       </IconButton>

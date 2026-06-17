@@ -190,6 +190,7 @@ function Register() {
               <>
                 <TextField
                   label="Full Name"
+                  variant="outlined"
                   type="text"
                   fullWidth
                   required
@@ -203,6 +204,7 @@ function Register() {
                 />
                 <TextField
                   label="Email Address"
+                  variant="outlined"
                   type="email"
                   fullWidth
                   required
@@ -216,6 +218,7 @@ function Register() {
                 />
                 <TextField
                   label="Password"
+                  variant="outlined"
                   type={showPassword ? 'text' : 'password'}
                   fullWidth
                   required
@@ -227,7 +230,7 @@ function Register() {
                         <IconButton
                           onClick={() => setShowPassword((v) => !v)}
                           edge="end"
-                          sx={{ color: 'text.secondary', '&:hover': { color: '#10b981' } }}
+                          sx={{ color: '#94a3b8', '&:hover': { color: '#10b981' } }}
                         >
                           {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                         </IconButton>
@@ -242,6 +245,7 @@ function Register() {
                 />
                 <TextField
                   label="Confirm Password"
+                  variant="outlined"
                   type={showConfirmPassword ? 'text' : 'password'}
                   fullWidth
                   required
@@ -253,7 +257,7 @@ function Register() {
                         <IconButton
                           onClick={() => setShowConfirmPassword((v) => !v)}
                           edge="end"
-                          sx={{ color: 'text.secondary', '&:hover': { color: '#10b981' } }}
+                          sx={{ color: '#94a3b8', '&:hover': { color: '#10b981' } }}
                         >
                           {showConfirmPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                         </IconButton>
@@ -286,9 +290,10 @@ function Register() {
                   </Select>
                 </FormControl>
 
-                {role === 'Manager' && (
+                 {role === 'Manager' && (
                   <TextField
                     label="Manager Secret Key"
+                    variant="outlined"
                     type="password"
                     fullWidth
                     required
@@ -306,6 +311,7 @@ function Register() {
                 {role === 'SuperAdmin' && (
                   <TextField
                     label="Super Admin Secret Key"
+                    variant="outlined"
                     type="password"
                     fullWidth
                     required
@@ -367,6 +373,7 @@ function Register() {
                 </Typography>
                 <TextField
                   label="OTP Code"
+                  variant="outlined"
                   type="text"
                   fullWidth
                   required
