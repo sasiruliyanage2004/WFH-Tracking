@@ -40,6 +40,19 @@ function App() {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [showSplash, setShowSplash] = useState(true);
 
+  // Load zoom factor on startup
+  useEffect(() => {
+    const savedZoom = localStorage.getItem('wfh_zoom_level');
+    if (savedZoom) {
+      const zoomLevel = parseFloat(savedZoom);
+      if (window.api && typeof window.api.setZoomFactor === 'function') {
+        window.api.setZoomFactor(zoomLevel);
+      } else {
+        document.body.style.zoom = zoomLevel;
+      }
+    }
+  }, []);
+
   // Default to Light Mode
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('wfh_dark_mode');
