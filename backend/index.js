@@ -2273,7 +2273,7 @@ app.put('/api/notifications/:id/read', authenticate, async (req, res) => {
   }
 });
 
-app.get('/api/settings/warning-emails', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
+app.get('/api/settings/warning-emails', authenticate, authorize(['SuperAdmin']), async (req, res) => {
   try {
     let { data: setting } = await supabase
       .from('settings')
@@ -2298,7 +2298,7 @@ app.get('/api/settings/warning-emails', authenticate, authorize(['Manager', 'Sup
   }
 });
 
-app.post('/api/settings/warning-emails', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
+app.post('/api/settings/warning-emails', authenticate, authorize(['SuperAdmin']), async (req, res) => {
   const { emails } = req.body;
   if (!emails || !Array.isArray(emails)) {
     return res.status(400).json({ message: 'Invalid email list format.' });
