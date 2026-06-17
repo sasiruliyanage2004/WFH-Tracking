@@ -227,7 +227,7 @@ function ForgotPassword() {
                       <IconButton
                         onClick={() => setShowPassword((v) => !v)}
                         edge="end"
-                        sx={{ color: 'rgba(255, 255, 255, 0.45)', '&:hover': { color: '#10b981' } }}
+                        sx={{ color: 'text.secondary', '&:hover': { color: '#10b981' } }}
                       >
                         {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                       </IconButton>

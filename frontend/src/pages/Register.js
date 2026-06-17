@@ -40,13 +40,19 @@ function Register() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !email || !password) return;
+    if (!name || !email || !password || !confirmPassword) return;
+    if (password !== confirmPassword) {
+      setErrorMsg('Passwords do not match.');
+      return;
+    }
     if (role === 'Manager' && !managerKey) {
       setErrorMsg('Manager Secret Key is required.');
       return;
@@ -221,9 +227,35 @@ function Register() {
                         <IconButton
                           onClick={() => setShowPassword((v) => !v)}
                           edge="end"
-                          sx={{ color: 'rgba(255, 255, 255, 0.45)', '&:hover': { color: '#10b981' } }}
+                          sx={{ color: 'text.secondary', '&:hover': { color: '#10b981' } }}
                         >
                           {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                        </IconButton>
+                      </InputAdornment>
+                    )
+                  }}
+                  sx={{
+                    mb: { xs: 1.5, lg: 2 },
+                    '@media (max-height: 850px)': { mb: 1.5 },
+                    '@media (max-height: 720px)': { mb: 1 }
+                  }}
+                />
+                <TextField
+                  label="Confirm Password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  fullWidth
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowConfirmPassword((v) => !v)}
+                          edge="end"
+                          sx={{ color: 'text.secondary', '&:hover': { color: '#10b981' } }}
+                        >
+                          {showConfirmPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                         </IconButton>
                       </InputAdornment>
                     )
