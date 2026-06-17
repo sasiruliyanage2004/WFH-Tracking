@@ -20,5 +20,9 @@ contextBridge.exposeInMainWorld('api', {
     } catch (e) {
       return 1.0;
     }
+  },
+  onIdlePrompt: (callback) => {
+    ipcRenderer.removeAllListeners('idle:prompt-break');
+    ipcRenderer.on('idle:prompt-break', (event, data) => callback(data));
   }
 });

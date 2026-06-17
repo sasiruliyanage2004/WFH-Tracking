@@ -1090,6 +1090,60 @@ app.post('/api/attendance/break/end', authenticate, async (req, res) => {
   }
 });
 
+app.post('/api/attendance/break/retroactive', authenticate, async (req, res) => {
+  const { breakType, durationMinutes } = req.body;
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    const { data: att, error: fetchErr } = await supabase
+      .from('attendance')
+      .select('*')
+      .eq('employee_id', req.user.id)
+      .eq('date', today)
+      .is('check_out_time', null)
+      .maybeSingle();
+
+    if (fetchErr || !att) {
+      return res.status(400).json({ message: 'Attendance record not found.' });
+    }
+
+    const endTime = new Date();
+    const startTime = new Date(endTime.getTime() - durationMinutes * 60 * 1000);
+
+    const newBreaks = [...(att.breaks || [])];
+    newBreaks.push({
+      breakType,
+      note: 'Auto-recorded from Inactivity Prompt',
+      startTime,
+      endTime,
+      durationMinutes
+    });
+
+    const { data: updatedAtt, error: updateErr } = await supabase
+      .from('attendance')
+      .update({
+        breaks: newBreaks
+      })
+      .eq('id', att.id)
+      .select('*')
+      .single();
+
+    if (updateErr) throw updateErr;
+
+    // Alert Managers
+    const { data: managers } = await supabase.from('users').select('id').eq('role', 'Manager');
+    if (managers) {
+      const notifMsg = `${req.user.name} logged an idle period of ${durationMinutes} minutes as a "${breakType}" break.`;
+      for (let mgr of managers) {
+        await sendNotification(mgr.id, notifMsg, 'break');
+      }
+    }
+
+    res.json({ message: 'Retroactive break logged successfully.', attendance: formatAttendance(updatedAtt) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 app.get('/api/attendance/status', authenticate, async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   try {

@@ -75,6 +75,10 @@ function EmployeeDashboard() {
   const [breakAnchorEl, setBreakAnchorEl] = useState(null);
   const [breakSearch, setBreakSearch] = useState('');
 
+  // Idle Break Dialog States
+  const [idleDialogOpen, setIdleDialogOpen] = useState(false);
+  const [idleMins, setIdleMins] = useState(0);
+
   // Webcam States
   const [webcamOpen, setWebcamOpen] = useState(false);
   const [webcamStream, setWebcamStream] = useState(null);
@@ -153,6 +157,13 @@ function EmployeeDashboard() {
     if (localStorage.getItem('register_success') === 'true') {
       setSuccessSnackbar(true);
       localStorage.removeItem('register_success');
+    }
+
+    if (window.api && typeof window.api.onIdlePrompt === 'function') {
+      window.api.onIdlePrompt((data) => {
+        setIdleMins(data.durationMinutes);
+        setIdleDialogOpen(true);
+      });
     }
   }, []);
 
@@ -341,6 +352,20 @@ function EmployeeDashboard() {
     await handleStartBreak('Other', otherBreakNote);
     setOtherBreakOpen(false);
     setOtherBreakNote('');
+  };
+
+  const handleRetroactiveBreak = async (breakType) => {
+    try {
+      const res = await axios.post(
+        `${API_URL}/api/attendance/break/retroactive`,
+        { breakType, durationMinutes: idleMins },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setAttendance(res.data.attendance);
+      setIdleDialogOpen(false);
+    } catch (err) {
+      console.error(err.response?.data?.message || err.message);
+    }
   };
 
   const handleBreakClick = (event) => {
@@ -1376,6 +1401,87 @@ function EmployeeDashboard() {
             disabled={!otherBreakNote.trim()}
           >
             Start Break
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Smart Idle Break Dialog */}
+      <Dialog 
+        open={idleDialogOpen} 
+        onClose={() => setIdleDialogOpen(false)} 
+        maxWidth="xs" 
+        fullWidth
+        disableEscapeKeyDown
+      >
+        <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+          ⏰ Inactivity Alert
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
+            You returned after being away.
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Our system detected no activity for approximately <strong>{idleMins} minutes</strong>. How would you like to log this offline period?
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <Button 
+              variant="outlined" 
+              color="primary" 
+              onClick={() => handleRetroactiveBreak('Tea / Coffee Break')}
+              sx={{ justifyContent: 'flex-start', py: 1.2, px: 2, borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+              startIcon={<span>🍵</span>}
+            >
+              Log as Tea / Coffee Break
+            </Button>
+            <Button 
+              variant="outlined" 
+              color="primary" 
+              onClick={() => handleRetroactiveBreak('Lunch')}
+              sx={{ justifyContent: 'flex-start', py: 1.2, px: 2, borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+              startIcon={<span>🍔</span>}
+            >
+              Log as Lunch Break
+            </Button>
+            <Button 
+              variant="outlined" 
+              color="primary" 
+              onClick={() => handleRetroactiveBreak('Washroom')}
+              sx={{ justifyContent: 'flex-start', py: 1.2, px: 2, borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+              startIcon={<span>🚽</span>}
+            >
+              Log as Washroom Break
+            </Button>
+            <Button 
+              variant="outlined" 
+              color="primary" 
+              onClick={() => handleRetroactiveBreak('Offline Meeting / Call')}
+              sx={{ justifyContent: 'flex-start', py: 1.2, px: 2, borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+              startIcon={<span>🤝</span>}
+            >
+              Log as Offline Meeting / Call
+            </Button>
+            <Button 
+              variant="outlined" 
+              color="primary" 
+              onClick={() => handleRetroactiveBreak('Other')}
+              sx={{ justifyContent: 'flex-start', py: 1.2, px: 2, borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+              startIcon={<span>📝</span>}
+            >
+              Log as Other Break
+            </Button>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5, justifyContent: 'space-between' }}>
+          <Typography variant="caption" color="text.secondary">
+            Select an option to update shift log.
+          </Typography>
+          <Button 
+            onClick={() => setIdleDialogOpen(false)} 
+            color="error" 
+            variant="contained"
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+          >
+            Ignore (On-Clock)
           </Button>
         </DialogActions>
       </Dialog>

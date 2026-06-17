@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, desktopCapturer, Menu, session } = require('electron');
+const { app, BrowserWindow, ipcMain, desktopCapturer, Menu, session, powerMonitor } = require('electron');
 const path = require('path');
 const { exec, spawn } = require('child_process');
 const axios = require('axios');
@@ -190,6 +190,11 @@ let idleSecondsInTick = 0;
 
 let splashWindow = null;
 
+// Idle Break detection variables
+let wasIdleBefore = false;
+let maxIdleTimeSecs = 0;
+let idleCheckInterval = null;
+
 function createSplashWindow() {
   splashWindow = new BrowserWindow({
     width: 450,
@@ -258,6 +263,47 @@ function createWindow() {
     stopTracking();
     mainWindow = null;
   });
+
+  startIdleDetection();
+}
+
+function startIdleDetection() {
+  if (idleCheckInterval) clearInterval(idleCheckInterval);
+  
+  idleCheckInterval = setInterval(() => {
+    try {
+      if (!trackingActive) {
+        // Reset state if tracking is disabled
+        wasIdleBefore = false;
+        maxIdleTimeSecs = 0;
+        return;
+      }
+
+      const idleTimeSecs = powerMonitor.getSystemIdleTime();
+      
+      // 15 minutes threshold (900 seconds)
+      if (idleTimeSecs >= 900) {
+        wasIdleBefore = true;
+        if (idleTimeSecs > maxIdleTimeSecs) {
+          maxIdleTimeSecs = idleTimeSecs;
+        }
+      } else {
+        if (wasIdleBefore) {
+          const idleMins = Math.round(maxIdleTimeSecs / 60);
+          console.log(`Desktop Agent: User returned after being idle for ${idleMins} minutes. Sending prompt to frontend.`);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('idle:prompt-break', {
+              durationMinutes: idleMins
+            });
+          }
+          wasIdleBefore = false;
+          maxIdleTimeSecs = 0;
+        }
+      }
+    } catch (err) {
+      console.error('Idle detection error:', err.message);
+    }
+  }, 5000); // Check every 5 seconds
 }
 
 app.whenReady().then(() => {
