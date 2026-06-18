@@ -51,6 +51,7 @@ import { logout } from '../redux/store';
 import DeveloperSignature from './DeveloperSignature';
 
 const drawerWidth = 260;
+const collapsedDrawerWidth = 64;
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
@@ -60,6 +61,10 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
   const { user, token } = useSelector((state) => state.auth);
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarPinned, setSidebarPinned] = useState(false);
+
+  const isSidebarExpanded = sidebarOpen || sidebarPinned;
   const [anchorElProfile, setAnchorElProfile] = useState(null);
   const [anchorElNotifications, setAnchorElNotifications] = useState(null);
   const [notifications, setNotifications] = useState([]);
@@ -159,17 +164,35 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
     : employeeLinks;
 
   // Render navigation menu
-  const drawerContent = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Toolbar sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', px: 3, py: 2.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <DashboardIcon sx={{ 
-            color: isDarkMode ? '#4f8ef7' : '#0038a8',
-            fontSize: '1.5rem'
-          }} />
+  const drawerContent = (expanded) => (
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Logo / Header */}
+      <Toolbar sx={{
+        display: 'flex',
+        flexDirection: expanded ? 'column' : 'row',
+        alignItems: expanded ? 'flex-start' : 'center',
+        justifyContent: expanded ? 'flex-start' : 'center',
+        px: expanded ? 3 : 1,
+        py: expanded ? 2.5 : 1.5,
+        minHeight: '64px !important',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: expanded ? 1 : 0 }}>
+          <Tooltip title={expanded ? '' : 'WorkforceOS'} placement="right">
+            <DashboardIcon
+              onClick={() => setSidebarPinned(p => !p)}
+              sx={{
+                color: isDarkMode ? '#4f8ef7' : '#0038a8',
+                fontSize: '1.6rem',
+                cursor: 'pointer',
+                transition: 'transform 0.3s',
+                '&:hover': { transform: 'rotate(20deg)' }
+              }}
+            />
+          </Tooltip>
           <Typography variant="h6" sx={{
             fontWeight: 800,
-            fontSize: '1.25rem',
+            fontSize: '1.1rem',
             fontFamily: "'Inter', sans-serif",
             letterSpacing: '-0.025em',
             background: isDarkMode
@@ -177,128 +200,151 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
               : 'linear-gradient(135deg, #0038a8 0%, #002266 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            display: 'inline-block'
+            display: 'inline-block',
+            whiteSpace: 'nowrap',
+            opacity: expanded ? 1 : 0,
+            width: expanded ? 'auto' : 0,
+            overflow: 'hidden',
+            transition: 'opacity 0.25s, width 0.3s'
           }}>
             WorkforceOS
           </Typography>
         </Box>
-        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, mt: 0.2, pl: 4 }}>
-          Enterprise Management
-        </Typography>
+        {expanded && (
+          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, mt: 0.2, pl: 4, whiteSpace: 'nowrap' }}>
+            Enterprise Management
+          </Typography>
+        )}
       </Toolbar>
       <Divider />
-      <List sx={{ px: 1, py: 2, flexGrow: 1 }}>
+
+      {/* Nav Links */}
+      <List sx={{ px: expanded ? 1 : 0.5, py: 2, flexGrow: 1 }}>
         {links.map((link) => {
           const isActive = location.pathname === link.path;
           return (
             <ListItem key={link.text} disablePadding sx={{ mb: 0.5 }}>
-              <ListItemButton
-                onClick={() => {
-                  navigate(link.path);
-                  setMobileOpen(false);
-                }}
-                sx={{
-                  borderRadius: '12px',
-                  mx: 1.5,
-                  px: 2,
-                  py: 1.25,
-                  position: 'relative',
-                  background: isActive
-                    ? isDarkMode
-                      ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%)'
-                      : 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%)'
-                    : 'transparent',
-                  color: isActive
-                    ? '#10b981'
-                    : 'text.primary',
-                  border: isActive && isDarkMode
-                    ? '1px solid rgba(16, 185, 129, 0.25)'
-                    : isActive
-                      ? '1px solid rgba(16, 185, 129, 0.15)'
-                      : '1px solid transparent',
-                  boxShadow: isActive
-                    ? isDarkMode
-                      ? '0 4px 20px rgba(16, 185, 129, 0.12)'
-                      : '0 4px 15px rgba(16, 185, 129, 0.08)'
-                    : 'none',
-                  overflow: 'hidden',
-                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                  '&::before': isActive ? {
-                    content: '""',
-                    position: 'absolute',
-                    left: 0,
-                    top: '20%',
-                    height: '60%',
-                    width: 4,
-                    borderRadius: '0 4px 4px 0',
-                    backgroundColor: '#10b981'
-                  } : null,
-                  '&:hover': {
+              <Tooltip title={expanded ? '' : link.text} placement="right">
+                <ListItemButton
+                  onClick={() => {
+                    navigate(link.path);
+                    setMobileOpen(false);
+                  }}
+                  sx={{
+                    borderRadius: '12px',
+                    mx: expanded ? 1.5 : 0.5,
+                    px: expanded ? 2 : 1,
+                    py: 1.25,
+                    justifyContent: expanded ? 'flex-start' : 'center',
+                    position: 'relative',
                     background: isActive
                       ? isDarkMode
-                        ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0.1) 100%)'
-                        : 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(16, 185, 129, 0.08) 100%)'
-                      : isDarkMode
-                        ? 'rgba(16, 185, 129, 0.06)'
-                        : 'action.hover',
-                    transform: isActive ? 'none' : 'translateX(4px)'
-                  }
-                }}
-              >
-                <ListItemIcon sx={{
-                  color: isActive
-                    ? '#10b981'
-                    : 'text.secondary',
-                  minWidth: 40,
-                  transition: 'color 0.25s'
-                }}>
-                  {link.icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={link.text}
-                  primaryTypographyProps={{
-                    fontSize: '0.9rem',
-                    fontWeight: isActive ? 700 : 500,
-                    letterSpacing: '-0.01em'
+                        ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%)'
+                        : 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%)'
+                      : 'transparent',
+                    color: isActive ? '#10b981' : 'text.primary',
+                    border: isActive && isDarkMode
+                      ? '1px solid rgba(16, 185, 129, 0.25)'
+                      : isActive
+                        ? '1px solid rgba(16, 185, 129, 0.15)'
+                        : '1px solid transparent',
+                    boxShadow: isActive
+                      ? isDarkMode
+                        ? '0 4px 20px rgba(16, 185, 129, 0.12)'
+                        : '0 4px 15px rgba(16, 185, 129, 0.08)'
+                      : 'none',
+                    overflow: 'hidden',
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&::before': isActive ? {
+                      content: '""',
+                      position: 'absolute',
+                      left: 0,
+                      top: '20%',
+                      height: '60%',
+                      width: 4,
+                      borderRadius: '0 4px 4px 0',
+                      backgroundColor: '#10b981'
+                    } : null,
+                    '&:hover': {
+                      background: isActive
+                        ? isDarkMode
+                          ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0.1) 100%)'
+                          : 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(16, 185, 129, 0.08) 100%)'
+                        : isDarkMode
+                          ? 'rgba(16, 185, 129, 0.06)'
+                          : 'action.hover',
+                      transform: isActive ? 'none' : (expanded ? 'translateX(4px)' : 'scale(1.1)')
+                    }
                   }}
-                />
-              </ListItemButton>
+                >
+                  <ListItemIcon sx={{
+                    color: isActive ? '#10b981' : 'text.secondary',
+                    minWidth: expanded ? 40 : 'unset',
+                    transition: 'color 0.25s, min-width 0.3s'
+                  }}>
+                    {link.icon}
+                  </ListItemIcon>
+                  {expanded && (
+                    <ListItemText
+                      primary={link.text}
+                      primaryTypographyProps={{
+                        fontSize: '0.9rem',
+                        fontWeight: isActive ? 700 : 500,
+                        letterSpacing: '-0.01em',
+                        whiteSpace: 'nowrap'
+                      }}
+                    />
+                  )}
+                </ListItemButton>
+              </Tooltip>
             </ListItem>
           );
         })}
       </List>
+
       <Divider />
-      <List sx={{ px: 1, py: 1 }}>
+
+      {/* Profile & Logout */}
+      <List sx={{ px: expanded ? 1 : 0.5, py: 1 }}>
         <ListItem disablePadding>
-          <ListItemButton
-            onClick={() => navigate('/profile')}
-            sx={{
-              borderRadius: 2,
-              '&:hover': isDarkMode ? { bgcolor: 'rgba(79, 142, 247, 0.08)' } : {}
-            }}
-          >
-            <ListItemIcon><ProfileIcon /></ListItemIcon>
-            <ListItemText primary="My Profile" />
-          </ListItemButton>
+          <Tooltip title={expanded ? '' : 'My Profile'} placement="right">
+            <ListItemButton
+              onClick={() => navigate('/profile')}
+              sx={{
+                borderRadius: 2,
+                justifyContent: expanded ? 'flex-start' : 'center',
+                '&:hover': isDarkMode ? { bgcolor: 'rgba(79, 142, 247, 0.08)' } : {}
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: expanded ? 40 : 'unset' }}><ProfileIcon /></ListItemIcon>
+              {expanded && <ListItemText primary="My Profile" />}
+            </ListItemButton>
+          </Tooltip>
         </ListItem>
         <ListItem disablePadding>
-          <ListItemButton
-            onClick={() => dispatch(logout())}
-            sx={{
-              borderRadius: 2,
-              color: 'error.main',
-              '&:hover': isDarkMode ? { bgcolor: 'rgba(248, 113, 113, 0.08)' } : {}
-            }}
-          >
-            <ListItemIcon sx={{ color: 'error.main' }}><LogoutIcon /></ListItemIcon>
-            <ListItemText primary="Logout" />
-          </ListItemButton>
+          <Tooltip title={expanded ? '' : 'Logout'} placement="right">
+            <ListItemButton
+              onClick={() => dispatch(logout())}
+              sx={{
+                borderRadius: 2,
+                color: 'error.main',
+                justifyContent: expanded ? 'flex-start' : 'center',
+                '&:hover': isDarkMode ? { bgcolor: 'rgba(248, 113, 113, 0.08)' } : {}
+              }}
+            >
+              <ListItemIcon sx={{ color: 'error.main', minWidth: expanded ? 40 : 'unset' }}><LogoutIcon /></ListItemIcon>
+              {expanded && <ListItemText primary="Logout" />}
+            </ListItemButton>
+          </Tooltip>
         </ListItem>
       </List>
+
       <Divider />
-      <Box sx={{ py: 2, px: 2, display: 'flex', justifyContent: 'center' }}>
-        <DeveloperSignature />
-      </Box>
+      {expanded && (
+        <Box sx={{ py: 2, px: 2, display: 'flex', justifyContent: 'center' }}>
+          <DeveloperSignature />
+        </Box>
+      )}
     </Box>
   );
 
@@ -550,15 +596,16 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
         position="fixed"
         elevation={0}
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          width: { sm: `calc(100% - ${isSidebarExpanded ? drawerWidth : collapsedDrawerWidth}px)` },
+          ml: { sm: `${isSidebarExpanded ? drawerWidth : collapsedDrawerWidth}px` },
           top: window.api !== undefined ? '32px' : 0,
           borderBottom: 1,
           borderColor: 'divider',
           bgcolor: isDarkMode ? 'rgba(21, 27, 31, 0.88)' : 'rgba(255, 255, 255, 0.88)',
           backdropFilter: 'none',
           WebkitBackdropFilter: 'none',
-          color: 'text.primary'
+          color: 'text.primary',
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between' }}>
@@ -794,7 +841,15 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
       </Menu>
 
       {/* Navigation Drawers for Mobile & Desktop */}
-      <Box component="nav" sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}>
+      <Box
+        component="nav"
+        sx={{
+          width: { sm: isSidebarExpanded ? drawerWidth : collapsedDrawerWidth },
+          flexShrink: { sm: 0 },
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        }}
+      >
+        {/* Mobile Drawer (temporary) */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
@@ -802,46 +857,57 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
               width: drawerWidth,
               top: window.api !== undefined ? 32 : 0,
               height: window.api !== undefined ? 'calc(100% - 32px)' : '100%',
-              background: isDarkMode 
-                ? 'rgba(21, 27, 31, 0.92) !important' 
+              background: isDarkMode
+                ? 'rgba(21, 27, 31, 0.92) !important'
                 : 'rgba(255, 255, 255, 0.92) !important',
               backdropFilter: 'none !important',
               WebkitBackdropFilter: 'none !important',
-              borderRight: isDarkMode 
-                ? '1px solid rgba(255, 255, 255, 0.08) !important' 
+              borderRight: isDarkMode
+                ? '1px solid rgba(255, 255, 255, 0.08) !important'
                 : '1px solid rgba(16, 185, 129, 0.12) !important'
             }
           }}
         >
-          {drawerContent}
+          {drawerContent(true)}
         </Drawer>
+
+        {/* Desktop Drawer (permanent, auto-hide) */}
         <Drawer
           variant="permanent"
+          onMouseEnter={() => setSidebarOpen(true)}
+          onMouseLeave={() => setSidebarOpen(false)}
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
-              width: drawerWidth,
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: isSidebarExpanded ? drawerWidth : collapsedDrawerWidth,
               top: window.api !== undefined ? 32 : 0,
               height: window.api !== undefined ? 'calc(100% - 32px)' : '100%',
-              background: isDarkMode 
-                ? 'rgba(21, 27, 31, 0.92) !important' 
+              background: isDarkMode
+                ? 'rgba(21, 27, 31, 0.92) !important'
                 : 'rgba(255, 255, 255, 0.92) !important',
               backdropFilter: 'none !important',
               WebkitBackdropFilter: 'none !important',
-              borderRight: isDarkMode 
-                ? '1px solid rgba(255, 255, 255, 0.08) !important' 
-                : '1px solid rgba(16, 185, 129, 0.12) !important'
+              borderRight: isDarkMode
+                ? '1px solid rgba(255, 255, 255, 0.08) !important'
+                : '1px solid rgba(16, 185, 129, 0.12) !important',
+              overflowX: 'hidden',
+              transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important',
+              boxShadow: isSidebarExpanded
+                ? isDarkMode
+                  ? '4px 0 24px rgba(0,0,0,0.4)'
+                  : '4px 0 24px rgba(0,0,0,0.10)'
+                : 'none'
             }
           }}
           open
         >
-          {drawerContent}
+          {drawerContent(isSidebarExpanded)}
         </Drawer>
       </Box>
 
@@ -851,11 +917,12 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          width: { sm: `calc(100% - ${isSidebarExpanded ? drawerWidth : collapsedDrawerWidth}px)` },
           minHeight: '100vh',
           bgcolor: 'transparent',
           position: 'relative',
-          zIndex: 1
+          zIndex: 1,
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
         }}
       >
         <Toolbar />
