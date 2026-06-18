@@ -141,10 +141,24 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 const uploadsDir = path.join(__dirname, 'uploads');
 const screenshotsDir = path.join(uploadsDir, 'screenshots');
 const webcamsDir = path.join(uploadsDir, 'webcams');
+const attachmentsDir = path.join(uploadsDir, 'attachments');
 
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 if (!fs.existsSync(screenshotsDir)) fs.mkdirSync(screenshotsDir);
 if (!fs.existsSync(webcamsDir)) fs.mkdirSync(webcamsDir);
+if (!fs.existsSync(attachmentsDir)) fs.mkdirSync(attachmentsDir);
+
+// Multer storage for task attachments
+const attachmentStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, attachmentsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, 'task-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const uploadAttachment = multer({ storage: attachmentStorage });
 
 // Serve uploads statically
 app.use('/uploads', express.static(uploadsDir));
@@ -248,13 +262,20 @@ const formatTask = (task) => {
     dueDate: task.due_date,
     startDate: task.start_date,
     assignedTo: task.assignedTo || task.assigned_to,
-    assignedBy: task.assigned_by
+    assignedBy: task.assigned_by,
+    proofLinks: task.proof_links || [],
+    proofFiles: task.proof_files || [],
+    comments: task.comments || [],
+    submittedAt: task.submitted_at
   };
   delete mapped.task_name;
   delete mapped.due_date;
   delete mapped.start_date;
   delete mapped.assigned_to;
   delete mapped.assigned_by;
+  delete mapped.proof_links;
+  delete mapped.proof_files;
+  delete mapped.submitted_at;
   return mapped;
 };
 
@@ -1387,6 +1408,169 @@ app.delete('/api/tasks/:id', authenticate, authorize(['Manager', 'SuperAdmin']),
     if (deleteErr) throw deleteErr;
 
     res.json({ message: 'Task deleted successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/tasks/:id/submit', authenticate, uploadAttachment.array('files', 10), async (req, res) => {
+  try {
+    const { data: task, error: fetchErr } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (fetchErr || !task) return res.status(404).json({ message: 'Task not found' });
+
+    // Enforce permission: only assigned employee or manager/admin can submit proof
+    if (task.assigned_to.toString() !== req.user.id.toString() && req.user.role !== 'Manager' && req.user.role !== 'SuperAdmin') {
+      return res.status(403).json({ message: 'Unauthorized to submit proof for this task.' });
+    }
+
+    let proofLinks = [];
+    if (req.body.proofLinks) {
+      try {
+        proofLinks = JSON.parse(req.body.proofLinks);
+      } catch (e) {
+        if (typeof req.body.proofLinks === 'string') {
+          proofLinks = req.body.proofLinks.split(',').map(s => s.trim()).filter(Boolean);
+        } else if (Array.isArray(req.body.proofLinks)) {
+          proofLinks = req.body.proofLinks;
+        }
+      }
+    }
+
+    const proofFiles = req.files ? req.files.map(f => `/uploads/attachments/${f.filename}`) : [];
+
+    let currentComments = Array.isArray(task.comments) ? task.comments : [];
+    if (req.body.comment && req.body.comment.trim()) {
+      const initialComment = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
+        userId: req.user.id,
+        userName: req.user.name,
+        userRole: req.user.role,
+        text: req.body.comment.trim(),
+        createdAt: new Date().toISOString()
+      };
+      currentComments.push(initialComment);
+    }
+
+    const finalProofLinks = proofLinks;
+    const finalProofFiles = [...(Array.isArray(task.proof_files) ? task.proof_files : []), ...proofFiles];
+
+    const updates = {
+      status: 'Completed',
+      progress: 100,
+      submitted_at: new Date().toISOString(),
+      proof_links: finalProofLinks,
+      proof_files: finalProofFiles,
+      comments: currentComments
+    };
+
+    const { data: updatedTask, error: updateErr } = await supabase
+      .from('tasks')
+      .update(updates)
+      .eq('id', req.params.id)
+      .select('*')
+      .single();
+
+    if (updateErr) throw updateErr;
+
+    // Send notifications to manager or admins
+    const managerId = task.assigned_by;
+    if (managerId && managerId.toString() !== req.user.id.toString()) {
+      await sendNotification(managerId, `${req.user.name} has submitted proof of work for task: "${task.task_name}"`, 'task');
+    } else {
+      const { data: managers } = await supabase.from('users').select('id').in('role', ['Manager', 'SuperAdmin']);
+      if (managers) {
+        for (let mgr of managers) {
+          if (mgr.id.toString() !== req.user.id.toString()) {
+            await sendNotification(mgr.id, `${req.user.name} has submitted proof of work for task: "${task.task_name}"`, 'task');
+          }
+        }
+      }
+    }
+
+    res.json(formatTask(updatedTask));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/tasks/:id/comments', authenticate, async (req, res) => {
+  const { text } = req.body;
+  if (!text || !text.trim()) {
+    return res.status(400).json({ message: 'Comment text is required.' });
+  }
+
+  try {
+    const { data: task, error: fetchErr } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (fetchErr || !task) return res.status(404).json({ message: 'Task not found' });
+
+    // Check permissions: assigned user, manager of same dept, or superadmin
+    const isAssigned = task.assigned_to.toString() === req.user.id.toString();
+    const isSuperAdmin = req.user.role === 'SuperAdmin';
+    let isManagerOfDept = false;
+
+    if (req.user.role === 'Manager') {
+      const { data: targetUser } = await supabase
+        .from('users')
+        .select('department')
+        .eq('id', task.assigned_to)
+        .single();
+      
+      if (targetUser && targetUser.department === req.user.department) {
+        isManagerOfDept = true;
+      }
+    }
+
+    if (!isAssigned && !isSuperAdmin && !isManagerOfDept) {
+      return res.status(403).json({ message: 'Unauthorized to add comments to this task.' });
+    }
+
+    const newComment = {
+      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
+      userId: req.user.id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      text: text.trim(),
+      createdAt: new Date().toISOString()
+    };
+
+    let currentComments = Array.isArray(task.comments) ? task.comments : [];
+    currentComments.push(newComment);
+
+    const { data: updatedTask, error: updateErr } = await supabase
+      .from('tasks')
+      .update({ comments: currentComments })
+      .eq('id', req.params.id)
+      .select('*')
+      .single();
+
+    if (updateErr) throw updateErr;
+
+    // Notify appropriate party
+    if (req.user.id.toString() === task.assigned_to.toString()) {
+      // Notify the manager/assigner
+      const managerId = task.assigned_by;
+      if (managerId && managerId.toString() !== req.user.id.toString()) {
+        await sendNotification(managerId, `${req.user.name} commented on task: "${task.task_name}"`, 'task');
+      }
+    } else {
+      // Manager/Admin commented, notify the employee
+      const employeeId = task.assigned_to;
+      if (employeeId && employeeId.toString() !== req.user.id.toString()) {
+        await sendNotification(employeeId, `${req.user.name} commented on task: "${task.task_name}"`, 'task');
+      }
+    }
+
+    res.json(formatTask(updatedTask));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

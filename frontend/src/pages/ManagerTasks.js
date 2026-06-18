@@ -22,16 +22,27 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Grid,
+  Link
 } from '@mui/material';
-import { AddTask as TaskIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { 
+  AddTask as TaskIcon, 
+  Delete as DeleteIcon,
+  Comment as CommentIcon,
+  Attachment as AttachmentIcon,
+  Link as LinkIcon,
+  OpenInNew as OpenInNewIcon,
+  Close as CloseIcon,
+  Send as SendIcon
+} from '@mui/icons-material';
 
 import CustomLoader from '../components/CustomLoader';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function ManagerTasks() {
-  const { token } = useSelector((state) => state.auth);
+  const { token, user } = useSelector((state) => state.auth);
   const [tasks, setTasks] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +53,41 @@ function ManagerTasks() {
   const [assignedTo, setAssignedTo] = useState('');
   const [priority, setPriority] = useState('Medium');
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Details Dialog & Comments States
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [taskDetailsOpen, setTaskDetailsOpen] = useState(false);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
+  const handleOpenTaskDetails = (task) => {
+    setSelectedTask(task);
+    setNewCommentText('');
+    setTaskDetailsOpen(true);
+  };
+
+  const handleSubmitComment = async (e) => {
+    e.preventDefault();
+    if (!selectedTask || !newCommentText.trim()) return;
+
+    setIsSubmittingComment(true);
+    try {
+      const res = await axios.post(
+        `${API_URL}/api/tasks/${selectedTask._id}/comments`,
+        { text: newCommentText.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Update task in state
+      setTasks((prev) => prev.map((t) => (t._id === selectedTask._id ? res.data : t)));
+      setSelectedTask(res.data);
+      setNewCommentText('');
+    } catch (err) {
+      console.error('Failed to add comment:', err.message);
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -148,16 +194,31 @@ function ManagerTasks() {
                   </TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>{task.progress}%</TableCell>
                   <TableCell>
-                    <Chip
-                      label={task.status}
-                      color={task.status === 'Completed' ? 'success' : task.status === 'Blocked' ? 'error' : 'default'}
-                      size="small"
-                    />
+                    <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                      <Chip
+                        label={task.status}
+                        color={task.status === 'Completed' ? 'success' : task.status === 'Blocked' ? 'error' : 'default'}
+                        size="small"
+                      />
+                      {task.status === 'Completed' && (task.proofLinks?.length > 0 || task.proofFiles?.length > 0) && (
+                        <Chip
+                          label="Proof"
+                          color="success"
+                          variant="outlined"
+                          size="small"
+                        />
+                      )}
+                    </Box>
                   </TableCell>
                   <TableCell align="center">
-                    <IconButton color="error" onClick={() => handleDeleteTask(task._id)}>
-                      <DeleteIcon />
-                    </IconButton>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                      <IconButton color="primary" onClick={() => handleOpenTaskDetails(task)} title="Review Proof / Add Comment">
+                        <CommentIcon />
+                      </IconButton>
+                      <IconButton color="error" onClick={() => handleDeleteTask(task._id)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}
@@ -216,6 +277,229 @@ function ManagerTasks() {
           <Button onClick={() => setDialogOpen(false)} color="inherit">Cancel</Button>
           <Button onClick={handleCreateTask} variant="contained" color="primary">Assign Task</Button>
         </DialogActions>
+      </Dialog>
+
+      {/* Dialog for Manager to Review Task Details & Proof / Comments */}
+      <Dialog
+        open={taskDetailsOpen}
+        onClose={() => setTaskDetailsOpen(false)}
+        maxWidth="md"
+        fullWidth
+        scroll="paper"
+        sx={{ '& .MuiDialog-paper': { borderRadius: 3 } }}
+      >
+        {selectedTask && (
+          <>
+            <DialogTitle sx={{ fontWeight: 800, m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TaskIcon color="primary" />
+                <Typography variant="h6" component="span" sx={{ fontWeight: 800 }}>{selectedTask.taskName}</Typography>
+              </Box>
+              <IconButton onClick={() => setTaskDetailsOpen(false)} size="small" color="inherit">
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+
+            <DialogContent dividers sx={{ p: 3, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
+              {/* Left Column: Details & Proof */}
+              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Description</Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: 'pre-wrap', bgcolor: 'action.hover', p: 1.5, borderRadius: 2 }}>
+                    {selectedTask.description || 'No description provided.'}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                  <Box sx={{ minWidth: 100 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Assigned To</Typography>
+                    <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 600 }}>
+                      {selectedTask.assignedTo?.name || 'N/A'}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ minWidth: 100 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Status</Typography>
+                    <Box sx={{ mt: 0.5 }}>
+                      <Chip label={selectedTask.status} color={selectedTask.status === 'Completed' ? 'success' : 'warning'} size="small" />
+                    </Box>
+                  </Box>
+                  <Box sx={{ minWidth: 100 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Priority</Typography>
+                    <Box sx={{ mt: 0.5 }}>
+                      <Chip label={selectedTask.priority} color={selectedTask.priority === 'High' ? 'error' : 'default'} size="small" />
+                    </Box>
+                  </Box>
+                  {selectedTask.dueDate && (
+                    <Box sx={{ minWidth: 100 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Due Date</Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        {new Date(selectedTask.dueDate).toLocaleDateString()}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+
+                {/* Submitted Proof Display */}
+                {(selectedTask.proofLinks?.length > 0 || selectedTask.proofFiles?.length > 0) ? (
+                  <Box sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'success.main' }}>
+                      Proof of Work Submitted
+                    </Typography>
+
+                    {selectedTask.submittedAt && (
+                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+                        Submitted on: {new Date(selectedTask.submittedAt).toLocaleString()}
+                      </Typography>
+                    )}
+
+                    {selectedTask.proofLinks?.length > 0 && (
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Links</Typography>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 0.5 }}>
+                          {selectedTask.proofLinks.map((link, idx) => (
+                            <Link 
+                              key={idx} 
+                              href={link.startsWith('http') ? link : `https://${link}`} 
+                              target="_blank" 
+                              rel="noopener"
+                              sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem' }}
+                            >
+                              <LinkIcon size="small" sx={{ fontSize: 16 }} />
+                              {link}
+                              <OpenInNewIcon sx={{ fontSize: 14 }} />
+                            </Link>
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
+
+                    {selectedTask.proofFiles?.length > 0 && (
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Files / Screenshots</Typography>
+                        <Grid container spacing={1} sx={{ mt: 0.5 }}>
+                          {selectedTask.proofFiles.map((file, idx) => {
+                            const filename = file.split('/').pop();
+                            return (
+                              <Grid item xs={12} sm={6} key={idx}>
+                                <Paper variant="outlined" sx={{ p: 1, display: 'flex', alignItems: 'center', gap: 1, borderRadius: 2 }}>
+                                  <AttachmentIcon color="action" sx={{ fontSize: 16 }} />
+                                  <Link 
+                                    href={`${API_URL}${file}`} 
+                                    target="_blank" 
+                                    download 
+                                    sx={{ 
+                                      overflow: 'hidden', 
+                                      textOverflow: 'ellipsis', 
+                                      whiteSpace: 'nowrap', 
+                                      fontSize: '0.75rem',
+                                      flex: 1
+                                    }}
+                                  >
+                                    {filename}
+                                  </Link>
+                                </Paper>
+                              </Grid>
+                            );
+                          })}
+                        </Grid>
+                      </Box>
+                    )}
+                  </Box>
+                ) : (
+                  selectedTask.status === 'Completed' && (
+                    <Box sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No proof links or files were submitted for this completed task.
+                      </Typography>
+                    </Box>
+                  )
+                )}
+              </Box>
+
+              {/* Right Column: Comments Section */}
+              <Box sx={{ width: { xs: '100%', md: '350px' }, display: 'flex', flexDirection: 'column', borderLeft: { md: '1px solid' }, borderColor: 'divider', pl: { md: 3 }, minHeight: '300px' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CommentIcon fontSize="small" /> Comments & Activity
+                </Typography>
+
+                {/* Scrollable Comments Container */}
+                <Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1.5, pr: 1, maxHeight: '350px', minHeight: '180px', mb: 2 }}>
+                  {(!selectedTask.comments || selectedTask.comments.length === 0) ? (
+                    <Typography variant="body2" color="text.secondary" align="center" sx={{ my: 'auto', py: 2 }}>
+                      No comments yet. Start the conversation!
+                    </Typography>
+                  ) : (
+                    selectedTask.comments.map((comment) => {
+                      const isMe = comment.userId === user?.id || comment.userId === user?._id || comment.userName === user?.name;
+                      return (
+                        <Box 
+                          key={comment.id} 
+                          sx={{ 
+                            alignSelf: isMe ? 'flex-end' : 'flex-start',
+                            maxWidth: '90%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: isMe ? 'flex-end' : 'flex-start'
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 0.25 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.7rem' }}>
+                              {comment.userName}
+                            </Typography>
+                            <Chip 
+                              label={comment.userRole} 
+                              size="small" 
+                              variant="outlined"
+                              sx={{ 
+                                fontSize: '0.6rem', 
+                                height: 16, 
+                                px: 0.5,
+                                color: comment.userRole === 'Employee' ? 'text.secondary' : 'primary.main',
+                                borderColor: comment.userRole === 'Employee' ? 'divider' : 'primary.light'
+                              }} 
+                            />
+                          </Box>
+
+                          <Paper 
+                            sx={{ 
+                              p: 1.25, 
+                              borderRadius: 2, 
+                              borderTopRightRadius: isMe ? 0 : 2,
+                              borderTopLeftRadius: isMe ? 2 : 0,
+                              bgcolor: isMe ? 'primary.main' : 'action.selected',
+                              color: isMe ? 'primary.contrastText' : 'text.primary'
+                            }}
+                          >
+                            <Typography variant="body2" sx={{ fontSize: '0.825rem' }}>{comment.text}</Typography>
+                          </Paper>
+
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', mt: 0.25 }}>
+                            {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </Typography>
+                        </Box>
+                      );
+                    })
+                  )}
+                </Box>
+
+                {/* Comment Input */}
+                <Box component="form" onSubmit={handleSubmitComment} sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    placeholder="Reply or comment..."
+                    size="small"
+                    value={newCommentText}
+                    onChange={(e) => setNewCommentText(e.target.value)}
+                    fullWidth
+                    required
+                  />
+                  <IconButton type="submit" color="primary" disabled={isSubmittingComment} size="small">
+                    <SendIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Box>
+              </Box>
+            </DialogContent>
+          </>
+        )}
       </Dialog>
     </Box>
   );

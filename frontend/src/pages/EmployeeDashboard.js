@@ -32,7 +32,9 @@ import {
   Menu,
   InputAdornment,
   Snackbar,
-  Alert
+  Alert,
+  IconButton,
+  Link
 } from '@mui/material';
 import {
   PlayArrow as CheckInIcon,
@@ -46,7 +48,14 @@ import {
   TrendingUp as TrendingUpIcon,
   AccessTime as AccessTimeIcon,
   KeyboardArrowDown as KeyboardArrowDownIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  Attachment as AttachmentIcon,
+  Link as LinkIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  Comment as CommentIcon,
+  OpenInNew as OpenInNewIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import ScreenshotCapturer from '../components/ScreenshotCapturer';
 import SkeletonCard from '../components/SkeletonCard';
@@ -104,6 +113,16 @@ function EmployeeDashboard() {
   const [taskDesc, setTaskDesc] = useState('');
   const [taskPriority, setTaskPriority] = useState('Medium');
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+
+  // Proof of Work & Comments States
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [taskDetailsOpen, setTaskDetailsOpen] = useState(false);
+  const [proofLinks, setProofLinks] = useState(['']);
+  const [proofFiles, setProofFiles] = useState([]);
+  const [submissionComment, setSubmissionComment] = useState('');
+  const [newCommentText, setNewCommentText] = useState('');
+  const [isSubmittingProof, setIsSubmittingProof] = useState(false);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   // Report States
   const [reports, setReports] = useState([]);
@@ -492,8 +511,102 @@ function EmployeeDashboard() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setTasks((prev) => prev.map((t) => (t._id === taskId ? res.data : t)));
+      
+      // If status is changed to Completed, automatically open details modal to submit proof
+      if (newStatus === 'Completed') {
+        const updatedTask = res.data;
+        handleOpenTaskDetails(updatedTask);
+      }
     } catch (err) {
       console.error(err.message);
+    }
+  };
+
+  const handleOpenTaskDetails = (task) => {
+    setSelectedTask(task);
+    setProofLinks(task.proofLinks && task.proofLinks.length > 0 ? task.proofLinks : ['']);
+    setProofFiles([]);
+    setSubmissionComment('');
+    setNewCommentText('');
+    setTaskDetailsOpen(true);
+  };
+
+  const handleAddProofLinkField = () => {
+    setProofLinks([...proofLinks, '']);
+  };
+
+  const handleRemoveProofLinkField = (index) => {
+    const updated = proofLinks.filter((_, i) => i !== index);
+    setProofLinks(updated.length > 0 ? updated : ['']);
+  };
+
+  const handleProofLinkChange = (index, value) => {
+    const updated = [...proofLinks];
+    updated[index] = value;
+    setProofLinks(updated);
+  };
+
+  const handleProofFilesChange = (e) => {
+    setProofFiles(Array.from(e.target.files));
+  };
+
+  const handleSubmitProof = async (e) => {
+    e.preventDefault();
+    if (!selectedTask) return;
+    
+    setIsSubmittingProof(true);
+    try {
+      const formData = new FormData();
+      const filteredLinks = proofLinks.map(l => l.trim()).filter(Boolean);
+      formData.append('proofLinks', JSON.stringify(filteredLinks));
+      formData.append('comment', submissionComment.trim());
+      
+      proofFiles.forEach((file) => {
+        formData.append('files', file);
+      });
+
+      const res = await axios.post(
+        `${API_URL}/api/tasks/${selectedTask._id}/submit`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      
+      setTasks((prev) => prev.map((t) => (t._id === selectedTask._id ? res.data : t)));
+      setSelectedTask(res.data);
+      setProofLinks(res.data.proofLinks && res.data.proofLinks.length > 0 ? res.data.proofLinks : ['']);
+      setProofFiles([]);
+      setSubmissionComment('');
+    } catch (err) {
+      console.error('Failed to submit proof of work:', err.message);
+    } finally {
+      setIsSubmittingProof(false);
+    }
+  };
+
+  const handleSubmitComment = async (e) => {
+    e.preventDefault();
+    if (!selectedTask || !newCommentText.trim()) return;
+
+    setIsSubmittingComment(true);
+    try {
+      const res = await axios.post(
+        `${API_URL}/api/tasks/${selectedTask._id}/comments`,
+        { text: newCommentText.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setTasks((prev) => prev.map((t) => (t._id === selectedTask._id ? res.data : t)));
+      setSelectedTask(res.data);
+      setNewCommentText('');
+    } catch (err) {
+      console.error('Failed to add comment:', err.message);
+    } finally {
+      setIsSubmittingComment(false);
     }
   };
 
@@ -1087,13 +1200,23 @@ function EmployeeDashboard() {
                       {tasks.map((task) => (
                         <Grid item xs={12} sm={6} key={task._id}>
                           <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, alignItems: 'center' }}>
                               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{task.taskName}</Typography>
-                              <Chip
-                                label={task.priority}
-                                color={task.priority === 'High' ? 'error' : task.priority === 'Medium' ? 'warning' : 'default'}
-                                size="small"
-                              />
+                              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                {task.status === 'Completed' && (
+                                  <Chip
+                                    label="Proof"
+                                    color="success"
+                                    size="small"
+                                    variant="outlined"
+                                  />
+                                )}
+                                <Chip
+                                  label={task.priority}
+                                  color={task.priority === 'High' ? 'error' : task.priority === 'Medium' ? 'warning' : 'default'}
+                                  size="small"
+                                />
+                              </Box>
                             </Box>
                             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                               {task.description || 'No description provided.'}
@@ -1113,7 +1236,7 @@ function EmployeeDashboard() {
                               />
                             </Box>
 
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
                               <FormControl size="small" sx={{ minWidth: 120 }}>
                                 <InputLabel>Status</InputLabel>
                                 <Select
@@ -1127,6 +1250,15 @@ function EmployeeDashboard() {
                                   <MenuItem value="Blocked">Blocked</MenuItem>
                                 </Select>
                               </FormControl>
+
+                              <Button
+                                size="small"
+                                startIcon={<CommentIcon />}
+                                onClick={() => handleOpenTaskDetails(task)}
+                                sx={{ textTransform: 'none' }}
+                              >
+                                Details & Comments
+                              </Button>
                               
                               {task.dueDate && (
                                 <Typography variant="caption" color="text.secondary">
@@ -1484,6 +1616,313 @@ function EmployeeDashboard() {
             Ignore (On-Clock)
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* Dialog for Task Details & Proof Submission / Comments */}
+      <Dialog
+        open={taskDetailsOpen}
+        onClose={() => setTaskDetailsOpen(false)}
+        maxWidth="md"
+        fullWidth
+        scroll="paper"
+        sx={{ '& .MuiDialog-paper': { borderRadius: 3 } }}
+      >
+        {selectedTask && (
+          <>
+            <DialogTitle sx={{ fontWeight: 800, m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TaskIcon color="primary" />
+                <Typography variant="h6" component="span" sx={{ fontWeight: 800 }}>{selectedTask.taskName}</Typography>
+              </Box>
+              <IconButton onClick={() => setTaskDetailsOpen(false)} size="small" color="inherit">
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+            
+            <DialogContent dividers sx={{ p: 3, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
+              {/* Left Column: Details & Proof Form */}
+              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Description</Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: 'pre-wrap', bgcolor: 'action.hover', p: 1.5, borderRadius: 2 }}>
+                    {selectedTask.description || 'No description provided.'}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                  <Box sx={{ minWidth: 100 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Status</Typography>
+                    <Box sx={{ mt: 0.5 }}>
+                      <Chip label={selectedTask.status} color={selectedTask.status === 'Completed' ? 'success' : 'warning'} size="small" />
+                    </Box>
+                  </Box>
+                  <Box sx={{ minWidth: 100 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Priority</Typography>
+                    <Box sx={{ mt: 0.5 }}>
+                      <Chip label={selectedTask.priority} color={selectedTask.priority === 'High' ? 'error' : 'default'} size="small" />
+                    </Box>
+                  </Box>
+                  {selectedTask.dueDate && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Due Date</Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 500 }}>
+                        {new Date(selectedTask.dueDate).toLocaleDateString()}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+
+                {/* Submitted Proof Display (If exists) */}
+                {(selectedTask.proofLinks?.length > 0 || selectedTask.proofFiles?.length > 0) && (
+                  <Box sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'success.main' }}>
+                      Proof of Work Submitted
+                    </Typography>
+                    
+                    {selectedTask.submittedAt && (
+                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+                        Submitted on: {new Date(selectedTask.submittedAt).toLocaleString()}
+                      </Typography>
+                    )}
+
+                    {selectedTask.proofLinks?.length > 0 && (
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Links</Typography>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 0.5 }}>
+                          {selectedTask.proofLinks.map((link, idx) => (
+                            <Link 
+                              key={idx} 
+                              href={link.startsWith('http') ? link : `https://${link}`} 
+                              target="_blank" 
+                              rel="noopener"
+                              sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem' }}
+                            >
+                              <LinkIcon size="small" sx={{ fontSize: 16 }} />
+                              {link}
+                              <OpenInNewIcon sx={{ fontSize: 14 }} />
+                            </Link>
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
+
+                    {selectedTask.proofFiles?.length > 0 && (
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Files / Screenshots</Typography>
+                        <Grid container spacing={1} sx={{ mt: 0.5 }}>
+                          {selectedTask.proofFiles.map((file, idx) => {
+                            const filename = file.split('/').pop();
+                            return (
+                              <Grid item xs={12} sm={6} key={idx}>
+                                <Paper variant="outlined" sx={{ p: 1, display: 'flex', alignItems: 'center', gap: 1, borderRadius: 2 }}>
+                                  <AttachmentIcon color="action" sx={{ fontSize: 16 }} />
+                                  <Link 
+                                    href={`${API_URL}${file}`} 
+                                    target="_blank" 
+                                    download 
+                                    sx={{ 
+                                      overflow: 'hidden', 
+                                      textOverflow: 'ellipsis', 
+                                      whiteSpace: 'nowrap', 
+                                      fontSize: '0.75rem',
+                                      flex: 1
+                                    }}
+                                  >
+                                    {filename}
+                                  </Link>
+                                </Paper>
+                              </Grid>
+                            );
+                          })}
+                        </Grid>
+                      </Box>
+                    )}
+                  </Box>
+                )}
+
+                {/* Form to submit proof of work (if status is Completed but no proof files/links submitted yet, OR if they want to submit/update proof) */}
+                {selectedTask.status === 'Completed' && !(selectedTask.proofLinks?.length > 0 || selectedTask.proofFiles?.length > 0) && (
+                  <Box component="form" onSubmit={handleSubmitProof} sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
+                      Submit Proof of Work
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {/* Dynamic Links Fields */}
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
+                          Work Links (e.g. GitHub PR, Figma)
+                        </Typography>
+                        {proofLinks.map((link, index) => (
+                          <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                            <TextField
+                              size="small"
+                              placeholder="https://github.com/..."
+                              value={link}
+                              onChange={(e) => handleProofLinkChange(index, e.target.value)}
+                              fullWidth
+                            />
+                            {proofLinks.length > 1 && (
+                              <IconButton size="small" color="error" onClick={() => handleRemoveProofLinkField(index)}>
+                                <DeleteIcon />
+                              </IconButton>
+                            )}
+                          </Box>
+                        ))}
+                        <Button 
+                          size="small" 
+                          startIcon={<AddIcon />} 
+                          onClick={handleAddProofLinkField}
+                          sx={{ mt: 0.5, textTransform: 'none' }}
+                        >
+                          Add Link
+                        </Button>
+                      </Box>
+
+                      {/* File uploads */}
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
+                          Attachments (Screenshots / Files)
+                        </Typography>
+                        <Button
+                          variant="outlined"
+                          component="label"
+                          startIcon={<AttachmentIcon />}
+                          size="small"
+                          sx={{ textTransform: 'none' }}
+                        >
+                          Select Files
+                          <input
+                            type="file"
+                            multiple
+                            hidden
+                            onChange={handleProofFilesChange}
+                          />
+                        </Button>
+                        
+                        {proofFiles.length > 0 && (
+                          <Box sx={{ mt: 1.5 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600 }}>Selected Files:</Typography>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5 }}>
+                              {proofFiles.map((f, i) => (
+                                <Typography key={i} variant="caption" color="text.secondary" display="block">
+                                  • {f.name} ({(f.size / 1024).toFixed(1)} KB)
+                                </Typography>
+                              ))}
+                            </Box>
+                          </Box>
+                        )}
+                      </Box>
+
+                      <TextField
+                        label="Submission Note / Comment"
+                        placeholder="Add details about your completion..."
+                        multiline
+                        rows={2}
+                        size="small"
+                        value={submissionComment}
+                        onChange={(e) => setSubmissionComment(e.target.value)}
+                        fullWidth
+                      />
+
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        color="success"
+                        disabled={isSubmittingProof}
+                        sx={{ textTransform: 'none', borderRadius: 2, mt: 1 }}
+                      >
+                        {isSubmittingProof ? 'Submitting...' : 'Submit Proof & Complete Task'}
+                      </Button>
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+
+              {/* Right Column: Comments Thread */}
+              <Box sx={{ width: { xs: '100%', md: '350px' }, display: 'flex', flexDirection: 'column', borderLeft: { md: '1px solid' }, borderColor: 'divider', pl: { md: 3 }, minHeight: '300px' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CommentIcon fontSize="small" /> Comments & Activity
+                </Typography>
+                
+                {/* Scrollable Comments Container */}
+                <Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1.5, pr: 1, maxHeight: '350px', minHeight: '180px', mb: 2 }}>
+                  {(!selectedTask.comments || selectedTask.comments.length === 0) ? (
+                    <Typography variant="body2" color="text.secondary" align="center" sx={{ my: 'auto', py: 2 }}>
+                      No comments yet. Start the conversation!
+                    </Typography>
+                  ) : (
+                    selectedTask.comments.map((comment) => {
+                      const isMe = comment.userId === user?.id || comment.userId === user?._id || comment.userName === user?.name;
+                      return (
+                        <Box 
+                          key={comment.id} 
+                          sx={{ 
+                            alignSelf: isMe ? 'flex-end' : 'flex-start',
+                            maxWidth: '90%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: isMe ? 'flex-end' : 'flex-start'
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 0.25 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.7rem' }}>
+                              {comment.userName}
+                            </Typography>
+                            <Chip 
+                              label={comment.userRole} 
+                              size="small" 
+                              variant="outlined"
+                              sx={{ 
+                                fontSize: '0.6rem', 
+                                height: 16, 
+                                px: 0.5,
+                                color: comment.userRole === 'Employee' ? 'text.secondary' : 'primary.main',
+                                borderColor: comment.userRole === 'Employee' ? 'divider' : 'primary.light'
+                              }} 
+                            />
+                          </Box>
+                          
+                          <Paper 
+                            sx={{ 
+                              p: 1.25, 
+                              borderRadius: 2, 
+                              borderTopRightRadius: isMe ? 0 : 2,
+                              borderTopLeftRadius: isMe ? 2 : 0,
+                              bgcolor: isMe ? 'primary.main' : 'action.selected',
+                              color: isMe ? 'primary.contrastText' : 'text.primary'
+                            }}
+                          >
+                            <Typography variant="body2" sx={{ fontSize: '0.825rem' }}>{comment.text}</Typography>
+                          </Paper>
+                          
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', mt: 0.25 }}>
+                            {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </Typography>
+                        </Box>
+                      );
+                    })
+                  )}
+                </Box>
+
+                {/* Comment Input */}
+                <Box component="form" onSubmit={handleSubmitComment} sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    placeholder="Add a comment..."
+                    size="small"
+                    value={newCommentText}
+                    onChange={(e) => setNewCommentText(e.target.value)}
+                    fullWidth
+                    required
+                  />
+                  <IconButton type="submit" color="primary" disabled={isSubmittingComment} size="small">
+                    <SendIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Box>
+              </Box>
+            </DialogContent>
+          </>
+        )}
       </Dialog>
 
       {/* Break Mode Glassmorphic Backdrop Page Lock */}
