@@ -1,29 +1,12 @@
 // frontend/src/components/CustomTitlebar.js
 import React from 'react';
-import { Box, IconButton, Typography } from '@mui/material';
-import {
-  Close as CloseIcon,
-  Remove as MinimizeIcon,
-  CropSquare as MaximizeIcon,
-  Dashboard as LogoIcon
-} from '@mui/icons-material';
+import { Box, Typography } from '@mui/material';
+import { Dashboard as LogoIcon } from '@mui/icons-material';
 
 function CustomTitlebar() {
   const isElectron = window.api !== undefined;
 
   if (!isElectron) return null;
-
-  const handleMinimize = () => {
-    window.api.minimizeWindow();
-  };
-
-  const handleMaximize = () => {
-    window.api.maximizeWindow();
-  };
-
-  const handleClose = () => {
-    window.api.closeWindow();
-  };
 
   return (
     <Box
@@ -62,70 +45,10 @@ function CustomTitlebar() {
         </Typography>
       </Box>
 
-      {/* Control Buttons */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 0.5,
-          WebkitAppRegion: 'no-drag' // Buttons must not be draggable to be clickable
-        }}
-      >
-        <IconButton
-          onClick={handleMinimize}
-          size="small"
-          sx={{
-            width: 26,
-            height: 26,
-            borderRadius: '6px',
-            color: 'text.secondary',
-            transition: 'all 0.2s',
-            '&:hover': {
-              bgcolor: 'rgba(255, 255, 255, 0.08)',
-              color: 'text.primary'
-            }
-          }}
-        >
-          <MinimizeIcon sx={{ fontSize: '0.9rem' }} />
-        </IconButton>
 
-        <IconButton
-          onClick={handleMaximize}
-          size="small"
-          sx={{
-            width: 26,
-            height: 26,
-            borderRadius: '6px',
-            color: 'text.secondary',
-            transition: 'all 0.2s',
-            '&:hover': {
-              bgcolor: 'rgba(255, 255, 255, 0.08)',
-              color: 'text.primary'
-            }
-          }}
-        >
-          <MaximizeIcon sx={{ fontSize: '0.8rem' }} />
-        </IconButton>
-
-        <IconButton
-          onClick={handleClose}
-          size="small"
-          sx={{
-            width: 26,
-            height: 26,
-            borderRadius: '6px',
-            color: 'text.secondary',
-            transition: 'all 0.2s',
-            '&:hover': {
-              bgcolor: '#dc2626',
-              color: '#ffffff',
-              boxShadow: '0 0 15px rgba(220, 38, 38, 0.5)'
-            }
-          }}
-        >
-          <CloseIcon sx={{ fontSize: '0.9rem' }} />
-        </IconButton>
-      </Box>
+      {/* Windows 11 Native Controls Overlay will be injected by Electron on the right side */}
+      {/* We leave an empty space (drag region) because the OS will draw the buttons over it */}
+      <Box sx={{ width: 140, height: 32, WebkitAppRegion: 'no-drag' }} />
     </Box>
   );
 }

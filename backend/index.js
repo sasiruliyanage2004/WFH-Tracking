@@ -383,7 +383,7 @@ app.get('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Manager'
   try {
     let query = supabase
       .from('users')
-      .select('id, name, email, department, role, profile_pic, created_at')
+      .select('id, name, email, department, role, profile_pic, created_at, is_active, last_login, is_locked, force_password_reset, failed_login_attempts')
       .eq('role', 'Employee');
 
     if (req.user.role === 'Manager') {
@@ -419,6 +419,7 @@ app.get('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Manager'
         role: emp.role,
         profilePic: emp.profile_pic,
         createdAt: emp.created_at,
+        isActive: emp.is_active !== false,
         todayStatus: att
           ? att.check_out_time
             ? 'Checked Out'
@@ -430,6 +431,38 @@ app.get('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Manager'
     });
 
     res.json(enriched);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Toggle Employee Active Status
+app.put('/api/users/employees/:id/status', authenticate, authorize(['SuperAdmin', 'Manager']), async (req, res) => {
+  try {
+    const { isActive } = req.body;
+    if (typeof isActive !== 'boolean') return res.status(400).json({ message: 'isActive boolean is required' });
+
+    const { data: emp, error: fetchErr } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (fetchErr || !emp) return res.status(404).json({ message: 'Employee not found.' });
+    if (emp.role === 'Manager' || emp.role === 'SuperAdmin') return res.status(403).json({ message: 'Cannot modify a Manager or SuperAdmin account here.' });
+
+    if (req.user.role === 'Manager' && emp.department !== req.user.department) {
+      return res.status(403).json({ message: 'You are only authorized to modify employees in your own department.' });
+    }
+
+    const { error: updateErr } = await supabase
+      .from('users')
+      .update({ is_active: isActive })
+      .eq('id', req.params.id);
+
+    if (updateErr) throw updateErr;
+
+    res.json({ message: `Employee successfully ${isActive ? 'activated' : 'deactivated'}` });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -667,9 +700,30 @@ app.post('/api/auth/login', async (req, res) => {
       .maybeSingle();
 
     if (error || !user) return res.status(400).json({ message: 'Invalid credentials.' });
+    if (user.is_active === false) return res.status(403).json({ message: 'Your account has been deactivated. Please contact an administrator.' });
+    if (user.is_locked === true) return res.status(403).json({ message: 'Your account is locked due to multiple failed login attempts. Please contact an administrator.' });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials.' });
+    if (!isMatch) {
+      // Increment failed_login_attempts
+      let attempts = (user.failed_login_attempts || 0) + 1;
+      let locked = false;
+      if (attempts >= 5) {
+        locked = true;
+      }
+      await supabase.from('users').update({ failed_login_attempts: attempts, is_locked: locked }).eq('id', user.id);
+      
+      if (locked) {
+        return res.status(403).json({ message: 'Your account has been locked due to 5 failed login attempts.' });
+      }
+      return res.status(400).json({ message: 'Invalid credentials.' });
+    }
+
+    // Successful login: reset failed attempts and update last_login
+    await supabase.from('users').update({ 
+      failed_login_attempts: 0, 
+      last_login: new Date().toISOString() 
+    }).eq('id', user.id);
 
     const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'supersecretkey123', {
       expiresIn: '7d'
@@ -684,9 +738,46 @@ app.post('/api/auth/login', async (req, res) => {
         email: user.email,
         role: user.role,
         department: user.department,
-        profilePic: user.profile_pic
+        profilePic: user.profile_pic,
+        forcePasswordReset: user.force_password_reset || false
       }
     });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Force reset password (used when force_password_reset flag is true)
+app.put('/api/auth/force-reset-password', authenticate, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current and new passwords are required.' });
+    }
+
+    const { data: user, error: fetchErr } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', req.user.id)
+      .maybeSingle();
+    
+    if (fetchErr || !user) return res.status(404).json({ message: 'User not found.' });
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) return res.status(400).json({ message: 'Invalid current password.' });
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    const { error: updateErr } = await supabase
+      .from('users')
+      .update({ 
+        password: hashedNewPassword,
+        force_password_reset: false
+      })
+      .eq('id', req.user.id);
+    
+    if (updateErr) throw updateErr;
+
+    res.json({ message: 'Password reset successfully.' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

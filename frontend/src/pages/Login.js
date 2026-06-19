@@ -115,7 +115,11 @@ function Login() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      navigate((user.role === 'Manager' || user.role === 'SuperAdmin') ? '/manager/dashboard' : '/dashboard');
+      if (user.forcePasswordReset) {
+        navigate('/force-reset');
+      } else {
+        navigate((user.role === 'Manager' || user.role === 'SuperAdmin') ? '/manager/dashboard' : '/dashboard');
+      }
     }
   }, [isAuthenticated, user, navigate]);
 

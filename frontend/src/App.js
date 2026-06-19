@@ -18,6 +18,7 @@ import DeveloperBadge from './components/DeveloperBadge';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
+import ForcePasswordReset from './pages/ForcePasswordReset';
 import Profile from './pages/Profile';
 
 // Employee Pages
@@ -401,6 +402,11 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/force-reset" element={
+            <ProtectedRoute>
+              <ForcePasswordReset />
+            </ProtectedRoute>
+          } />
 
           {/* User Settings */}
           <Route path="/profile" element={

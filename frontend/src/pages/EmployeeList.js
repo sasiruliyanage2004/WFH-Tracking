@@ -37,7 +37,11 @@ import {
   Business as DepartmentIcon,
   CalendarToday as JoinedIcon,
   FiberManualRecord as StatusDotIcon,
-  FilterList as FilterIcon
+  FilterList as FilterIcon,
+  Block as BlockIcon,
+  CheckCircle as CheckCircleIcon,
+  LockOpen as LockOpenIcon,
+  AccessTime as TimeIcon
 } from '@mui/icons-material';
 import CustomLoader from '../components/CustomLoader';
 
@@ -66,6 +70,8 @@ function EmployeeList() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedEmp, setSelectedEmp] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [statusConfirm, setStatusConfirm] = useState(null);
+  const [unlockConfirm, setUnlockConfirm] = useState(null);
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [lastDeletedEmp, setLastDeletedEmp] = useState(null);
@@ -182,6 +188,45 @@ function EmployeeList() {
     pendingDeleteRef.current = null;
     setLastDeletedEmp(null);
     setSnackbarOpen(false);
+  };
+
+  const handleStatusConfirm = async () => {
+    if (!statusConfirm) return;
+    const empToToggle = statusConfirm;
+    const newStatus = !empToToggle.isActive;
+
+    try {
+      await axios.put(`${API_URL}/api/users/employees/${empToToggle._id}/status`, { isActive: newStatus }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setEmployees(prev => prev.map(e => e._id === empToToggle._id ? { ...e, isActive: newStatus } : e));
+    } catch (err) {
+      console.error('Status toggle failed:', err.message);
+    } finally {
+      setStatusConfirm(null);
+      if (selectedEmp?._id === empToToggle._id) {
+        setSelectedEmp(prev => ({ ...prev, isActive: newStatus }));
+      }
+    }
+  };
+
+  const handleUnlockConfirm = async () => {
+    if (!unlockConfirm) return;
+    const empToUnlock = unlockConfirm;
+
+    try {
+      await axios.put(`${API_URL}/api/users/employees/${empToUnlock._id}/unlock`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setEmployees(prev => prev.map(e => e._id === empToUnlock._id ? { ...e, is_locked: false, failed_login_attempts: 0 } : e));
+    } catch (err) {
+      console.error('Unlock failed:', err.message);
+    } finally {
+      setUnlockConfirm(null);
+      if (selectedEmp?._id === empToUnlock._id) {
+        setSelectedEmp(prev => ({ ...prev, is_locked: false, failed_login_attempts: 0 }));
+      }
+    }
   };
 
   const handleSnackbarClose = (event, reason) => {
@@ -317,6 +362,17 @@ function EmployeeList() {
                       </Box>
                     </Box>
 
+                    {!emp.isActive && (
+                      <Box sx={{ mb: 1.5 }}>
+                        <Chip
+                          label="INACTIVE"
+                          size="small"
+                          color="error"
+                          sx={{ fontSize: '0.7rem', fontWeight: 700, height: 20 }}
+                        />
+                      </Box>
+                    )}
+
                     {/* Department chip */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
                       <Chip
@@ -347,6 +403,16 @@ function EmployeeList() {
                       >
                         Monitor
                       </Button>
+                      <Tooltip title={emp.isActive ? "Deactivate Employee" : "Activate Employee"}>
+                        <IconButton
+                          size="small"
+                          color={emp.isActive ? "warning" : "success"}
+                          onClick={(e) => { e.stopPropagation(); setStatusConfirm(emp); }}
+                          sx={{ border: '1px solid', borderColor: emp.isActive ? 'warning.light' : 'success.light', borderRadius: 1.5 }}
+                        >
+                          {emp.isActive ? <BlockIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
+                        </IconButton>
+                      </Tooltip>
                       <Tooltip title="Delete Employee">
                         <IconButton
                           size="small"
@@ -396,7 +462,15 @@ function EmployeeList() {
                       {getStatusConfig(selectedEmp.todayStatus).label}
                     </Typography>
                   </Box>
-                  <Chip label={selectedEmp.role} size="small" color="primary" sx={{ mt: 1, fontWeight: 700, fontSize: '0.72rem' }} />
+                  <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                    <Chip label={selectedEmp.role} size="small" color="primary" sx={{ fontWeight: 700, fontSize: '0.72rem' }} />
+                    {!selectedEmp.isActive && (
+                      <Chip label="INACTIVE" size="small" color="error" sx={{ fontWeight: 700, fontSize: '0.72rem' }} />
+                    )}
+                    {selectedEmp.is_locked && (
+                      <Chip label="LOCKED" size="small" color="error" sx={{ fontWeight: 700, fontSize: '0.72rem' }} />
+                    )}
+                  </Box>
                 </Box>
               </Box>
 
@@ -405,6 +479,7 @@ function EmployeeList() {
                 { icon: <EmailIcon fontSize="small" />, label: 'Email', value: selectedEmp.email },
                 { icon: <DepartmentIcon fontSize="small" />, label: 'Department', value: selectedEmp.department || 'N/A' },
                 { icon: <JoinedIcon fontSize="small" />, label: 'Member Since', value: new Date(selectedEmp.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) },
+                { icon: <TimeIcon fontSize="small" />, label: 'Last Login', value: selectedEmp.last_login ? new Date(selectedEmp.last_login).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never Logged In' }
               ].map(({ icon, label, value }) => (
                 <Box key={label} sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
                   <Box sx={{ color: 'text.secondary', display: 'flex' }}>{icon}</Box>
@@ -421,11 +496,29 @@ function EmployeeList() {
               <Button onClick={() => setSelectedEmp(null)} color="inherit">Close</Button>
               <Button
                 variant="outlined"
+                color={selectedEmp.isActive ? "warning" : "success"}
+                startIcon={selectedEmp.isActive ? <BlockIcon /> : <CheckCircleIcon />}
+                onClick={() => { setStatusConfirm(selectedEmp); }}
+              >
+                {selectedEmp.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              {selectedEmp.is_locked && (
+                <Button
+                  variant="contained"
+                  color="info"
+                  startIcon={<LockOpenIcon />}
+                  onClick={() => { setUnlockConfirm(selectedEmp); }}
+                >
+                  Unlock
+                </Button>
+              )}
+              <Button
+                variant="outlined"
                 color="error"
                 startIcon={<DeleteIcon />}
                 onClick={() => { setDeleteConfirm(selectedEmp); setSelectedEmp(null); }}
               >
-                Delete Employee
+                Delete
               </Button>
               <Button
                 variant="contained"
@@ -437,6 +530,50 @@ function EmployeeList() {
             </DialogActions>
           </>
         )}
+      </Dialog>
+
+      {/* Status Confirm Dialog */}
+      <Dialog open={Boolean(statusConfirm)} onClose={() => setStatusConfirm(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, color: statusConfirm?.isActive ? 'warning.main' : 'success.main' }}>
+          {statusConfirm?.isActive ? '⚠️ Deactivate Employee' : '✅ Activate Employee'}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            Are you sure you want to {statusConfirm?.isActive ? 'deactivate' : 'activate'} <strong>{statusConfirm?.name}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            {statusConfirm?.isActive 
+              ? 'An inactive employee will not be able to log in to the system, but their data will be preserved.' 
+              : 'Activating this employee will restore their access to log in.'}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={() => setStatusConfirm(null)} color="inherit">Cancel</Button>
+          <Button onClick={handleStatusConfirm} variant="contained" color={statusConfirm?.isActive ? "warning" : "success"}>
+            {statusConfirm?.isActive ? 'Deactivate' : 'Activate'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Unlock Confirm Dialog */}
+      <Dialog open={Boolean(unlockConfirm)} onClose={() => setUnlockConfirm(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, color: 'info.main' }}>
+          🔓 Unlock Employee Account
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            Are you sure you want to unlock the account for <strong>{unlockConfirm?.name}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            This will reset their failed login attempts and allow them to log in again immediately.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={() => setUnlockConfirm(null)} color="inherit">Cancel</Button>
+          <Button onClick={handleUnlockConfirm} variant="contained" color="info">
+            Unlock Account
+          </Button>
+        </DialogActions>
       </Dialog>
 
       {/* Delete Confirm Dialog */}

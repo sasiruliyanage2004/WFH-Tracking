@@ -222,7 +222,12 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    frame: false, // Make window frameless
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#060913',
+      symbolColor: '#a0a0a0',
+      height: 32
+    },
     show: false,  // Hide while loading
     icon: path.join(__dirname, 'icon.ico'),
     backgroundColor: '#070b14', // Premium dark background
