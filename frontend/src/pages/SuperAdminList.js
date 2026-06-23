@@ -1,4 +1,4 @@
-// frontend/src/pages/AdminList.js
+// frontend/src/pages/SuperAdminList.js
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
@@ -42,7 +42,7 @@ import CustomLoader from '../components/CustomLoader';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-function AdminList() {
+function SuperAdminList() {
   const { token, user } = useSelector((state) => state.auth);
 
   const [admins, setAdmins] = useState([]);
@@ -50,7 +50,6 @@ function AdminList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('All');
-  const [roleFilter, setRoleFilter] = useState('All');
   const [selectedAdm, setSelectedAdm] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -62,7 +61,7 @@ function AdminList() {
     try {
       setLoading(true);
       setErrorMsg('');
-      const res = await axios.get(`${API_URL}/api/users/admins`, {
+      const res = await axios.get(`${API_URL}/api/users/superadmins`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAdmins(res.data || []);
@@ -96,11 +95,9 @@ function AdminList() {
     if (deptFilter !== 'All') {
       result = result.filter(e => e.department === deptFilter);
     }
-    if (roleFilter !== 'All') {
-      result = result.filter(e => e.role === roleFilter);
-    }
+    
     setFiltered(result);
-  }, [search, deptFilter, roleFilter, admins]);
+  }, [search, deptFilter, admins]);
 
   const departments = ['All', ...Array.from(new Set(admins.map(e => e.department).filter(Boolean)))];
 
@@ -108,7 +105,7 @@ function AdminList() {
     if (!deleteConfirm) return;
     try {
       setErrorMsg('');
-      await axios.delete(`${API_URL}/api/users/admins/${deleteConfirm._id}`, {
+      await axios.delete(`${API_URL}/api/users/superadmins/${deleteConfirm._id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDeleteConfirm(null);
@@ -123,7 +120,7 @@ function AdminList() {
   const handleToggleStatus = async (admId, currentStatus) => {
     try {
       const newStatus = !currentStatus;
-      await axios.put(`${API_URL}/api/users/admins/${admId}/status`, { isActive: newStatus }, {
+      await axios.put(`${API_URL}/api/users/superadmins/${admId}/status`, { isActive: newStatus }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAdmins(prev => prev.map(a => a._id === admId ? { ...a, isActive: newStatus } : a));
@@ -137,7 +134,7 @@ function AdminList() {
     try {
       setAddingAdm(true);
       setErrorMsg('');
-      const res = await axios.post(`${API_URL}/api/users/admins`, newAdmData, {
+      const res = await axios.post(`${API_URL}/api/users/superadmins`, newAdmData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAdmins(prev => [res.data.user, ...prev]);
@@ -146,7 +143,7 @@ function AdminList() {
       alert(`Manager added! Tell them to login with email: ${res.data.user.email} and password: password1234`);
     } catch (err) {
       console.error('Add failed:', err.message);
-      setErrorMsg(err.response?.data?.message || 'Failed to add manager account.');
+      setErrorMsg(err.response?.data?.message || 'Failed to add Super Admin account.');
     } finally {
       setAddingAdm(false);
     }
@@ -166,7 +163,7 @@ function AdminList() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.025em' }}>
-            Admin Directory
+            Super Admin Directory
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 500 }}>
             {admins.length} registered admins & managers
@@ -188,7 +185,7 @@ function AdminList() {
               onClick={() => setAddModalOpen(true)}
               sx={{ borderRadius: 2 }}
             >
-              Add Manager
+              Add Super Admin
             </Button>
           )}
         </Box>
@@ -203,9 +200,9 @@ function AdminList() {
       {/* Summary Stats Row */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {[
-          { label: 'Total Admins', value: admins.length, color: 'primary.main' },
-          { label: 'HR Heads (SuperAdmins)', value: admins.filter(a => a.role === 'SuperAdmin').length, color: 'success.main' },
-          { label: 'Managers', value: admins.filter(a => a.role === 'Manager').length, color: 'warning.main' }
+          { label: 'Total Super Admins', value: admins.length, color: 'primary.main' },
+          { label: 'Active Super Admins', value: admins.filter(a => a.isActive !== false).length, color: 'success.main' },
+          { label: 'Inactive Super Admins', value: admins.filter(a => a.isActive === false).length, color: 'warning.main' }
         ].map(({ label, value, color }) => (
           <Grid item xs={12} sm={4} key={label}>
             <Card sx={{ borderRadius: 3, p: 2, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
@@ -237,21 +234,14 @@ function AdminList() {
             {departments.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
           </Select>
         </FormControl>
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Role Type</InputLabel>
-          <Select value={roleFilter} label="Role Type" onChange={(e) => setRoleFilter(e.target.value)}>
-            <MenuItem value="All">All Roles</MenuItem>
-            <MenuItem value="Manager">Manager</MenuItem>
-            <MenuItem value="SuperAdmin">HR Head (SuperAdmin)</MenuItem>
-          </Select>
-        </FormControl>
+
       </Paper>
 
       {/* Admin Cards Grid */}
       {filtered.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <PeopleIcon sx={{ fontSize: 56, color: 'text.disabled', mb: 2 }} />
-          <Typography variant="h6" color="text.secondary">No admin accounts found</Typography>
+          <Typography variant="h6" color="text.secondary">No super admin accounts found</Typography>
         </Box>
       ) : (
         <Grid container spacing={2.5}>
@@ -284,7 +274,7 @@ function AdminList() {
                           {adm.name} {isSelf && "(You)"}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
-                          {adm.role === 'SuperAdmin' ? 'HR Head' : 'Manager'}
+                          {'Super Admin'}
                         </Typography>
                       </Box>
                     </Box>
@@ -330,7 +320,7 @@ function AdminList() {
                         View Profile
                       </Button>
                       {!isSelf && (
-                        <Tooltip title="Delete Admin">
+                        <Tooltip title="Delete Super Admin">
                           <IconButton
                             size="small"
                             color="error"
@@ -416,7 +406,7 @@ function AdminList() {
 
       {/* Delete Confirm Dialog */}
       <Dialog open={Boolean(deleteConfirm)} onClose={() => setDeleteConfirm(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, color: 'error.main' }}>⚠️ Delete Administrator Account</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, color: 'error.main' }}>⚠️ Delete Super Administrator Account</DialogTitle>
         <DialogContent>
           <Typography variant="body1">
             Are you sure you want to delete the administrator account for <strong>{deleteConfirm?.name}</strong>?
@@ -485,7 +475,7 @@ function AdminList() {
             variant="contained"
             disabled={addingAdm || !newAdmData.name || !newAdmData.email}
           >
-            {addingAdm ? 'Adding...' : 'Add Manager'}
+            {addingAdm ? 'Adding...' : 'Add Super Admin'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -493,4 +483,4 @@ function AdminList() {
   );
 }
 
-export default AdminList;
+export default SuperAdminList;

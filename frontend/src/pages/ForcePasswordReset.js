@@ -162,6 +162,17 @@ function ForcePasswordReset() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 sx={{ mb: 3 }}
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    )
+                  }
+                }}
               />
 
               <Button

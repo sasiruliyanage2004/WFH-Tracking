@@ -7,7 +7,7 @@ import { CssBaseline, Box } from '@mui/material';
 
 // Layout
 import DashboardLayout from './components/DashboardLayout';
-import CustomTitlebar from './components/CustomTitlebar';
+
 
 // Background Trackers
 import ActivityTracker from './components/ActivityTracker';
@@ -17,6 +17,7 @@ import DeveloperBadge from './components/DeveloperBadge';
 // Pages
 import Login from './pages/Login';
 import Register from './pages/Register';
+
 import ForgotPassword from './pages/ForgotPassword';
 import ForcePasswordReset from './pages/ForcePasswordReset';
 import Profile from './pages/Profile';
@@ -25,6 +26,7 @@ import Profile from './pages/Profile';
 import EmployeeDashboard from './pages/EmployeeDashboard';
 import MyTasks from './pages/MyTasks';
 import WorkReports from './pages/WorkReports';
+import SystemAdmin from './pages/SystemAdmin';
 import AttendanceLogs from './pages/AttendanceLogs';
 
 // Manager Pages
@@ -35,6 +37,7 @@ import ManagerMonitoring from './pages/ManagerMonitoring';
 import EmployeeMonitoring from './pages/EmployeeMonitoring';
 import EmployeeList from './pages/EmployeeList';
 import AdminList from './pages/AdminList';
+import SuperAdminList from './pages/SuperAdminList';
 import ManagerSettings from './pages/ManagerSettings';
 
 function App() {
@@ -374,20 +377,17 @@ function App() {
     );
   };
 
-  const isElectron = window.api !== undefined;
+
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <CustomTitlebar />
+
       <Box
         sx={{
           display: 'flex',
           flexDirection: 'column',
           minHeight: '100vh',
-          pt: isElectron ? '32px' : 0,
-          border: isElectron ? '1px solid rgba(16, 185, 129, 0.2)' : 'none',
-          boxShadow: isElectron ? '0 0 30px rgba(16, 185, 129, 0.15)' : 'none',
           boxSizing: 'border-box',
           overflow: 'hidden'
         }}
@@ -401,6 +401,7 @@ function App() {
           {/* Public Auth Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/force-reset" element={
             <ProtectedRoute>
@@ -417,22 +418,22 @@ function App() {
 
           {/* Employee Routes */}
           <Route path="/dashboard" element={
-            <ProtectedRoute allowedRoles={['Employee']}>
+            <ProtectedRoute allowedRoles={['Employee', 'Manager', 'SuperAdmin']}>
               <EmployeeDashboard />
             </ProtectedRoute>
           } />
           <Route path="/tasks" element={
-            <ProtectedRoute allowedRoles={['Employee']}>
+            <ProtectedRoute allowedRoles={['Employee', 'Manager', 'SuperAdmin']}>
               <MyTasks />
             </ProtectedRoute>
           } />
           <Route path="/reports" element={
-            <ProtectedRoute allowedRoles={['Employee']}>
+            <ProtectedRoute allowedRoles={['Employee', 'Manager', 'SuperAdmin']}>
               <WorkReports />
             </ProtectedRoute>
           } />
           <Route path="/attendance-logs" element={
-            <ProtectedRoute allowedRoles={['Employee']}>
+            <ProtectedRoute allowedRoles={['Employee', 'Manager', 'SuperAdmin']}>
               <AttendanceLogs />
             </ProtectedRoute>
           } />
@@ -473,11 +474,25 @@ function App() {
               <AdminList />
             </ProtectedRoute>
           } />
+          <Route path="/manager/superadmins" element={
+            <ProtectedRoute allowedRoles={['SuperAdmin']}>
+              <SuperAdminList />
+            </ProtectedRoute>
+          } />
           <Route path="/manager/settings" element={
             <ProtectedRoute allowedRoles={['SuperAdmin']}>
               <ManagerSettings />
             </ProtectedRoute>
           } />
+
+          <Route path="/system-admin" element={
+            <ProtectedRoute>
+              <SystemAdmin />
+            </ProtectedRoute>
+          } />
+          
+          {/* Default Route */}
+          <Route path="/" element={<Navigate to="/dashboard" />} />
 
           {/* Wildcard redirects */}
           <Route path="*" element={<Navigate to="/login" replace />} />

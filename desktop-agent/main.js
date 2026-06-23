@@ -222,12 +222,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    titleBarStyle: 'hidden',
-    titleBarOverlay: {
-      color: '#060913',
-      symbolColor: '#a0a0a0',
-      height: 32
-    },
+    // Native title bar restored
     show: false,  // Hide while loading
     icon: path.join(__dirname, 'icon.ico'),
     backgroundColor: '#070b14', // Premium dark background
@@ -278,8 +273,9 @@ function createWindow() {
 
   // Fallback to port 3002 if default port 3001 fails to load
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-    if (validatedURL && (validatedURL.includes('localhost:3001') || validatedURL.includes('127.0.0.1:3001'))) {
-      mainWindow.loadURL('http://localhost:3002');
+    if (validatedURL && (validatedURL.includes(':3001'))) {
+      const newUrl = validatedURL.replace(':3001', ':3002');
+      mainWindow.loadURL(newUrl);
     } else {
       // mainWindow.webContents.openDevTools();
     }

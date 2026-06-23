@@ -46,7 +46,7 @@ function WorkReports() {
     const fetchReports = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`${API_URL}/api/reports`, {
+        const res = await axios.get(`${API_URL}/api/reports?myReportsOnly=true`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setReports(res.data);

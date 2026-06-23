@@ -72,7 +72,9 @@ function EmployeeList() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [statusConfirm, setStatusConfirm] = useState(null);
   const [unlockConfirm, setUnlockConfirm] = useState(null);
-
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [newEmpData, setNewEmpData] = useState({ name: '', email: '', department: 'Engineering', role: 'Employee' });
+  const [addingEmp, setAddingEmp] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [lastDeletedEmp, setLastDeletedEmp] = useState(null);
   const pendingDeleteRef = useRef(null);
@@ -234,6 +236,23 @@ function EmployeeList() {
     setSnackbarOpen(false);
   };
 
+  const handleAddEmployee = async () => {
+    try {
+      setAddingEmp(true);
+      const res = await axios.post(`${API_URL}/api/users/employees`, newEmpData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setEmployees(prev => [res.data.user, ...prev]);
+      setAddModalOpen(false);
+      setNewEmpData({ name: '', email: '', department: 'Engineering', role: 'Employee' });
+      alert(`Employee added! Tell them to login with email: ${res.data.user.email} and password: password1234`);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to add employee');
+    } finally {
+      setAddingEmp(false);
+    }
+  };
+
   // Summary stats
   const totalActive = employees.filter(e => e.todayStatus === 'Active').length;
   const totalAbsent = employees.filter(e => e.todayStatus === 'Absent').length;
@@ -259,14 +278,24 @@ function EmployeeList() {
             {employees.length} registered employees · Live status as of today
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<PeopleIcon />}
-          onClick={fetchEmployees}
-          sx={{ borderRadius: 2 }}
-        >
-          Refresh List
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<PeopleIcon />}
+            onClick={() => setAddModalOpen(true)}
+            sx={{ borderRadius: 2 }}
+          >
+            Add Employee
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<PeopleIcon />}
+            onClick={fetchEmployees}
+            sx={{ borderRadius: 2 }}
+          >
+            Refresh List
+          </Button>
+        </Box>
       </Box>
 
       {/* Summary Stats Row */}
@@ -556,22 +585,61 @@ function EmployeeList() {
       </Dialog>
 
       {/* Unlock Confirm Dialog */}
-      <Dialog open={Boolean(unlockConfirm)} onClose={() => setUnlockConfirm(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, color: 'info.main' }}>
-          🔓 Unlock Employee Account
+      <Dialog open={Boolean(unlockConfirm)} onClose={() => setUnlockConfirm(null)} PaperProps={{ sx: { borderRadius: 3, p: 1 } }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, color: 'success.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <LockOpenIcon /> Unlock Account
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body1">
+          <Typography>
             Are you sure you want to unlock the account for <strong>{unlockConfirm?.name}</strong>?
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            This will reset their failed login attempts and allow them to log in again immediately.
-          </Typography>
         </DialogContent>
-        <DialogActions sx={{ p: 2, gap: 1 }}>
+        <DialogActions>
           <Button onClick={() => setUnlockConfirm(null)} color="inherit">Cancel</Button>
-          <Button onClick={handleUnlockConfirm} variant="contained" color="info">
-            Unlock Account
+          <Button onClick={handleUnlockConfirm} variant="contained" color="success" sx={{ borderRadius: 2 }}>
+            Unlock
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Employee Modal */}
+      <Dialog open={addModalOpen} onClose={() => setAddModalOpen(false)} PaperProps={{ sx: { borderRadius: 3, p: 1, minWidth: 400 } }}>
+        <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <PeopleIcon /> Add New Employee
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            They will be able to log in using their email and the temporary password: <strong>password1234</strong>
+          </Typography>
+          <TextField
+            fullWidth label="Full Name" size="small" sx={{ mb: 2 }}
+            value={newEmpData.name} onChange={e => setNewEmpData({...newEmpData, name: e.target.value})}
+          />
+          <TextField
+            fullWidth label="Email Address" size="small" type="email" sx={{ mb: 2 }}
+            value={newEmpData.email} onChange={e => setNewEmpData({...newEmpData, email: e.target.value})}
+          />
+          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+            <InputLabel>Department</InputLabel>
+            <Select
+              value={newEmpData.department} label="Department"
+              onChange={e => setNewEmpData({...newEmpData, department: e.target.value})}
+            >
+              <MenuItem value="Engineering">Engineering</MenuItem>
+              <MenuItem value="Design">Design</MenuItem>
+              <MenuItem value="Marketing">Marketing</MenuItem>
+              <MenuItem value="Sales">Sales</MenuItem>
+              <MenuItem value="HR">HR</MenuItem>
+              <MenuItem value="Finance">Finance</MenuItem>
+              <MenuItem value="Operations">Operations</MenuItem>
+            </Select>
+          </FormControl>
+
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAddModalOpen(false)} color="inherit">Cancel</Button>
+          <Button onClick={handleAddEmployee} variant="contained" disabled={addingEmp} sx={{ borderRadius: 2 }}>
+            {addingEmp ? 'Adding...' : 'Add Employee'}
           </Button>
         </DialogActions>
       </Dialog>

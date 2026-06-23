@@ -118,7 +118,11 @@ function Login() {
       if (user.forcePasswordReset) {
         navigate('/force-reset');
       } else {
-        navigate((user.role === 'Manager' || user.role === 'SuperAdmin') ? '/manager/dashboard' : '/dashboard');
+        if (user.role === 'SystemAdmin') {
+          navigate('/system-admin');
+        } else {
+          navigate((user.role === 'Manager' || user.role === 'SuperAdmin') ? '/manager/dashboard' : '/dashboard');
+        }
       }
     }
   }, [isAuthenticated, user, navigate]);
@@ -712,23 +716,7 @@ function Login() {
           </Box>
 
           {/* Register Link */}
-          <Box sx={{
-            mt: { xs: 3, lg: 4.5 },
-            textAlign: 'center',
-            '@media (max-height: 850px)': { mt: 3 },
-            '@media (max-height: 720px)': { mt: 2 }
-          }}>
-            <Typography sx={{ color: 'rgba(148,163,184,0.55)', fontSize: '0.88rem' }}>
-              New to WorkforceOS?{' '}
-              <Link
-                component={RouterLink}
-                to="/register"
-                sx={{ color: '#10b981', fontWeight: 800, textDecoration: 'none', '&:hover': { color: '#34d399' } }}
-              >
-                Create one
-              </Link>
-            </Typography>
-          </Box>
+
 
           {/* Security badge footer */}
           <Box sx={{

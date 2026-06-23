@@ -379,12 +379,59 @@ const saveBase64Image = (base64String, folder, filename) => {
 // --- API ROUTES ---
 
 // 0. EMPLOYEE LIST ROUTES (SuperAdmin and Manager)
+
+app.post('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Manager']), async (req, res) => {
+  const { name, email, role, department } = req.body;
+  try {
+    if (!name || !email) return res.status(400).json({ message: 'Name and email are required.' });
+
+    // Check if user already exists
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email.toLowerCase())
+      .maybeSingle();
+
+    if (existingUser) return res.status(400).json({ message: 'Email is already registered.' });
+
+    // Temporary password (user must reset)
+    const tempPassword = 'password1234';
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    const userId = generateId();
+
+    const { data: newUser, error } = await supabase
+      .from('users')
+      .insert([{
+        id: userId,
+        name,
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        role: 'Employee',
+        department: department || 'Engineering',
+        company_id: req.user.company_id,
+        force_password_reset: true
+      }])
+      .select('id, name, email, role, department, force_password_reset, created_at')
+      .single();
+
+    if (error) throw error;
+
+    res.status(201).json({
+      message: 'Employee created successfully. Temporary password is: password1234',
+      user: newUser
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 app.get('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Manager']), async (req, res) => {
   try {
     let query = supabase
       .from('users')
       .select('id, name, email, department, role, profile_pic, created_at, is_active, last_login, is_locked, force_password_reset, failed_login_attempts')
-      .eq('role', 'Employee');
+      .eq('role', 'Employee')
+      .eq('company_id', req.user.company_id);
 
     if (req.user.role === 'Manager') {
       if (req.user.department) {
@@ -497,12 +544,57 @@ app.delete('/api/users/employees/:id', authenticate, authorize(['SuperAdmin', 'M
   }
 });
 
+// Create Admin/Manager (SuperAdmin only)
+app.post('/api/users/admins', authenticate, authorize('SuperAdmin'), async (req, res) => {
+  const { name, email, department } = req.body;
+  try {
+    if (!name || !email) return res.status(400).json({ message: 'Name and email are required.' });
+
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email.toLowerCase())
+      .maybeSingle();
+
+    if (existingUser) return res.status(400).json({ message: 'Email is already registered.' });
+
+    const tempPassword = 'password1234';
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    const userId = generateId();
+
+    const { data: newUser, error } = await supabase
+      .from('users')
+      .insert([{
+        id: userId,
+        name,
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        role: 'Manager',
+        department: department || 'Engineering',
+        company_id: req.user.company_id,
+        force_password_reset: true
+      }])
+      .select('id, name, email, role, department, created_at')
+      .single();
+
+    if (error) throw error;
+
+    res.status(201).json({
+      message: 'Manager created successfully. Temporary password is: password1234',
+      user: newUser
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 app.get('/api/users/admins', authenticate, authorize('SuperAdmin'), async (req, res) => {
   try {
     const { data: admins, error } = await supabase
       .from('users')
-      .select('id, name, email, department, role, profile_pic, created_at')
-      .in('role', ['Manager', 'SuperAdmin'])
+      .select('id, name, email, department, role, profile_pic, created_at, is_active')
+      .eq('company_id', req.user.company_id)
+      .eq('role', 'Manager')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -515,7 +607,8 @@ app.get('/api/users/admins', authenticate, authorize('SuperAdmin'), async (req, 
       department: adm.department,
       role: adm.role,
       profilePic: adm.profile_pic,
-      createdAt: adm.created_at
+      createdAt: adm.created_at,
+      isActive: adm.is_active
     }));
 
     res.json(mapped);
@@ -546,6 +639,144 @@ app.delete('/api/users/admins/:id', authenticate, authorize('SuperAdmin'), async
     if (deleteErr) throw deleteErr;
 
     res.json({ message: 'Admin account deleted successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Toggle Admin Status
+app.put('/api/users/admins/:id/status', authenticate, authorize('SuperAdmin'), async (req, res) => {
+  try {
+    const { isActive } = req.body;
+    if (typeof isActive !== 'boolean') return res.status(400).json({ message: 'isActive boolean is required' });
+
+    if (req.params.id.toString() === req.user.id.toString()) {
+      return res.status(400).json({ message: 'You cannot deactivate your own account.' });
+    }
+
+    const { data: adm, error: fetchErr } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (fetchErr || !adm) return res.status(404).json({ message: 'Account not found.' });
+
+    const { error: updateErr } = await supabase
+      .from('users')
+      .update({ is_active: isActive })
+      .eq('id', req.params.id);
+
+    if (updateErr) throw updateErr;
+
+    res.json({ message: `Account successfully ${isActive ? 'activated' : 'deactivated'}` });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET SuperAdmins
+app.get('/api/users/superadmins', authenticate, authorize('SuperAdmin'), async (req, res) => {
+  try {
+    const { data: admins, error } = await supabase
+      .from('users')
+      .select('id, name, email, department, role, profile_pic, created_at, is_active')
+      .eq('company_id', req.user.company_id)
+      .eq('role', 'SuperAdmin')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const mapped = admins.map(adm => ({
+      _id: adm.id,
+      id: adm.id,
+      name: adm.name,
+      email: adm.email,
+      department: adm.department,
+      role: adm.role,
+      profilePic: adm.profile_pic,
+      createdAt: adm.created_at,
+      isActive: adm.is_active
+    }));
+
+    res.json(mapped);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Create SuperAdmin
+app.post('/api/users/superadmins', authenticate, authorize('SuperAdmin'), async (req, res) => {
+  try {
+    const { name, email, department } = req.body;
+
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email.toLowerCase())
+      .maybeSingle();
+
+    if (existingUser) return res.status(400).json({ message: 'User with this email already exists' });
+
+    const hashedPassword = await bcrypt.hash('password1234', 10);
+    const userId = crypto.randomBytes(12).toString('hex');
+
+    const { data: newUser, error: userErr } = await supabase
+      .from('users')
+      .insert([{
+        id: userId,
+        name,
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        role: 'SuperAdmin',
+        department: department || 'Management',
+        company_id: req.user.company_id,
+        force_password_reset: true
+      }])
+      .select()
+      .single();
+
+    if (userErr) throw userErr;
+
+    const returnUser = {
+      _id: newUser.id,
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+      department: newUser.department,
+      profilePic: newUser.profile_pic
+    };
+
+    res.status(201).json({ message: 'SuperAdmin created successfully', user: returnUser });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Delete SuperAdmin
+app.delete('/api/users/superadmins/:id', authenticate, authorize('SuperAdmin'), async (req, res) => {
+  try {
+    if (req.params.id.toString() === req.user.id.toString()) {
+      return res.status(400).json({ message: 'You cannot delete your own account.' });
+    }
+
+    const { data: adm, error: fetchErr } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (fetchErr || !adm) return res.status(404).json({ message: 'SuperAdmin account not found.' });
+
+    const { error: deleteErr } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', req.params.id);
+
+    if (deleteErr) throw deleteErr;
+
+    res.json({ message: 'SuperAdmin account deleted successfully.' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -689,17 +920,26 @@ app.post('/api/auth/register', async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
-
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     const { data: user, error } = await supabase
       .from('users')
-      .select('*')
+      .select('*, company:companies(status)')
       .eq('email', email.toLowerCase())
       .maybeSingle();
 
     if (error || !user) return res.status(400).json({ message: 'Invalid credentials.' });
+    
+    // Check if company is deactivated
+    if (user.company && user.company.status === 'inactive') {
+      return res.status(403).json({ message: 'Your company account has been deactivated. Please contact platform support.' });
+    }
+
+    if (user.company && user.company.status === 'pending') {
+      return res.status(403).json({ message: 'Your company registration is pending approval by the Platform Owner. Please wait for an email confirmation.' });
+    }
+
     if (user.is_active === false) return res.status(403).json({ message: 'Your account has been deactivated. Please contact an administrator.' });
     if (user.is_locked === true) return res.status(403).json({ message: 'Your account is locked due to multiple failed login attempts. Please contact an administrator.' });
 
@@ -739,7 +979,8 @@ app.post('/api/auth/login', async (req, res) => {
         role: user.role,
         department: user.department,
         profilePic: user.profile_pic,
-        forcePasswordReset: user.force_password_reset || false
+        forcePasswordReset: user.force_password_reset || false,
+        companyId: user.company_id
       }
     });
   } catch (err) {
@@ -985,7 +1226,8 @@ app.post('/api/attendance/checkin', authenticate, async (req, res) => {
           longitude,
           address: address || '',
           webcam_image: webcamUrl,
-          status: 'Present'
+          status: 'Present',
+          company_id: req.user.company_id
         }])
         .select('*')
         .single();
@@ -1291,7 +1533,7 @@ app.get('/api/attendance/history', authenticate, async (req, res) => {
 app.get('/api/attendance/all', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
   const { date, employeeId } = req.query;
   try {
-    let builder = supabase.from('attendance').select('*');
+    let builder = supabase.from('attendance').select('*').eq('company_id', req.user.company_id);
     if (date) builder = builder.eq('date', date);
     if (employeeId) builder = builder.eq('employee_id', employeeId);
 
@@ -1319,8 +1561,9 @@ app.get('/api/attendance/all', authenticate, authorize(['Manager', 'SuperAdmin']
 // 3. TASK ROUTES
 app.get('/api/tasks', authenticate, async (req, res) => {
   try {
-    let builder = supabase.from('tasks').select('*');
-    if (req.user.role === 'Employee') {
+    let builder = supabase.from('tasks').select('*').eq('company_id', req.user.company_id);
+    
+    if (req.query.myTasksOnly === 'true' || req.user.role === 'Employee') {
       builder = builder.eq('assigned_to', req.user.id);
     } else if (req.user.role === 'Manager') {
       const { data: deptEmps } = await supabase
@@ -1384,7 +1627,8 @@ app.post('/api/tasks', authenticate, async (req, res) => {
         progress: progress || 0,
         status: status || 'Pending',
         assigned_to: targetUserId,
-        assigned_by: req.user.id
+        assigned_by: req.user.id,
+        company_id: req.user.company_id
       }])
       .select('*')
       .single();
@@ -1720,8 +1964,9 @@ app.post('/api/reports', authenticate, async (req, res) => {
 
 app.get('/api/reports', authenticate, async (req, res) => {
   try {
-    let builder = supabase.from('work_reports').select('*');
-    if (req.user.role === 'Employee') {
+    let builder = supabase.from('work_reports').select('*').eq('company_id', req.user.company_id);
+    
+    if (req.query.myReportsOnly === 'true' || req.user.role === 'Employee') {
       builder = builder.eq('employee_id', req.user.id);
     } else if (req.user.role === 'Manager') {
       const { data: deptEmps } = await supabase
@@ -2230,7 +2475,8 @@ app.get('/api/monitoring/leaderboard', authenticate, authorize(['Manager', 'Supe
     let userQuery = supabase
       .from('users')
       .select('id, name, email, department, profile_pic')
-      .eq('role', 'Employee');
+      .eq('role', 'Employee')
+      .eq('company_id', req.user.company_id);
       
     if (req.user.role === 'Manager') {
       userQuery = userQuery.eq('department', req.user.department);
@@ -2379,6 +2625,7 @@ app.get('/api/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdm
         .from('users')
         .select('id')
         .eq('department', dept)
+        .eq('company_id', req.user.company_id)
         .eq('role', 'Employee');
       employeeIds = deptEmps ? deptEmps.map(u => u.id) : [];
     }
@@ -2386,6 +2633,7 @@ app.get('/api/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdm
     let employeesQuery = supabase
       .from('users')
       .select('*', { count: 'exact', head: true })
+      .eq('company_id', req.user.company_id)
       .eq('role', 'Employee');
       
     if (isManager) {
@@ -2396,6 +2644,7 @@ app.get('/api/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdm
     let checkinsQuery = supabase
       .from('attendance')
       .select('*')
+      .eq('company_id', req.user.company_id)
       .eq('date', today);
       
     if (isManager) {
@@ -2443,6 +2692,7 @@ app.get('/api/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdm
     let reportsQuery = supabase
       .from('work_reports')
       .select('*', { count: 'exact', head: true })
+      .eq('company_id', req.user.company_id)
       .eq('approval_status', 'Pending');
       
     if (isManager) {
@@ -2453,6 +2703,7 @@ app.get('/api/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdm
     let activityQuery = supabase
       .from('activity_logs')
       .select('*')
+      .eq('company_id', req.user.company_id)
       .eq('date', today);
       
     if (isManager) {
@@ -2573,6 +2824,7 @@ app.get('/api/settings/warning-emails', authenticate, authorize(['SuperAdmin']),
     let { data: setting } = await supabase
       .from('settings')
       .select('*')
+      .eq('company_id', req.user.company_id)
       .eq('key', 'warning_emails')
       .maybeSingle();
 
@@ -2609,7 +2861,7 @@ app.post('/api/settings/warning-emails', authenticate, authorize(['SuperAdmin'])
     if (!setting) {
       const { data } = await supabase
         .from('settings')
-        .insert([{ key: 'warning_emails', value: emails }])
+        .insert([{ key: 'warning_emails', value: emails, company_id: req.user.company_id }])
         .select('*')
         .single();
       updatedSetting = data;
@@ -2629,8 +2881,6 @@ app.post('/api/settings/warning-emails', authenticate, authorize(['SuperAdmin'])
 });
 
 // --- DATABASE SEEDING & SERVER LAUNCH ---
-const PORT = process.env.PORT || 5000;
-
 
 
 // Automated webcam cleanup task (runs daily)
@@ -2762,6 +3012,108 @@ cleanupOldScreenshots();
 setInterval(cleanupOldWebcams, 24 * 60 * 60 * 1000);
 setInterval(cleanupOldScreenshots, 24 * 60 * 60 * 1000);
 
-server.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+// 10. SYSTEM ADMIN ROUTES
+
+app.post('/api/system/companies', authenticate, authorize(['SystemAdmin']), async (req, res) => {
+  const { companyName, email } = req.body;
+  try {
+    if (!companyName) {
+      return res.status(400).json({ message: 'Company Name is required.' });
+    }
+
+    const adminEmail = email || `admin@${companyName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}.com`;
+
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', adminEmail.toLowerCase())
+      .maybeSingle();
+
+    if (existingUser) {
+      return res.status(400).json({ message: 'Email is already registered or generated email conflicts. Please provide a custom email.' });
+    }
+
+    const { data: company, error: companyErr } = await supabase
+      .from('companies')
+      .insert([{ name: companyName, status: 'active' }])
+      .select('*')
+      .single();
+    if (companyErr) throw companyErr;
+
+    const tempPassword = 'password1234';
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    const userId = generateId();
+
+    const { data: newUser, error: userErr } = await supabase
+      .from('users')
+      .insert([{
+        id: userId,
+        name: `${companyName} Admin`,
+        email: adminEmail.toLowerCase(),
+        password: hashedPassword,
+        role: 'SuperAdmin',
+        department: 'Management',
+        company_id: company.id,
+        force_password_reset: true
+      }])
+      .select('id, name, email, role, department, created_at')
+      .single();
+    
+    if (userErr) {
+      // rollback company
+      await supabase.from('companies').delete().eq('id', company.id);
+      throw userErr;
+    }
+
+    res.status(201).json({
+      message: 'Company created successfully.',
+      company,
+      admin: newUser,
+      tempPassword
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/system/companies', authenticate, authorize(['SystemAdmin']), async (req, res) => {
+  try {
+    const { data: companies, error } = await supabase
+      .from('companies')
+      .select(`
+        id,
+        name,
+        status,
+        created_at,
+        users (count)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json(companies);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.put('/api/system/companies/:id/status', authenticate, authorize(['SystemAdmin']), async (req, res) => {
+  const { status } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('companies')
+      .update({ status })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json({ message: 'Company status updated', company: data });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
 });

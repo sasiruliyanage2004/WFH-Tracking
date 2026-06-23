@@ -15,7 +15,7 @@ const authenticate = async (req, res, next) => {
     // Query Supabase users table
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, name, email, role, department, profile_pic, created_at')
+      .select('id, name, email, role, department, profile_pic, created_at, company_id')
       .eq('id', decoded.id)
       .maybeSingle();
 
@@ -31,7 +31,8 @@ const authenticate = async (req, res, next) => {
       role: user.role,
       department: user.department,
       profilePic: user.profile_pic,
-      createdAt: user.created_at
+      createdAt: user.created_at,
+      company_id: user.company_id
     };
     
     next();

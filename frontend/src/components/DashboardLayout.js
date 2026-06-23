@@ -45,7 +45,8 @@ import {
   Settings as SettingsIcon,
   ArrowBack as BackIcon,
   ArrowForward as ForwardIcon,
-  Warning as AlertIcon
+  Warning as AlertIcon,
+  Timer as TimerIcon
 } from '@mui/icons-material';
 import { logout } from '../redux/store';
 import DeveloperSignature from './DeveloperSignature';
@@ -149,19 +150,31 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
     { text: 'Team Dashboard', icon: <DashboardIcon />, path: '/manager/dashboard' },
     { text: 'Employee List', icon: <EmployeeListIcon />, path: '/manager/employees' },
     { text: 'Admin List', icon: <AdminListIcon />, path: '/manager/admins' },
+    { text: 'Super Admin List', icon: <AdminListIcon />, path: '/manager/superadmins' },
     { text: 'Task Management', icon: <TaskIcon />, path: '/manager/tasks' },
     { text: 'Work Reports', icon: <ReportIcon />, path: '/manager/reports' },
     { text: 'Employee Monitor', icon: <MonitoringIcon />, path: '/manager/monitoring' },
-    { text: 'Settings', icon: <SettingsIcon />, path: '/manager/settings' }
+    { text: 'Settings', icon: <SettingsIcon />, path: '/manager/settings' },
+    { isDivider: true },
+    { text: 'My Tracker', icon: <TimerIcon />, path: '/dashboard' },
+    { text: 'My Tasks', icon: <TaskIcon />, path: '/tasks' },
+    { text: 'My Attendance', icon: <HistoryIcon />, path: '/attendance-logs' }
   ];
 
-  const links = (user?.role === 'Manager' || user?.role === 'SuperAdmin')
-    ? managerLinks.filter(link => {
-        if (link.text === 'Admin List') return user?.role === 'SuperAdmin';
-        if (link.text === 'Settings') return user?.role === 'SuperAdmin';
-        return true;
-      })
-    : employeeLinks;
+  const systemAdminLinks = [
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/system-admin' }
+  ];
+
+  const links = user?.role === 'SystemAdmin'
+    ? systemAdminLinks
+    : (user?.role === 'Manager' || user?.role === 'SuperAdmin')
+      ? managerLinks.filter(link => {
+          if (link.text === 'Admin List') return user?.role === 'SuperAdmin';
+          if (link.text === 'Super Admin List') return user?.role === 'SuperAdmin';
+          if (link.text === 'Settings') return user?.role === 'SuperAdmin';
+          return true;
+        })
+      : employeeLinks;
 
   // Render navigation menu
   const drawerContent = (expanded) => (
@@ -220,7 +233,10 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
 
       {/* Nav Links */}
       <List sx={{ px: expanded ? 1 : 0.5, py: 2, flexGrow: 1 }}>
-        {links.map((link) => {
+        {links.map((link, index) => {
+          if (link.isDivider) {
+            return <Divider key={`div-${index}`} sx={{ my: 1.5, borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />;
+          }
           const isActive = location.pathname === link.path;
           return (
             <ListItem key={link.text} disablePadding sx={{ mb: 0.5 }}>
@@ -598,7 +614,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
         sx={{
           width: { sm: `calc(100% - ${isSidebarExpanded ? drawerWidth : collapsedDrawerWidth}px)` },
           ml: { sm: `${isSidebarExpanded ? drawerWidth : collapsedDrawerWidth}px` },
-          top: window.api !== undefined ? '32px' : 0,
+          top: 0,
           borderBottom: 1,
           borderColor: 'divider',
           bgcolor: isDarkMode ? 'rgba(21, 27, 31, 0.88)' : 'rgba(255, 255, 255, 0.88)',
@@ -860,8 +876,8 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: drawerWidth,
-              top: window.api !== undefined ? 32 : 0,
-              height: window.api !== undefined ? 'calc(100% - 32px)' : '100%',
+              top: 0,
+              height: '100%',
               background: isDarkMode
                 ? 'rgba(21, 27, 31, 0.92) !important'
                 : 'rgba(255, 255, 255, 0.92) !important',
@@ -886,8 +902,8 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: isSidebarExpanded ? drawerWidth : collapsedDrawerWidth,
-              top: window.api !== undefined ? 32 : 0,
-              height: window.api !== undefined ? 'calc(100% - 32px)' : '100%',
+              top: 0,
+              height: '100%',
               background: isDarkMode
                 ? 'rgba(21, 27, 31, 0.92) !important'
                 : 'rgba(255, 255, 255, 0.92) !important',

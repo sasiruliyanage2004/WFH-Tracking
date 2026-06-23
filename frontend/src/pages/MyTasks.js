@@ -43,7 +43,7 @@ function MyTasks() {
     const fetchTasks = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`${API_URL}/api/tasks`, {
+        const res = await axios.get(`${API_URL}/api/tasks?myTasksOnly=true`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setTasks(res.data);
