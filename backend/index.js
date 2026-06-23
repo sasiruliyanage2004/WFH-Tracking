@@ -1441,6 +1441,10 @@ app.put('/api/tasks/:id', authenticate, async (req, res) => {
 
     if (updates.progress === 100) {
       updates.status = 'Completed';
+    } else if (updates.status === 'Completed') {
+      updates.progress = 100;
+    } else if (updates.status === 'Pending') {
+      updates.progress = 0;
     }
 
     const { data: updatedTask, error: updateErr } = await supabase
@@ -2140,7 +2144,6 @@ app.post('/api/monitoring/usage-log', authenticate, async (req, res) => {
 // App & Website Usage Tracking - fetch logs for manager dashboard
 app.get('/api/monitoring/usage/:employeeId', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
   const { date } = req.query;
-  const targetDate = date || new Date().toISOString().split('T')[0];
 
   try {
     // Department isolation check for Manager
@@ -2153,6 +2156,23 @@ app.get('/api/monitoring/usage/:employeeId', authenticate, authorize(['Manager',
       
       if (targetUser && targetUser.department !== req.user.department) {
         return res.status(403).json({ message: 'Access denied. You can only view usage for employees in your department.' });
+      }
+    }
+
+    let targetDate = date;
+    if (!targetDate) {
+      // Find the most recent date with usage data
+      const { data: latestLog } = await supabase
+        .from('app_usage')
+        .select('date')
+        .eq('employee_id', req.params.employeeId)
+        .order('date', { ascending: false })
+        .limit(1);
+      
+      if (latestLog && latestLog.length > 0) {
+        targetDate = latestLog[0].date;
+      } else {
+        targetDate = new Date().toISOString().split('T')[0];
       }
     }
 

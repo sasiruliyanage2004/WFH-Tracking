@@ -505,9 +505,13 @@ function EmployeeDashboard() {
 
   const handleTaskStatusChange = async (taskId, newStatus) => {
     try {
+      const payload = { status: newStatus };
+      if (newStatus === 'Completed') payload.progress = 100;
+      if (newStatus === 'Pending') payload.progress = 0;
+
       const res = await axios.put(
         `${API_URL}/api/tasks/${taskId}`,
-        { status: newStatus },
+        payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setTasks((prev) => prev.map((t) => (t._id === taskId ? res.data : t)));

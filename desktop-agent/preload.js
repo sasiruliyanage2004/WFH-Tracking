@@ -24,5 +24,13 @@ contextBridge.exposeInMainWorld('api', {
   onIdlePrompt: (callback) => {
     ipcRenderer.removeAllListeners('idle:prompt-break');
     ipcRenderer.on('idle:prompt-break', (event, data) => callback(data));
+  },
+  onWindowMaximize: (callback) => {
+    ipcRenderer.removeAllListeners('window:maximized');
+    ipcRenderer.on('window:maximized', () => callback(true));
+  },
+  onWindowUnmaximize: (callback) => {
+    ipcRenderer.removeAllListeners('window:unmaximized');
+    ipcRenderer.on('window:unmaximized', () => callback(false));
   }
 });

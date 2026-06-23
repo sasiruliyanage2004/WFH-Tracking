@@ -290,6 +290,18 @@ function createWindow() {
     mainWindow = null;
   });
 
+  mainWindow.on('maximize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('window:maximized');
+    }
+  });
+
+  mainWindow.on('unmaximize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('window:unmaximized');
+    }
+  });
+
   startIdleDetection();
 }
 

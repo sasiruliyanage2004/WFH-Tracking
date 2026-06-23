@@ -22,6 +22,7 @@ function CustomTitlebar() {
         position: 'fixed',
         top: 0,
         left: 0,
+        // Span the full width (OS native buttons will overlap)
         right: 0,
         zIndex: 9999,
         // Webkit application region properties for Electron window dragging
@@ -45,10 +46,9 @@ function CustomTitlebar() {
         </Typography>
       </Box>
 
-
       {/* Windows 11 Native Controls Overlay will be injected by Electron on the right side */}
       {/* We leave an empty space (drag region) because the OS will draw the buttons over it */}
-      <Box sx={{ width: 140, height: 32, WebkitAppRegion: 'no-drag' }} />
+      <Box sx={{ height: 32, WebkitAppRegion: 'no-drag' }} />
     </Box>
   );
 }

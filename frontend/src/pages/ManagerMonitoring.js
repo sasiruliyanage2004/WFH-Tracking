@@ -61,7 +61,7 @@ function ManagerMonitoring() {
   const [department, setDepartment] = useState(user?.role === 'Manager' ? (user?.department || 'Engineering') : 'All');
   const [userSearch, setUserSearch] = useState('');
   const [leaderboardTab, setLeaderboardTab] = useState('USERS'); // USERS or GROUPS
-  const [viewMode, setViewMode] = useState('SUMMARY'); // SUMMARY VIEW or DETAILED VIEW
+
 
   const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
@@ -220,14 +220,35 @@ function ManagerMonitoring() {
 
       return {
         ...group,
+        totalMins,
         productivityRatio
       };
-    }).sort((a, b) => b.productivityRatio - a.productivityRatio);
+    }).sort((a, b) => {
+      if (b.totalMins !== a.totalMins) return b.totalMins - a.totalMins;
+      return b.productivityRatio - a.productivityRatio;
+    });
+  };
+
+  const getUsersLeaderboard = () => {
+    return [...leaderboard].map(user => {
+      const totalMins = (user.productiveMins || 0) + (user.unproductiveMins || 0) + (user.neutralMins || 0);
+      const productivityRatio = totalMins > 0
+        ? Math.round((user.productiveMins / totalMins) * 100)
+        : 100;
+      return {
+        ...user,
+        totalMins,
+        productivityRatio
+      };
+    }).sort((a, b) => {
+      if (b.totalMins !== a.totalMins) return b.totalMins - a.totalMins;
+      return b.productivityRatio - a.productivityRatio;
+    });
   };
 
   // Client-side search filtering
   const displayedLeaderboard = leaderboardTab === 'USERS'
-    ? leaderboard.filter(item => item.name.toLowerCase().includes(userSearch.toLowerCase()))
+    ? getUsersLeaderboard().filter(item => item.name.toLowerCase().includes(userSearch.toLowerCase()))
     : getGroupsLeaderboard().filter(item => item.name.toLowerCase().includes(userSearch.toLowerCase()));
 
   return (
@@ -332,44 +353,6 @@ function ManagerMonitoring() {
                 GROUPS
               </Button>
             </Box>
-
-            {/* SUMMARY/DETAILED VIEW switcher */}
-            <Box sx={{ display: 'flex', bgcolor: 'action.hover', p: 0.5, borderRadius: 2 }}>
-              <Button
-                size="small"
-                onClick={() => setViewMode('SUMMARY')}
-                sx={{
-                  borderRadius: 1.5,
-                  px: 2.5,
-                  fontWeight: 700,
-                  textTransform: 'none',
-                  color: viewMode === 'SUMMARY' ? 'primary.main' : 'text.secondary',
-                  bgcolor: viewMode === 'SUMMARY' ? 'background.paper' : 'transparent',
-                  border: viewMode === 'SUMMARY' ? '1px solid' : 'none',
-                  borderColor: 'divider',
-                  '&:hover': { bgcolor: viewMode === 'SUMMARY' ? 'background.paper' : 'action.selected' }
-                }}
-              >
-                SUMMARY VIEW
-              </Button>
-              <Button
-                size="small"
-                onClick={() => setViewMode('DETAILED')}
-                sx={{
-                  borderRadius: 1.5,
-                  px: 2.5,
-                  fontWeight: 700,
-                  textTransform: 'none',
-                  color: viewMode === 'DETAILED' ? 'primary.main' : 'text.secondary',
-                  bgcolor: viewMode === 'DETAILED' ? 'background.paper' : 'transparent',
-                  border: viewMode === 'DETAILED' ? '1px solid' : 'none',
-                  borderColor: 'divider',
-                  '&:hover': { bgcolor: viewMode === 'DETAILED' ? 'background.paper' : 'action.selected' }
-                }}
-              >
-                DETAILED VIEW
-              </Button>
-            </Box>
           </Box>
 
           {/* Leaderboard Table */}
@@ -459,11 +442,9 @@ function ManagerMonitoring() {
                                 {row.employeeCount} active employee{row.employeeCount !== 1 ? 's' : ''}
                               </Typography>
                             ) : (
-                              viewMode === 'DETAILED' && (
-                                <Typography variant="caption" color="text.secondary">
-                                  {row.department}
-                                </Typography>
-                              )
+                              <Typography variant="caption" color="text.secondary">
+                                {row.department}
+                              </Typography>
                             )}
                           </Box>
                         </TableCell>
