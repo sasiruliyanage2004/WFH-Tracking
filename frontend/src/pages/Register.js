@@ -120,7 +120,7 @@ function Register() {
     <Container
       maxWidth="xs"
       sx={{
-        height: isElectron ? 'calc(100vh - 32px)' : '100vh',
+        height: '100vh',
         display: 'flex',
         alignItems: 'center',
         py: { xs: 2, lg: 4 },

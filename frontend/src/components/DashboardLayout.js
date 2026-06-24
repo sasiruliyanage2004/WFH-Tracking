@@ -165,16 +165,31 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/system-admin' }
   ];
 
-  const links = user?.role === 'SystemAdmin'
-    ? systemAdminLinks
-    : (user?.role === 'Manager' || user?.role === 'SuperAdmin')
-      ? managerLinks.filter(link => {
-          if (link.text === 'Admin List') return user?.role === 'SuperAdmin';
-          if (link.text === 'Super Admin List') return user?.role === 'SuperAdmin';
-          if (link.text === 'Settings') return user?.role === 'SuperAdmin';
-          return true;
-        })
-      : employeeLinks;
+  const isDesktop = !!window.api;
+
+  let links = [];
+
+  if (isDesktop) {
+    // Desktop App: Strictly for Time Tracking (All users)
+    links = employeeLinks;
+  } else {
+    // Web App
+    if (user?.role === 'SystemAdmin') {
+      links = systemAdminLinks;
+    } else if (user?.role === 'Manager' || user?.role === 'SuperAdmin') {
+      // Management only, no tracking tools on web for managers
+      links = managerLinks.filter(link => {
+        if (link.text === 'My Tracker' || link.text === 'My Tasks' || link.text === 'My Attendance' || link.isDivider) return false;
+        if (link.text === 'Admin List') return user?.role === 'SuperAdmin';
+        if (link.text === 'Super Admin List') return user?.role === 'SuperAdmin';
+        if (link.text === 'Settings') return user?.role === 'SuperAdmin';
+        return true;
+      });
+    } else {
+      // Regular Employees on Web can only view logs (tracking is disabled on web)
+      links = employeeLinks.filter(link => link.text !== 'My Tracker' && link.text !== 'My Tasks');
+    }
+  }
 
   // Render navigation menu
   const drawerContent = (expanded) => (

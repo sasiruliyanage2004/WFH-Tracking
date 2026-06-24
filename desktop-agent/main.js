@@ -1,5 +1,7 @@
-const { app, BrowserWindow, ipcMain, desktopCapturer, Menu, session, powerMonitor } = require('electron');
+process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true';
+const { app, BrowserWindow, ipcMain, desktopCapturer, Menu, session, powerMonitor, Notification, Tray } = require('electron');
 const path = require('path');
+const url = require('url');
 const { exec, spawn } = require('child_process');
 const axios = require('axios');
 const fs = require('fs');
@@ -170,10 +172,11 @@ async function flushOfflineCache() {
 }
 
 const BACKEND_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3001';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 let mainWindow = null;
 let sessionToken = null;
+let tray = null;
 
 let trackingInterval = null;
 let trackingActive = false;
@@ -255,7 +258,15 @@ function createWindow() {
     console.log(`[RENDERER CONSOLE] [Level ${level}] ${message} (at ${sourceId}:${line})`);
   });
 
-  mainWindow.loadURL(FRONTEND_URL);
+  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+  const startUrl = isDev 
+    ? FRONTEND_URL 
+    : url.format({
+        pathname: path.join(__dirname, 'app-build/index.html'),
+        protocol: 'file:',
+        slashes: true
+      });
+  mainWindow.loadURL(startUrl);
 
   mainWindow.webContents.on('did-finish-load', () => {
     // mainWindow.webContents.openDevTools();
@@ -271,13 +282,22 @@ function createWindow() {
     }, 1500); // 1.5 second duration
   });
 
-  // Fallback to port 3002 if default port 3001 fails to load
+  // Retry loading React app if the dev server takes time to start
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-    if (validatedURL && (validatedURL.includes(':3001'))) {
-      const newUrl = validatedURL.replace(':3001', ':3002');
-      mainWindow.loadURL(newUrl);
-    } else {
-      // mainWindow.webContents.openDevTools();
+    if (isDev && validatedURL.includes('localhost:3000')) {
+      console.log('Failed to load React app on port 3000, waiting 2s and retrying...');
+      setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.loadURL(startUrl);
+        }
+      }, 2000);
+    }
+  });
+
+  mainWindow.on('close', (event) => {
+    if (!app.isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
     }
   });
 
@@ -359,6 +379,23 @@ app.whenReady().then(() => {
   });
 
   Menu.setApplicationMenu(null);
+  
+  // Set up System Tray
+  tray = new Tray(path.join(__dirname, 'icon.ico'));
+  const contextMenu = Menu.buildFromTemplate([
+    { label: 'Open WFH Tracker', click: () => mainWindow && mainWindow.show() },
+    { type: 'separator' },
+    { label: 'Quit', click: () => {
+      app.isQuitting = true;
+      app.quit();
+    }}
+  ]);
+  tray.setToolTip('WFH Tracker');
+  tray.setContextMenu(contextMenu);
+  tray.on('double-click', () => {
+    if (mainWindow) mainWindow.show();
+  });
+
   createSplashWindow();
   createWindow();
 
@@ -419,6 +456,49 @@ ipcMain.on('tracking:toggle', (event, { active, token }) => {
   }
 });
 
+let breakInterval = null;
+let activeMinutesOnBreak = 0;
+
+ipcMain.on('break:status', (event, { isOnBreak }) => {
+  if (isOnBreak) {
+    if (!breakInterval) {
+      activeMinutesOnBreak = 0;
+      breakInterval = setInterval(() => {
+        const idleTime = powerMonitor.getSystemIdleTime();
+        if (idleTime < 60) {
+          activeMinutesOnBreak += 1;
+        }
+        
+        // Notification threshold is 15 minutes
+        if (activeMinutesOnBreak >= 15) {
+          if (Notification.isSupported()) {
+            const notif = new Notification({
+              title: 'WFH Tracker',
+              body: 'You have been active for 15 minutes while on break! Did you forget to end your break?'
+            });
+            notif.on('click', () => {
+              if (mainWindow) {
+                if (mainWindow.isMinimized()) mainWindow.restore();
+                mainWindow.show();
+                mainWindow.focus();
+              }
+            });
+            notif.show();
+          }
+          // Reset so it alerts again later if they ignore it
+          activeMinutesOnBreak = 0;
+        }
+      }, 60000); // Check every minute
+    }
+  } else {
+    if (breakInterval) {
+      clearInterval(breakInterval);
+      breakInterval = null;
+    }
+    activeMinutesOnBreak = 0;
+  }
+});
+
 // Window control events
 ipcMain.on('window:minimize', () => {
   if (mainWindow) mainWindow.minimize();
@@ -435,7 +515,7 @@ ipcMain.on('window:maximize', () => {
 });
 
 ipcMain.on('window:close', () => {
-  if (mainWindow) mainWindow.close();
+  if (mainWindow) mainWindow.hide();
 });
 
 function startTracking() {

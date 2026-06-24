@@ -57,6 +57,7 @@ function SystemAdmin() {
       return;
     }
     fetchCompanies();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, navigate]);
 
   const fetchCompanies = async () => {

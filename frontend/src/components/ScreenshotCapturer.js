@@ -248,7 +248,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
     };
   }, [isAuthenticated, token, user, isCheckedIn, onBreak, isCapturing, stream, captureAndUpload]);
 
-  if (!isAuthenticated || user?.role !== 'Employee') return null;
+  if (!isAuthenticated) return null;
 
   return (
     <Paper sx={{ p: 2, mt: 3, border: '1px solid', borderColor: 'divider' }}>

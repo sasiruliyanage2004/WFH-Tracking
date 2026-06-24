@@ -47,6 +47,16 @@ function ManagerMonitoring() {
   // Navigation tabs: 0 = Productivity Leaderboard (Top Users), 1 = Live Status Directory
   const [viewTab, setViewTab] = useState(0); // Default to Leaderboard as requested
 
+  const calculateTotalHours = (rec) => {
+    if (!rec) return '--';
+    let base = rec.durationHours || 0;
+    if (!rec.checkOutTime && rec.checkInTime) {
+      const ms = Date.now() - new Date(rec.checkInTime).getTime();
+      base += ms / 3600000;
+    }
+    return base > 0 ? base.toFixed(2) : '--';
+  };
+
   // Summary states (Live Directory)
   const [summary, setSummary] = useState(null);
   const [employees, setEmployees] = useState([]);
@@ -616,7 +626,7 @@ function ManagerMonitoring() {
                             {checkinRec?.location?.address || 'No location logged'}
                           </TableCell>
                           <TableCell sx={{ fontWeight: 700 }}>
-                            {checkinRec?.durationHours ? `${checkinRec.durationHours} hrs` : '--'}
+                            {calculateTotalHours(checkinRec)} {calculateTotalHours(checkinRec) !== '--' ? 'hrs' : ''}
                           </TableCell>
                           <TableCell align="center">
                             <Button

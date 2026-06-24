@@ -1,6 +1,6 @@
 // frontend/src/App.js
 import React, { useState, useMemo, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline, Box } from '@mui/material';
@@ -367,9 +367,27 @@ function App() {
     if (!isAuthenticated) {
       return <Navigate to="/login" replace />;
     }
+    
+    const isDesktop = !!window.api;
+    const path = window.location.hash.replace('#', '');
+    const isManagerRoute = path.startsWith('/manager');
+    const isTrackingDashboard = path === '/dashboard' || path === '/tasks';
+
     if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
       return <Navigate to={(user?.role === 'Manager' || user?.role === 'SuperAdmin') ? '/manager/dashboard' : '/dashboard'} replace />;
     }
+
+    // Architecture Separation Rules
+    if (isDesktop && isManagerRoute) {
+      // Desktop app strictly for Time Tracking
+      return <Navigate to="/dashboard" replace />;
+    }
+
+    if (!isDesktop && (user?.role === 'Manager' || user?.role === 'SuperAdmin') && isTrackingDashboard) {
+      // Web app strictly for Management (for Managers/Admins)
+      return <Navigate to="/manager/dashboard" replace />;
+    }
+
     return (
       <DashboardLayout isDarkMode={isDarkMode} setIsDarkMode={toggleTheme}>
         {children}

@@ -130,6 +130,14 @@ function ManagerDashboard() {
   const [loading, setLoading] = useState(true);
 
 
+  const calculateTotalHours = (rec) => {
+    let base = rec.durationHours || 0;
+    if (!rec.checkOutTime && rec.checkInTime) {
+      const ms = Date.now() - new Date(rec.checkInTime).getTime();
+      base += ms / 3600000;
+    }
+    return base > 0 ? base.toFixed(2) : '--';
+  };
 
   // Filters for Export
   const [filterEmployee, setFilterEmployee] = useState('');
@@ -872,7 +880,7 @@ function ManagerDashboard() {
                               )}
                             </TableCell>
                             <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>
-                              {rec.durationHours || '--'} hrs
+                              {calculateTotalHours(rec)} hrs
                             </TableCell>
                             <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               <MuiTooltip title={rec.location?.address || 'N/A'}>

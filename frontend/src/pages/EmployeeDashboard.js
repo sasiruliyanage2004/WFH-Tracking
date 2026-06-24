@@ -147,10 +147,10 @@ function EmployeeDashboard() {
         dispatch(setBreakEnd());
       }
 
-      const tasksRes = await axios.get(`${API_URL}/api/tasks`, authHeader);
+      const tasksRes = await axios.get(`${API_URL}/api/tasks?myTasksOnly=true`, authHeader);
       setTasks(tasksRes.data);
 
-      const reportsRes = await axios.get(`${API_URL}/api/reports`, authHeader);
+      const reportsRes = await axios.get(`${API_URL}/api/reports?myReportsOnly=true`, authHeader);
       setReports(reportsRes.data);
 
       // Fetch productivity score
@@ -169,6 +169,20 @@ function EmployeeDashboard() {
 
   useEffect(() => {
     fetchData();
+
+    // Poll for live productivity updates every 15 seconds
+    const productivityInterval = setInterval(async () => {
+      try {
+        if (!token) return;
+        const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+        const prodRes = await axios.get(`${API_URL}/api/monitoring/my-activity`, authHeader);
+        setProductivity(prodRes.data.productivityPercentage);
+      } catch (err) {
+        // Silent fail for polling
+      }
+    }, 15000);
+
+    return () => clearInterval(productivityInterval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -192,6 +206,10 @@ function EmployeeDashboard() {
       const active = !!(attendance && !attendance.checkOutTime && !attendance.onBreak);
       console.log(`[Electron] Auto-toggling active window tracking: ${active}`);
       window.api.toggleTracking(active, token);
+    }
+    if (window.api && window.api.setBreakStatus) {
+      const isOnBreak = !!(attendance && attendance.onBreak);
+      window.api.setBreakStatus(isOnBreak);
     }
   }, [attendance, token]);
 
@@ -226,9 +244,7 @@ function EmployeeDashboard() {
     }
 
     if (attendance.checkOutTime) {
-      const start = new Date(attendance.checkInTime);
-      const end = new Date(attendance.checkOutTime);
-      const diffMs = Math.max(0, end - start);
+      const diffMs = attendance.durationHours ? attendance.durationHours * 3600000 : 0;
       
       const hours = Math.floor(diffMs / 3600000);
       const minutes = Math.floor((diffMs % 3600000) / 60000);
@@ -241,7 +257,7 @@ function EmployeeDashboard() {
 
     const interval = setInterval(() => {
       const start = new Date(attendance.checkInTime);
-      const diffMs = Date.now() - start;
+      const diffMs = Date.now() - start + (attendance.durationHours ? attendance.durationHours * 3600000 : 0);
       
       const hours = Math.floor(diffMs / 3600000);
       const minutes = Math.floor((diffMs % 3600000) / 60000);

@@ -156,7 +156,7 @@ function Login() {
   return (
     <Box
       sx={{
-        height: isElectron ? 'calc(100vh - 32px)' : '100vh',
+        height: '100vh',
         display: 'flex',
         bgcolor: '#060913',
         overflow: 'hidden',
