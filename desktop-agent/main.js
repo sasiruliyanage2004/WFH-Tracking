@@ -171,8 +171,8 @@ async function flushOfflineCache() {
   }
 }
 
-const BACKEND_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const BACKEND_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://127.0.0.1:3000';
 
 let mainWindow = null;
 let sessionToken = null;
@@ -284,7 +284,7 @@ function createWindow() {
 
   // Retry loading React app if the dev server takes time to start
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-    if (isDev && validatedURL.includes('localhost:3000')) {
+    if (isDev && (validatedURL.includes('localhost:3000') || validatedURL.includes('127.0.0.1:3000'))) {
       console.log('Failed to load React app on port 3000, waiting 2s and retrying...');
       setTimeout(() => {
         if (mainWindow && !mainWindow.isDestroyed()) {
