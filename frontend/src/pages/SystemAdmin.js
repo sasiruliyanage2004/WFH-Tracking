@@ -180,29 +180,6 @@ function SystemAdmin() {
         </Box>
       </Box>
 
-      {/* Summary Stats */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6}>
-          <Card sx={{ borderRadius: 3, p: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
-              Active Companies
-            </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: 'success.main', mt: 0.5 }}>
-              {activeCount}
-            </Typography>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <Card sx={{ borderRadius: 3, p: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
-              Deactivated
-            </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: 'error.main', mt: 0.5 }}>
-              {inactiveCount}
-            </Typography>
-          </Card>
-        </Grid>
-      </Grid>
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={tabValue} onChange={handleTabChange}>

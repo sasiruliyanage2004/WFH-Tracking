@@ -137,20 +137,22 @@ function Profile() {
             helperText="To change your corporate email, contact IT Support."
           />
 
-          <FormControl fullWidth>
-            <InputLabel>Department</InputLabel>
-            <Select
-              value={department}
-              label="Department"
-              onChange={(e) => setDepartment(e.target.value)}
-            >
-              <MenuItem value="Engineering">Engineering</MenuItem>
-              <MenuItem value="Design">Design</MenuItem>
-              <MenuItem value="Product">Product</MenuItem>
-              <MenuItem value="Operations">Operations</MenuItem>
-              <MenuItem value="HR">HR / Finance</MenuItem>
-            </Select>
-          </FormControl>
+          {user?.role !== 'SystemAdmin' && (
+            <FormControl fullWidth>
+              <InputLabel>Department</InputLabel>
+              <Select
+                value={department}
+                label="Department"
+                onChange={(e) => setDepartment(e.target.value)}
+              >
+                <MenuItem value="Engineering">Engineering</MenuItem>
+                <MenuItem value="Design">Design</MenuItem>
+                <MenuItem value="Product">Product</MenuItem>
+                <MenuItem value="Operations">Operations</MenuItem>
+                <MenuItem value="HR">HR / Finance</MenuItem>
+              </Select>
+            </FormControl>
+          )}
 
           <TextField
             label="Profile Picture URL"
