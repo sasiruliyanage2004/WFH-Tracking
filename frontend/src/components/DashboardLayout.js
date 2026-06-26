@@ -247,7 +247,26 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
       <Divider />
 
       {/* Nav Links */}
-      <List sx={{ px: expanded ? 1 : 0.5, py: 2, flexGrow: 1 }}>
+      <List sx={{ 
+        px: expanded ? 1 : 0.5, 
+        py: 2, 
+        flexGrow: 1, 
+        overflowY: 'auto',
+        // Custom premium scrollbar styling
+        '&::-webkit-scrollbar': {
+          width: '6px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: 'transparent',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          background: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+          borderRadius: '10px',
+        },
+        '&::-webkit-scrollbar-thumb:hover': {
+          background: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
+        }
+      }}>
         {links.map((link, index) => {
           if (link.isDivider) {
             return <Divider key={`div-${index}`} sx={{ my: 1.5, borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />;
