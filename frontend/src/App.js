@@ -134,6 +134,35 @@ function App() {
     return () => window.removeEventListener('wfh_theme_changed', handleThemeChange);
   }, []);
 
+  // Update session last-seen timestamp periodically & on user activity
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Update immediately
+    localStorage.setItem('wfh_last_seen', Date.now().toString());
+
+    // Update every 10 seconds
+    const interval = setInterval(() => {
+      localStorage.setItem('wfh_last_seen', Date.now().toString());
+    }, 10000);
+
+    // Also update on user activity (mouse movement, keypress)
+    const updateActivity = () => {
+      localStorage.setItem('wfh_last_seen', Date.now().toString());
+    };
+
+    window.addEventListener('mousemove', updateActivity);
+    window.addEventListener('keydown', updateActivity);
+    window.addEventListener('click', updateActivity);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('mousemove', updateActivity);
+      window.removeEventListener('keydown', updateActivity);
+      window.removeEventListener('click', updateActivity);
+    };
+  }, [isAuthenticated]);
+
   // ── PREMIUM THEME ─────────────────────────────────────────────────
   const theme = useMemo(() => createTheme({
     palette: {

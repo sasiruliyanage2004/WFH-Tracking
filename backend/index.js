@@ -148,6 +148,33 @@ if (!fs.existsSync(screenshotsDir)) fs.mkdirSync(screenshotsDir);
 if (!fs.existsSync(webcamsDir)) fs.mkdirSync(webcamsDir);
 if (!fs.existsSync(attachmentsDir)) fs.mkdirSync(attachmentsDir);
 
+// Ensure Supabase Storage bucket 'wfh-tracking' exists
+const ensureBucketExists = async (bucketName) => {
+  try {
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    if (listError) {
+      console.error('Failed to list Supabase buckets:', listError.message);
+      return;
+    }
+    const exists = buckets.some(b => b.name === bucketName);
+    if (!exists) {
+      console.log(`Supabase bucket '${bucketName}' does not exist. Creating...`);
+      const { error: createError } = await supabase.storage.createBucket(bucketName, {
+        public: true
+      });
+      if (createError) {
+        console.error(`Failed to create Supabase bucket '${bucketName}':`, createError.message);
+      } else {
+        console.log(`Supabase bucket '${bucketName}' created successfully!`);
+      }
+    }
+  } catch (err) {
+    console.error('Error checking/creating Supabase bucket:', err.message);
+  }
+};
+ensureBucketExists('wfh-tracking');
+
+
 // Multer storage for task attachments
 const attachmentStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -354,25 +381,52 @@ const sendNotification = async (recipientId, message, type = 'general') => {
 };
 
 // Base64 helper writer
-const saveBase64Image = (base64String, folder, filename) => {
+// Base64 helper writer - Uploads to Supabase Storage
+const saveBase64Image = async (base64String, folder, filename) => {
   if (!base64String) return '';
   try {
     const base64Data = base64String.replace(/^data:image\/\w+;base64,/, '');
     if (!base64Data || base64Data.trim().length < 50) {
-      console.error('Base64 image save error: empty or invalid image payload.');
+      console.error('Base64 image upload error: empty or invalid image payload.');
       return '';
     }
     const buffer = Buffer.from(base64Data, 'base64');
     if (buffer.length < 50) {
-      console.error('Base64 image save error: decoded buffer is too small (empty image).');
+      console.error('Base64 image upload error: decoded buffer is too small.');
       return '';
     }
-    const filePath = path.join(folder, filename);
-    fs.writeFileSync(filePath, buffer);
-    return `/uploads/${folder === webcamsDir ? 'webcams' : 'screenshots'}/${filename}`;
+
+    const folderName = folder === webcamsDir ? 'webcams' : 'screenshots';
+    const storagePath = `${folderName}/${filename}`;
+
+    const { data, error } = await supabase.storage
+      .from('wfh-tracking')
+      .upload(storagePath, buffer, {
+        contentType: 'image/jpeg',
+        upsert: true
+      });
+
+    if (error) throw error;
+
+    const { data: publicUrlData } = supabase.storage
+      .from('wfh-tracking')
+      .getPublicUrl(storagePath);
+
+    return publicUrlData.publicUrl;
   } catch (err) {
-    console.error('Base64 image save error:', err.message);
-    return '';
+    console.error('Base64 image upload error:', err.message);
+    
+    // Fallback to local saving if Supabase fails
+    try {
+      const base64Data = base64String.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+      const filePath = path.join(folder, filename);
+      fs.writeFileSync(filePath, buffer);
+      return `/uploads/${folder === webcamsDir ? 'webcams' : 'screenshots'}/${filename}`;
+    } catch (localErr) {
+      console.error('Fallback local image save error:', localErr.message);
+      return '';
+    }
   }
 };
 
@@ -1184,7 +1238,7 @@ app.post('/api/attendance/checkin', authenticate, async (req, res) => {
     let webcamUrl = '';
     if (webcamImage) {
       const filename = `webcam_${req.user.id}_${Date.now()}.jpg`;
-      webcamUrl = saveBase64Image(webcamImage, webcamsDir, filename);
+      webcamUrl = await saveBase64Image(webcamImage, webcamsDir, filename);
     }
 
     let att;
@@ -1780,7 +1834,42 @@ app.post('/api/tasks/:id/submit', authenticate, uploadAttachment.array('files', 
       }
     }
 
-    const proofFiles = req.files ? req.files.map(f => `/uploads/attachments/${f.filename}`) : [];
+    const proofFiles = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        try {
+          const fileBuffer = fs.readFileSync(file.path);
+          const cleanName = file.originalname.replace(/[^a-zA-Z0-9.]/g, '_');
+          const filename = `attachment_${Date.now()}_${cleanName}`;
+          
+          const { data, error: uploadErr } = await supabase.storage
+            .from('wfh-tracking')
+            .upload(`attachments/${filename}`, fileBuffer, {
+              contentType: file.mimetype,
+              upsert: true
+            });
+            
+          if (uploadErr) throw uploadErr;
+          
+          const { data: publicUrlData } = supabase.storage
+            .from('wfh-tracking')
+            .getPublicUrl(`attachments/${filename}`);
+            
+          proofFiles.push(publicUrlData.publicUrl);
+          
+          // Clean up local temp file from multer diskStorage
+          try {
+            fs.unlinkSync(file.path);
+          } catch (unlinkErr) {
+            console.error('Failed to clean up temp task upload:', unlinkErr.message);
+          }
+        } catch (uploadFailErr) {
+          console.error('Failed uploading attachment to Supabase:', uploadFailErr.message);
+          // Fallback to local
+          proofFiles.push(`/uploads/attachments/${file.filename}`);
+        }
+      }
+    }
 
     let currentComments = Array.isArray(task.comments) ? task.comments : [];
     if (req.body.comment && req.body.comment.trim()) {
@@ -2058,7 +2147,7 @@ app.post('/api/monitoring/screenshot', authenticate, async (req, res) => {
   try {
     const timeVal = timestamp || Date.now();
     const filename = `screenshot_${req.user.id}_${timeVal}.jpg`;
-    const screenshotUrl = saveBase64Image(image, screenshotsDir, filename);
+    const screenshotUrl = await saveBase64Image(image, screenshotsDir, filename);
 
     if (!screenshotUrl) {
       return res.status(400).json({ message: 'Failed to process image data: image is empty or invalid' });
@@ -2107,6 +2196,18 @@ app.post('/api/monitoring/screenshot', authenticate, async (req, res) => {
                 fs.unlinkSync(absolutePath);
               } catch (err) {
                 console.error('Failed to delete physical screenshot file:', err.message);
+              }
+            }
+          } else if (ss.screenshot_url.includes('supabase.co/storage')) {
+            const pathParts = ss.screenshot_url.split('/wfh-tracking/');
+            if (pathParts.length > 1) {
+              const storagePath = pathParts[1];
+              try {
+                await supabase.storage
+                  .from('wfh-tracking')
+                  .remove([storagePath]);
+              } catch (err) {
+                console.error('Failed to delete Supabase storage file:', err.message);
               }
             }
           }
@@ -2183,6 +2284,18 @@ app.post('/api/monitoring/screenshots/delete-bulk', authenticate, authorize(['Ma
               fs.unlinkSync(absolutePath);
             } catch (err) {
               console.error('Failed to delete physical screenshot file:', err.message);
+            }
+          }
+        } else if (ss.screenshot_url.includes('supabase.co/storage')) {
+          const pathParts = ss.screenshot_url.split('/wfh-tracking/');
+          if (pathParts.length > 1) {
+            const storagePath = pathParts[1];
+            try {
+              await supabase.storage
+                .from('wfh-tracking')
+                .remove([storagePath]);
+            } catch (err) {
+              console.error('Failed to delete Supabase storage file:', err.message);
             }
           }
         }
@@ -2880,6 +2993,64 @@ app.post('/api/settings/warning-emails', authenticate, authorize(['SuperAdmin'])
   }
 });
 
+app.get('/api/settings/screenshot-rules', authenticate, async (req, res) => {
+  try {
+    let query = supabase.from('settings').select('*').eq('key', 'screenshot_rules');
+    if (req.user.company_id) {
+      query = query.eq('company_id', req.user.company_id);
+    }
+    const { data: setting } = await query.maybeSingle();
+
+    const defaultValue = {
+      threshold: 70,
+      highProdInterval: 20,
+      standardInterval: 5
+    };
+
+    res.json(setting ? setting.value : defaultValue);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/settings/screenshot-rules', authenticate, authorize(['SuperAdmin', 'Manager']), async (req, res) => {
+  const { threshold, highProdInterval, standardInterval } = req.body;
+  try {
+    const rules = {
+      threshold: parseInt(threshold) || 70,
+      highProdInterval: parseInt(highProdInterval) || 20,
+      standardInterval: parseInt(standardInterval) || 5
+    };
+
+    let query = supabase.from('settings').select('*').eq('key', 'screenshot_rules');
+    if (req.user.company_id) {
+      query = query.eq('company_id', req.user.company_id);
+    }
+    const { data: setting } = await query.maybeSingle();
+
+    let updatedSetting;
+    if (!setting) {
+      const { data } = await supabase
+        .from('settings')
+        .insert([{ key: 'screenshot_rules', value: rules, company_id: req.user.company_id }])
+        .select('*')
+        .single();
+      updatedSetting = data;
+    } else {
+      const { data } = await supabase
+        .from('settings')
+        .update({ value: rules, updated_at: new Date() })
+        .eq('id', setting.id)
+        .select('*')
+        .single();
+      updatedSetting = data;
+    }
+    res.json({ message: 'Screenshot rules saved successfully.', value: updatedSetting.value });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // --- DATABASE SEEDING & SERVER LAUNCH ---
 
 
@@ -2922,6 +3093,17 @@ const cleanupOldWebcams = async () => {
           }
         } catch (fileErr) {
           console.error(`Failed to delete file ${localPath}:`, fileErr.message);
+        }
+      } else if (imgPath.includes('supabase.co/storage')) {
+        const pathParts = imgPath.split('/wfh-tracking/');
+        if (pathParts.length > 1) {
+          const storagePath = pathParts[1];
+          try {
+            await supabase.storage.from('wfh-tracking').remove([storagePath]);
+            deletedCount++;
+          } catch (storageErr) {
+            console.error(`Failed to delete Supabase file ${storagePath}:`, storageErr.message);
+          }
         }
       }
 
@@ -2983,6 +3165,17 @@ const cleanupOldScreenshots = async () => {
           }
         } catch (fileErr) {
           console.error(`Failed to delete screenshot file ${localPath}:`, fileErr.message);
+        }
+      } else if (imgPath && imgPath.includes('supabase.co/storage')) {
+        const pathParts = imgPath.split('/wfh-tracking/');
+        if (pathParts.length > 1) {
+          const storagePath = pathParts[1];
+          try {
+            await supabase.storage.from('wfh-tracking').remove([storagePath]);
+            deletedFilesCount++;
+          } catch (storageErr) {
+            console.error(`Failed to delete Supabase screenshot ${storagePath}:`, storageErr.message);
+          }
         }
       }
       idsToDelete.push(ss.id);

@@ -17,7 +17,8 @@ import {
 import {
   Email as EmailIcon,
   Add as AddIcon,
-  Save as SaveIcon
+  Save as SaveIcon,
+  Monitor as MonitorIcon
 } from '@mui/icons-material';
 
 import CustomLoader from '../components/CustomLoader';
@@ -34,15 +35,28 @@ function ManagerSettings() {
   const [settingsMessage, setSettingsMessage] = useState({ show: false, text: '', severity: 'success' });
   const [initialLoading, setInitialLoading] = useState(true);
 
+  // Screenshot Rules configurations states
+  const [screenshotRules, setScreenshotRules] = useState({
+    threshold: 70,
+    highProdInterval: 20,
+    standardInterval: 5
+  });
+
   useEffect(() => {
     const fetchSettings = async () => {
       try {
         setInitialLoading(true);
         const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+        
+        // Fetch emails setting
         const emailsRes = await axios.get(`${API_URL}/api/settings/warning-emails`, authHeader);
         setWarningEmails(emailsRes.data);
+
+        // Fetch screenshot rules setting
+        const rulesRes = await axios.get(`${API_URL}/api/settings/screenshot-rules`, authHeader);
+        setScreenshotRules(rulesRes.data);
       } catch (err) {
-        console.warn('Failed to load warning emails setting:', err.message);
+        console.warn('Failed to load settings:', err.message);
       } finally {
         setInitialLoading(false);
       }
@@ -85,6 +99,21 @@ function ManagerSettings() {
     } catch (err) {
       console.error('Failed to save settings:', err.message);
       setSettingsMessage({ show: true, text: 'Failed to save settings.', severity: 'error' });
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const handleSaveScreenshotRules = async () => {
+    try {
+      setSettingsLoading(true);
+      const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+      const res = await axios.post(`${API_URL}/api/settings/screenshot-rules`, screenshotRules, authHeader);
+      setScreenshotRules(res.data.value);
+      setSettingsMessage({ show: true, text: 'Smart screenshot rules saved successfully.', severity: 'success' });
+    } catch (err) {
+      console.error('Failed to save screenshot rules:', err.message);
+      setSettingsMessage({ show: true, text: 'Failed to save screenshot rules.', severity: 'error' });
     } finally {
       setSettingsLoading(false);
     }
@@ -172,6 +201,65 @@ function ManagerSettings() {
               startIcon={settingsLoading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
             >
               {settingsLoading ? 'Saving...' : 'Save Settings'}
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+
+      <Card sx={{ borderRadius: 3, mt: 3 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <MonitorIcon color="primary" /> Smart Screenshot Capture Rules
+          </Typography>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+            Configure how frequently screenshots are captured from employee screens based on their real-time daily productivity.
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mb: 3 }}>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              <TextField
+                label="High Productivity Threshold (%)"
+                type="number"
+                size="small"
+                value={screenshotRules.threshold}
+                onChange={(e) => setScreenshotRules(prev => ({ ...prev, threshold: e.target.value }))}
+                helperText="Productivity score equal or above this is considered high productivity."
+                sx={{ flex: 1, minWidth: 200 }}
+              />
+            </Box>
+
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              <TextField
+                label="Standard Screenshot Interval (minutes)"
+                type="number"
+                size="small"
+                value={screenshotRules.standardInterval}
+                onChange={(e) => setScreenshotRules(prev => ({ ...prev, standardInterval: e.target.value }))}
+                helperText="Screenshot frequency when productivity is below the threshold."
+                sx={{ flex: 1, minWidth: 200 }}
+              />
+              <TextField
+                label="High Productivity Screenshot Interval (minutes)"
+                type="number"
+                size="small"
+                value={screenshotRules.highProdInterval}
+                onChange={(e) => setScreenshotRules(prev => ({ ...prev, highProdInterval: e.target.value }))}
+                helperText="Screenshot frequency when productivity is high (protects privacy & saves bandwidth)."
+                sx={{ flex: 1, minWidth: 200 }}
+              />
+            </Box>
+          </Box>
+
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSaveScreenshotRules}
+              disabled={settingsLoading}
+              startIcon={settingsLoading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+            >
+              {settingsLoading ? 'Saving...' : 'Save Screenshot Rules'}
             </Button>
           </Box>
         </CardContent>

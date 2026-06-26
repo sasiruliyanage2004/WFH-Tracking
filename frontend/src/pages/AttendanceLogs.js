@@ -95,7 +95,7 @@ function AttendanceLogs() {
                   </TableCell>
                   <TableCell>
                     {rec.webcamImage ? (
-                      <IconButton color="primary" size="small" onClick={() => setSelectedPhoto(`${API_URL}${rec.webcamImage}`)}>
+                      <IconButton color="primary" size="small" onClick={() => setSelectedPhoto(rec.webcamImage.startsWith('/uploads') ? `${API_URL}${rec.webcamImage}` : rec.webcamImage)}>
                         <ViewIcon />
                       </IconButton>
                     ) : (

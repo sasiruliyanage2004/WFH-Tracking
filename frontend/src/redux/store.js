@@ -1,10 +1,37 @@
 // frontend/src/redux/store.js
 import { configureStore, createSlice } from '@reduxjs/toolkit';
 
-// Initial state
-const token = localStorage.getItem('wfh_token') || null;
-const userStr = localStorage.getItem('wfh_user');
-const user = userStr ? JSON.parse(userStr) : null;
+// Initial state with 2-hour session expiration check
+const checkSessionExpiration = () => {
+  const token = localStorage.getItem('wfh_token');
+  const lastSeenStr = localStorage.getItem('wfh_last_seen');
+  
+  if (token && lastSeenStr) {
+    const lastSeen = parseInt(lastSeenStr, 10);
+    const now = Date.now();
+    const twoHours = 2 * 60 * 60 * 1000; // 2 hours in ms
+    
+    if (now - lastSeen > twoHours) {
+      console.log('Session expired (more than 2 hours since last activity). Force logging out...');
+      localStorage.removeItem('wfh_token');
+      localStorage.removeItem('wfh_user');
+      localStorage.removeItem('wfh_last_seen');
+      return { token: null, user: null };
+    }
+  }
+  
+  const userStr = localStorage.getItem('wfh_user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  
+  // Set current last seen time if authenticated
+  if (token) {
+    localStorage.setItem('wfh_last_seen', Date.now().toString());
+  }
+  
+  return { token: token || null, user };
+};
+
+const { token, user } = checkSessionExpiration();
 
 const authSlice = createSlice({
   name: 'auth',
@@ -29,6 +56,7 @@ const authSlice = createSlice({
       state.user = action.payload.user;
       localStorage.setItem('wfh_token', action.payload.token);
       localStorage.setItem('wfh_user', JSON.stringify(action.payload.user));
+      localStorage.setItem('wfh_last_seen', Date.now().toString());
     },
     authFail: (state, action) => {
       state.loading = false;
@@ -38,6 +66,7 @@ const authSlice = createSlice({
       state.error = action.payload;
       localStorage.removeItem('wfh_token');
       localStorage.removeItem('wfh_user');
+      localStorage.removeItem('wfh_last_seen');
     },
     logout: (state) => {
       state.loading = false;
@@ -47,6 +76,7 @@ const authSlice = createSlice({
       state.error = null;
       localStorage.removeItem('wfh_token');
       localStorage.removeItem('wfh_user');
+      localStorage.removeItem('wfh_last_seen');
     },
     updateProfileSuccess: (state, action) => {
       state.user = action.payload;

@@ -13,6 +13,11 @@ function ScreenshotCapturer({ isCheckedIn }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [isCapturing, setIsCapturing] = useState(false);
   const [productivity, setProductivity] = useState(100);
+  const [screenshotRules, setScreenshotRules] = useState({
+    threshold: 70,
+    highProdInterval: 20,
+    standardInterval: 5
+  });
   const [privacyBlurEnabled, setPrivacyBlurEnabled] = useState(() => {
     const saved = localStorage.getItem('privacy_blur_enabled');
     return saved !== null ? saved === 'true' : true; // Default to true
@@ -37,13 +42,28 @@ function ScreenshotCapturer({ isCheckedIn }) {
     }
   }, [token]);
 
+  const fetchScreenshotRules = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/settings/screenshot-rules`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setScreenshotRules(res.data);
+    } catch (err) {
+      console.warn('Could not fetch screenshot rules setting.');
+    }
+  }, [token]);
+
   useEffect(() => {
     if (isAuthenticated && token && isCheckedIn && !onBreak) {
       fetchProductivity();
-      const interval = setInterval(fetchProductivity, 60000); // refresh every minute
+      fetchScreenshotRules();
+      const interval = setInterval(() => {
+        fetchProductivity();
+        fetchScreenshotRules();
+      }, 60000); // refresh every minute
       return () => clearInterval(interval);
     }
-  }, [isAuthenticated, token, isCheckedIn, onBreak, fetchProductivity]);
+  }, [isAuthenticated, token, isCheckedIn, onBreak, fetchProductivity, fetchScreenshotRules]);
 
   // Request display media for capturing screenshots
   const startScreenCapture = async () => {
@@ -237,34 +257,46 @@ function ScreenshotCapturer({ isCheckedIn }) {
       captureAndUpload();
     }, 5000);
 
-    // Repeat every 5 minutes (300000ms)
+    // Calculate dynamic interval time based on settings and productivity
+    const threshold = screenshotRules.threshold || 70;
+    const isHighProductivity = productivity >= threshold;
+    const intervalTime = isHighProductivity
+      ? (screenshotRules.highProdInterval || 20) * 60 * 1000
+      : (screenshotRules.standardInterval || 5) * 60 * 1000;
+
+    console.log(`Setting screenshot capture interval to ${intervalTime / 60000} minutes (Productivity: ${productivity}%)`);
+
     const interval = setInterval(() => {
       captureAndUpload();
-    }, 300000);
+    }, intervalTime);
 
     return () => {
       clearTimeout(initialTimeout);
       clearInterval(interval);
     };
-  }, [isAuthenticated, token, user, isCheckedIn, onBreak, isCapturing, stream, captureAndUpload]);
+  }, [isAuthenticated, token, user, isCheckedIn, onBreak, isCapturing, stream, captureAndUpload, productivity, screenshotRules]);
 
   if (!isAuthenticated) return null;
+
+  const currentIntervalMin = productivity >= (screenshotRules.threshold || 70)
+    ? (screenshotRules.highProdInterval || 20)
+    : (screenshotRules.standardInterval || 5);
 
   return (
     <Paper sx={{ p: 2, mt: 3, border: '1px solid', borderColor: 'divider' }}>
       <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
-        Visual Screenshot Telemetry (5 min Interval)
+        Visual Screenshot Telemetry ({currentIntervalMin} min Interval)
       </Typography>
       
       {isCheckedIn && (
         <Box sx={{ mb: 2 }}>
-          {productivity >= 70 ? (
+          {productivity >= (screenshotRules.threshold || 70) ? (
             <Alert icon={false} severity="success" sx={{ py: 0.5, borderRadius: 2, mb: 1 }}>
-              🛡️ <strong>Privacy Protection Active</strong>: Screenshots older than 1 hour are auto-deleted because your productivity is <strong>{productivity}%</strong> (Target &gt;= 70%).
+              🛡️ <strong>Privacy Protection Active</strong>: Screenshots older than 1 hour are auto-deleted because your productivity is <strong>{productivity}%</strong> (Target &gt;= {screenshotRules.threshold || 70}%).
             </Alert>
           ) : (
             <Alert icon={false} severity="warning" sx={{ py: 0.5, borderRadius: 2, mb: 1 }}>
-              ⚠️ <strong>Full Audit Active</strong>: Screenshots are retained due to low/idle productivity (<strong>{productivity}%</strong>). Maintain active work to enable 1-hour privacy auto-deletion.
+              ⚠️ <strong>Full Audit Active</strong>: Screenshots are retained due to low/idle productivity (<strong>{productivity}%</strong>). Maintain active work to enable {screenshotRules.threshold || 70}% privacy auto-deletion.
             </Alert>
           )}
         </Box>

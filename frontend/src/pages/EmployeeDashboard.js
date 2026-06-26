@@ -1737,7 +1737,7 @@ function EmployeeDashboard() {
                                 <Paper variant="outlined" sx={{ p: 1, display: 'flex', alignItems: 'center', gap: 1, borderRadius: 2 }}>
                                   <AttachmentIcon color="action" sx={{ fontSize: 16 }} />
                                   <Link 
-                                    href={`${API_URL}${file}`} 
+                                    href={file.startsWith('/uploads') ? `${API_URL}${file}` : file} 
                                     target="_blank" 
                                     download 
                                     sx={{ 

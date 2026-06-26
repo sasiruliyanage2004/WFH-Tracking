@@ -227,9 +227,9 @@ function EmployeeMonitoring() {
                   <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                     <Box
                       component="img"
-                      src={`${API_URL}${latestCheckin.webcamImage}`}
+                      src={latestCheckin.webcamImage.startsWith('/uploads') ? `${API_URL}${latestCheckin.webcamImage}` : latestCheckin.webcamImage}
                       alt="check-in selfie verification"
-                      onClick={() => setSelectedImage(`${API_URL}${latestCheckin.webcamImage}`)}
+                      onClick={() => setSelectedImage(latestCheckin.webcamImage.startsWith('/uploads') ? `${API_URL}${latestCheckin.webcamImage}` : latestCheckin.webcamImage)}
                       sx={{
                         width: '100%',
                         maxHeight: 280,
