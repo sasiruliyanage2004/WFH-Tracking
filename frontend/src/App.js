@@ -403,6 +403,9 @@ function App() {
     const isTrackingDashboard = path === '/dashboard' || path === '/tasks';
 
     if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
+      if (user?.role === 'SystemAdmin') {
+        return <Navigate to="/system-admin" replace />;
+      }
       return <Navigate to={(user?.role === 'Manager' || user?.role === 'SuperAdmin') ? '/manager/dashboard' : '/dashboard'} replace />;
     }
 

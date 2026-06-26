@@ -168,15 +168,14 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
   const isDesktop = !!window.api;
 
   let links = [];
-
-  if (isDesktop) {
-    // Desktop App: Strictly for Time Tracking (All users)
+  if (user?.role === 'SystemAdmin') {
+    links = systemAdminLinks;
+  } else if (isDesktop) {
+    // Desktop App: Strictly for Time Tracking (All users except SystemAdmin)
     links = employeeLinks;
   } else {
     // Web App
-    if (user?.role === 'SystemAdmin') {
-      links = systemAdminLinks;
-    } else if (user?.role === 'Manager' || user?.role === 'SuperAdmin') {
+    if (user?.role === 'Manager' || user?.role === 'SuperAdmin') {
       // Management only, no tracking tools on web for managers
       links = managerLinks.filter(link => {
         if (link.text === 'My Tracker' || link.text === 'My Tasks' || link.text === 'My Attendance' || link.isDivider) return false;
@@ -190,7 +189,6 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
       links = employeeLinks.filter(link => link.text !== 'My Tracker' && link.text !== 'My Tasks');
     }
   }
-
   // Render navigation menu
   const drawerContent = (expanded) => (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
