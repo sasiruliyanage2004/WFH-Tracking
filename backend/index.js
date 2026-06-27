@@ -2249,12 +2249,21 @@ app.get('/api/monitoring/screenshots/:employeeId', authenticate, authorize(['Man
       }
     }
 
-    const { data: list, error } = await supabase
+    const { date } = req.query;
+    let query = supabase
       .from('screenshots')
       .select('*')
-      .eq('employee_id', req.params.employeeId)
-      .order('timestamp', { ascending: false })
-      .limit(100);
+      .eq('employee_id', req.params.employeeId);
+
+    if (date) {
+      const startOfDay = `${date}T00:00:00.000Z`;
+      const endOfDay = `${date}T23:59:59.999Z`;
+      query = query.gte('timestamp', startOfDay).lte('timestamp', endOfDay).order('timestamp', { ascending: true });
+    } else {
+      query = query.order('timestamp', { ascending: false }).limit(100);
+    }
+
+    const { data: list, error } = await query;
 
     if (error) throw error;
     res.json(formatScreenshot(list));

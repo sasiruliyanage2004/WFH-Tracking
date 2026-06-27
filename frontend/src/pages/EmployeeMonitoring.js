@@ -25,7 +25,8 @@ import {
   DialogActions,
   IconButton,
   Chip,
-  Checkbox
+  Checkbox,
+  TextField
 } from '@mui/material';
 import {
   ArrowBack as BackIcon,
@@ -42,8 +43,10 @@ function EmployeeMonitoring() {
   const { employeeId } = useParams();
   const navigate = useNavigate();
   const { token } = useSelector((state) => state.auth);
-
   // States
+  const [selectedDate, setSelectedDate] = useState(() => {
+    return new Date().toISOString().split('T')[0]; // Default to today
+  });
   const [employeeInfo, setEmployeeInfo] = useState(null);
   const [attendance, setAttendance] = useState([]);
   const [screenshots, setScreenshots] = useState([]);
@@ -92,32 +95,36 @@ function EmployeeMonitoring() {
     }
   };
 
-
-
   useEffect(() => {
     const fetchEmployeeDetails = async () => {
       try {
         setLoading(true);
         const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-        // Get attendance history
-        const attRes = await axios.get(`${API_URL}/api/attendance/all?employeeId=${employeeId}`, authHeader);
+        // 1. Get attendance history for the selected date
+        const attRes = await axios.get(`${API_URL}/api/attendance/all?employeeId=${employeeId}&date=${selectedDate}`, authHeader);
         setAttendance(attRes.data);
 
+        // 2. Set employee info (fetch from general history if selected date is empty)
         if (attRes.data.length > 0) {
           setEmployeeInfo(attRes.data[0].employee);
+        } else if (!employeeInfo) {
+          const allAttRes = await axios.get(`${API_URL}/api/attendance/all?employeeId=${employeeId}`, authHeader);
+          if (allAttRes.data.length > 0) {
+            setEmployeeInfo(allAttRes.data[0].employee);
+          }
         }
 
-        // Get screenshots
-        const ssRes = await axios.get(`${API_URL}/api/monitoring/screenshots/${employeeId}`, authHeader);
+        // 3. Get screenshots for the selected date
+        const ssRes = await axios.get(`${API_URL}/api/monitoring/screenshots/${employeeId}?date=${selectedDate}`, authHeader);
         setScreenshots(ssRes.data);
 
-        // Get activity logs
+        // 4. Get activity logs
         const actRes = await axios.get(`${API_URL}/api/monitoring/activity/${employeeId}`, authHeader);
         setActivity(actRes.data);
 
-        // Get app usage logs
-        const usageRes = await axios.get(`${API_URL}/api/monitoring/usage/${employeeId}`, authHeader);
+        // 5. Get app usage logs for the selected date
+        const usageRes = await axios.get(`${API_URL}/api/monitoring/usage/${employeeId}?date=${selectedDate}`, authHeader);
         setAppUsage(usageRes.data);
 
       } catch (err) {
@@ -128,7 +135,8 @@ function EmployeeMonitoring() {
     };
 
     fetchEmployeeDetails();
-  }, [employeeId, token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employeeId, token, selectedDate]);
 
   if (loading) {
     return (
@@ -137,16 +145,15 @@ function EmployeeMonitoring() {
       </Box>
     );
   }
-
   // Get most recent check-in location coords
   const latestCheckin = attendance.length > 0 ? attendance[0] : null;
   const latitude = latestCheckin?.location?.latitude || 40.7128;
   const longitude = latestCheckin?.location?.longitude || -74.0060;
-  const mapAddress = latestCheckin?.location?.address || 'No location logged';
+  const mapAddress = latestCheckin?.location?.address || (latestCheckin ? 'No location logged' : 'Employee did not check in on this date');
 
-  // Get productivity score for today
-  const todayActivity = activity.length > 0 ? activity[0] : null;
-  const prodScore = todayActivity ? todayActivity.productivityPercentage : 100;
+  // Get productivity score for selected date
+  const selectedDateActivity = activity.find(act => act.date === selectedDate);
+  const prodScore = selectedDateActivity ? selectedDateActivity.productivityPercentage : 100;
 
   // Embeddable Google Map URL without API Key
   const googleMapEmbedUrl = `https://maps.google.com/maps?q=${latitude},${longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
@@ -175,14 +182,39 @@ function EmployeeMonitoring() {
 
   return (
     <Box sx={{ pb: 5 }}>
-      {/* Back Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-        <Button variant="outlined" startIcon={<BackIcon />} onClick={() => navigate('/manager/dashboard')}>
-          Back to Dashboard
-        </Button>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>
-          Monitoring: {employeeInfo?.name || 'Employee Profile'}
-        </Typography>
+      {/* Back Header & Date Picker */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Button variant="outlined" startIcon={<BackIcon />} onClick={() => navigate('/manager/dashboard')}>
+            Back to Dashboard
+          </Button>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            Monitoring: {employeeInfo?.name || 'Employee Profile'}
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+            Select Date:
+          </Typography>
+          <TextField
+            type="date"
+            size="small"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            slotProps={{
+              htmlInput: {
+                max: new Date().toISOString().split('T')[0]
+              }
+            }}
+            sx={{
+              width: 170,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                bgcolor: 'background.paper',
+              }
+            }}
+          />
+        </Box>
       </Box>
 
       <Grid container spacing={3}>
@@ -243,7 +275,7 @@ function EmployeeMonitoring() {
                   </Box>
                 ) : (
                   <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 5 }}>
-                    No identity verification selfie captured for this check-in.
+                    {latestCheckin ? 'No identity verification selfie captured for this check-in.' : 'Employee did not check in on this date.'}
                   </Typography>
                 )}
               </Box>
@@ -261,8 +293,8 @@ function EmployeeMonitoring() {
         <Grid item xs={12}>
           <Card sx={{ borderRadius: 3 }}>
             <CardContent>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <TimeIcon color="primary" /> Today's Breaks & Pauses
+               <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TimeIcon color="primary" /> Breaks & Pauses
               </Typography>
               <Divider sx={{ mb: 2 }} />
               {latestCheckin?.breaks && latestCheckin.breaks.length > 0 ? (
@@ -283,7 +315,7 @@ function EmployeeMonitoring() {
                 </Box>
               ) : (
                 <Typography variant="body2" color="text.secondary">
-                  No breaks taken today.
+                  {latestCheckin ? 'No breaks taken on this date.' : 'Employee did not check in on this date.'}
                 </Typography>
               )}
             </CardContent>
