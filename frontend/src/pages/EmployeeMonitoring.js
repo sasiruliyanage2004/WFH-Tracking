@@ -206,13 +206,20 @@ function EmployeeMonitoring() {
                 max: new Date().toISOString().split('T')[0]
               }
             }}
-            sx={{
+            sx={(theme) => ({
               width: 170,
               '& .MuiOutlinedInput-root': {
                 borderRadius: 2,
                 bgcolor: 'background.paper',
+                '& input': {
+                  color: 'text.primary',
+                },
+              },
+              '& input::-webkit-calendar-picker-indicator': {
+                filter: theme.palette.mode === 'dark' ? 'invert(1)' : 'none',
+                cursor: 'pointer',
               }
-            }}
+            })}
           />
         </Box>
       </Box>
