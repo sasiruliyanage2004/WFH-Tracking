@@ -538,109 +538,126 @@ function startTracking() {
 
   console.log('Desktop Agent: Active window tracking started.');
 
-  // Spawn the PowerShell activity monitor script
-  try {
-    const monitorSourcePath = path.join(__dirname, 'activity-monitor.ps1');
-    const monitorPath = path.join(app.getPath('userData'), 'activity-monitor.ps1');
-
+  // Spawn the PowerShell activity monitor script (Windows only)
+  if (process.platform === 'win32') {
     try {
-      const scriptContent = fs.readFileSync(monitorSourcePath);
-      fs.writeFileSync(monitorPath, scriptContent);
-      fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: Copied activity-monitor.ps1 to userData successfully.\n`);
-    } catch (err) {
-      fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: Failed to copy activity-monitor.ps1: ${err.message}\n`);
-    }
+      const monitorSourcePath = path.join(__dirname, 'activity-monitor.ps1');
+      const monitorPath = path.join(app.getPath('userData'), 'activity-monitor.ps1');
 
-    const pathExists = fs.existsSync(monitorPath);
-    try {
-      fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: Spawning background activity monitor sidecar. monitorPath="${monitorPath}" exists=${pathExists}\n`);
-    } catch (e) {}
-    console.log('Desktop Agent: Spawning background activity monitor sidecar...');
-    
-    activityProcess = spawn('powershell', [
-      '-NoProfile',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-File',
-      monitorPath
-    ]);
-
-    try {
-      fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: Spawned powershell. PID=${activityProcess.pid}\n`);
-    } catch (e) {}
-
-    activityProcess.stdout.on('data', (data) => {
-      const rawText = data.toString('utf8');
-      const cleanText = rawText.replace(/\0/g, '').replace(/\uFEFF/g, '').replace(/\uFFFE/g, '');
-      
       try {
-        fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Activity Monitor Stdout - Raw length: ${rawText.length}, Clean: "${cleanText.trim()}"\n`);
-      } catch (e) {}
-
-      const outputLines = cleanText.split('\n');
-      for (let line of outputLines) {
-        line = line.trim();
-        if (line.startsWith('KEYS:')) {
-          // Parse "KEYS:X|CLICKS:Y"
-          const parts = line.split('|');
-          const keys = parseInt(parts[0].replace('KEYS:', '')) || 0;
-          const clicks = parseInt(parts[1].replace('CLICKS:', '')) || 0;
-
-          localKeyboardCount += keys;
-          localMouseCount += clicks;
-
-          // If there was any user input (keys or clicks) in this 10-second tick,
-          // or if the current active app is classified as 'Productive',
-          // it counts as active time, otherwise idle.
-          if (keys > 0 || clicks > 0 || currentActiveAppType === 'Productive') {
-            activeSecondsInTick += 10;
-          } else {
-            idleSecondsInTick += 10;
-          }
-          
-          try {
-            fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Parsed Activity - Keys: ${keys}, Clicks: ${clicks}. Cumulative Active in tick: ${activeSecondsInTick}s, Idle: ${idleSecondsInTick}s\n`);
-          } catch (e) {}
-        }
+        const scriptContent = fs.readFileSync(monitorSourcePath);
+        fs.writeFileSync(monitorPath, scriptContent);
+        fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: Copied activity-monitor.ps1 to userData successfully.\n`);
+      } catch (err) {
+        fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: Failed to copy activity-monitor.ps1: ${err.message}\n`);
       }
-    });
 
-    activityProcess.stderr.on('data', (data) => {
-      const debugLogPath = path.join(app.getPath('userData'), 'agent_debug.log');
-      const errText = data.toString();
-      console.error('Activity monitor stderr:', errText);
+      const pathExists = fs.existsSync(monitorPath);
       try {
-        fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Activity Monitor STDERR: "${errText.trim()}"\n`);
+        fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: Spawning background activity monitor sidecar. monitorPath="${monitorPath}" exists=${pathExists}\n`);
       } catch (e) {}
-    });
+      console.log('Desktop Agent: Spawning background activity monitor sidecar...');
+      
+      activityProcess = spawn('powershell', [
+        '-NoProfile',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        monitorPath
+      ]);
 
-    activityProcess.on('close', (code) => {
-      const debugLogPath = path.join(app.getPath('userData'), 'agent_debug.log');
-      console.log(`Activity monitor process exited with code ${code}`);
       try {
-        fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Activity Monitor Process EXITED with code: ${code}\n`);
+        fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: Spawned powershell. PID=${activityProcess.pid}\n`);
       } catch (e) {}
-    });
 
-    activityProcess.on('error', (err) => {
+      activityProcess.stdout.on('data', (data) => {
+        const rawText = data.toString('utf8');
+        const cleanText = rawText.replace(/\0/g, '').replace(/\uFEFF/g, '').replace(/\uFFFE/g, '');
+        
+        try {
+          fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Activity Monitor Stdout - Raw length: ${rawText.length}, Clean: "${cleanText.trim()}"\n`);
+        } catch (e) {}
+
+        const outputLines = cleanText.split('\n');
+        for (let line of outputLines) {
+          line = line.trim();
+          if (line.startsWith('KEYS:')) {
+            // Parse "KEYS:X|CLICKS:Y"
+            const parts = line.split('|');
+            const keys = parseInt(parts[0].replace('KEYS:', '')) || 0;
+            const clicks = parseInt(parts[1].replace('CLICKS:', '')) || 0;
+
+            localKeyboardCount += keys;
+            localMouseCount += clicks;
+
+            // If there was any user input (keys or clicks) in this 10-second tick,
+            // or if the current active app is classified as 'Productive',
+            // it counts as active time, otherwise idle.
+            if (keys > 0 || clicks > 0 || currentActiveAppType === 'Productive') {
+              activeSecondsInTick += 10;
+            } else {
+              idleSecondsInTick += 10;
+            }
+            
+            try {
+              fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Parsed Activity - Keys: ${keys}, Clicks: ${clicks}. Cumulative Active in tick: ${activeSecondsInTick}s, Idle: ${idleSecondsInTick}s\n`);
+            } catch (e) {}
+          }
+        }
+      });
+
+      activityProcess.stderr.on('data', (data) => {
+        const debugLogPath = path.join(app.getPath('userData'), 'agent_debug.log');
+        const errText = data.toString();
+        console.error('Activity monitor stderr:', errText);
+        try {
+          fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Activity Monitor STDERR: "${errText.trim()}"\n`);
+        } catch (e) {}
+      });
+
+      activityProcess.on('close', (code) => {
+        const debugLogPath = path.join(app.getPath('userData'), 'agent_debug.log');
+        console.log(`Activity monitor process exited with code ${code}`);
+        try {
+          fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Activity Monitor Process EXITED with code: ${code}\n`);
+        } catch (e) {}
+      });
+
+      activityProcess.on('error', (err) => {
+        const debugLogPath = path.join(app.getPath('userData'), 'agent_debug.log');
+        console.error('Activity monitor process error:', err.message);
+        try {
+          fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Activity Monitor Process ERROR: ${err.message}\n`);
+        } catch (e) {}
+      });
+    } catch (err) {
       const debugLogPath = path.join(app.getPath('userData'), 'agent_debug.log');
-      console.error('Activity monitor process error:', err.message);
+      console.error('Failed to start background activity monitor:', err.message);
       try {
-        fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Activity Monitor Process ERROR: ${err.message}\n`);
+        fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Failed to start background activity monitor: ${err.message}\n`);
       } catch (e) {}
-    });
-  } catch (err) {
-    const debugLogPath = path.join(app.getPath('userData'), 'agent_debug.log');
-    console.error('Failed to start background activity monitor:', err.message);
-    try {
-      fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Failed to start background activity monitor: ${err.message}\n`);
-    } catch (e) {}
+    }
   }
 
   // Run tracking loop every 10 seconds
   trackingInterval = setInterval(() => {
     totalTrackedSeconds += 10;
     tickCount++;
+
+    // Calculate active/idle seconds on non-Windows platforms using Electron powerMonitor
+    if (process.platform !== 'win32') {
+      try {
+        const idleTime = powerMonitor.getSystemIdleTime();
+        if (idleTime < 10 || currentActiveAppType === 'Productive') {
+          activeSecondsInTick += 10;
+        } else {
+          idleSecondsInTick += 10;
+        }
+      } catch (err) {
+        console.error('Failed to get system idle time:', err.message);
+        activeSecondsInTick += 10;
+      }
+    }
 
     // Capture active window
     captureActiveWindow();
@@ -724,8 +741,38 @@ async function flushActivityTelemetry() {
   }
 }
 
+function handleActiveWindowOutput(stdout) {
+  const fs = require('fs');
+  const logPath = path.join(app.getPath('userData'), 'agent_debug.log');
+  const output = stdout.trim().replace(/^\uFEFF/, '');
+  
+  try {
+    fs.appendFileSync(logPath, `[${new Date().toISOString()}] Captured output: "${output}"\n`);
+  } catch (e) {}
+
+  if (output && output.startsWith('App:')) {
+    // Parse App:AppName|Title:WindowTitle
+    const parts = output.split('|');
+    const appName = parts[0] ? parts[0].replace('App:', '').trim() : 'Unknown';
+    const windowTitle = parts[1] ? parts[1].replace('Title:', '').trim() : 'Active Window';
+    
+    const type = classifyApp(appName, windowTitle);
+    currentActiveAppType = type;
+
+    // Add to local buffer
+    if (!usageBuffer[appName]) {
+      usageBuffer[appName] = { windowTitle, type, seconds: 0 };
+    }
+    usageBuffer[appName].seconds += 10;
+    usageBuffer[appName].windowTitle = windowTitle; // Update with latest title
+  }
+}
+
 function captureActiveWindow() {
-  const psScript = `
+  const platform = process.platform;
+
+  if (platform === 'win32') {
+    const psScript = `
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
@@ -753,48 +800,72 @@ try {
 } catch {
     # Fail silently
 }
-  `.trim();
+    `.trim();
 
-  const buffer = Buffer.from(psScript, 'utf16le');
-  const base64Script = buffer.toString('base64');
-  const command = `powershell -NoProfile -EncodedCommand ${base64Script}`;
+    const buffer = Buffer.from(psScript, 'utf16le');
+    const base64Script = buffer.toString('base64');
+    const command = `powershell -NoProfile -EncodedCommand ${base64Script}`;
 
-  exec(command, (error, stdout, stderr) => {
-    const fs = require('fs');
-    const logPath = path.join(app.getPath('userData'), 'agent_debug.log');
-
-    if (error) {
-      console.error('Active Window Capture Error:', error.message);
-      try {
-        fs.appendFileSync(logPath, `[${new Date().toISOString()}] ERROR: ${error.message}\n`);
-      } catch (e) {}
-      return;
-    }
-
-    const output = stdout.trim().replace(/^\uFEFF/, '');
-    
-    try {
-      fs.appendFileSync(logPath, `[${new Date().toISOString()}] Captured output: "${output}" (BOM removed: ${stdout.trim() !== output})\n`);
-    } catch (e) {}
-
-    if (output && output.startsWith('App:')) {
-      // Parse App:AppName|Title:WindowTitle
-      const parts = output.split('|');
-      const appName = parts[0] ? parts[0].replace('App:', '').trim() : 'Unknown';
-      const windowTitle = parts[1] ? parts[1].replace('Title:', '').trim() : 'Active Window';
-      
-      const type = classifyApp(appName, windowTitle);
-      currentActiveAppType = type;
-
-      // Add to local buffer
-      if (!usageBuffer[appName]) {
-        usageBuffer[appName] = { windowTitle, type, seconds: 0 };
+    exec(command, (error, stdout, stderr) => {
+      if (!error && stdout) {
+        handleActiveWindowOutput(stdout);
       }
-      usageBuffer[appName].seconds += 10;
-      usageBuffer[appName].windowTitle = windowTitle; // Update with latest title
-    }
-  });
+    });
+  } else if (platform === 'darwin') {
+    const appleScript = `
+tell application "System Events"
+    set frontmostProcess to first process whose frontmost is true
+    set processName to name of frontmostProcess
+    tell frontmostProcess
+        try
+            set windowTitle to name of first window
+        on error
+            set windowTitle to "Active Window"
+        end try
+    end tell
+    return "App:" & processName & "|Title:" & windowTitle
+end tell
+    `.trim();
+
+    const escapedScript = appleScript.replace(/'/g, "'\\''");
+    const command = `osascript -e '${escapedScript}'`;
+
+    exec(command, (error, stdout, stderr) => {
+      if (!error && stdout) {
+        handleActiveWindowOutput(stdout);
+      }
+    });
+  } else {
+    // Linux
+    const linuxScript = `
+if command -v xdotool >/dev/null 2>&1; then
+    active_win_id=$(xdotool getactivewindow 2>/dev/null)
+    if [ ! -z "$active_win_id" ]; then
+        pid=$(xdotool getwindowpid $active_win_id 2>/dev/null)
+        if [ ! -z "$pid" ]; then
+            appName=$(ps -p $pid -o comm= 2>/dev/null)
+        fi
+        windowTitle=$(xdotool getwindowname $active_win_id 2>/dev/null)
+        echo "App:\${appName:-Unknown}|Title:\${windowTitle:-Active Window}"
+    fi
+else
+    active_win_id=$(xprop -root _NET_ACTIVE_WINDOW 2>/dev/null | awk '{print $5}')
+    if [ ! -z "$active_win_id" ] && [ "$active_win_id" != "0x0" ]; then
+        appName=$(xprop -id $active_win_id WM_CLASS 2>/dev/null | awk -F '"' '{print $4}')
+        windowTitle=$(xprop -id $active_win_id _NET_WM_NAME 2>/dev/null | awk -F '"' '{print $2}')
+        echo "App:\${appName:-Unknown}|Title:\${windowTitle:-Active Window}"
+    fi
+fi
+    `.trim();
+
+    exec(linuxScript, (error, stdout, stderr) => {
+      if (!error && stdout) {
+        handleActiveWindowOutput(stdout);
+      }
+    });
+  }
 }
+
 
 
 async function flushUsageBuffer() {
@@ -840,7 +911,7 @@ function classifyApp(appName, windowTitle) {
   const appLower = appName.toLowerCase();
   const titleLower = windowTitle.toLowerCase();
 
-  const productiveApps = ['code', 'idea64', 'cmd', 'powershell', 'wt', 'slack', 'teams', 'zoom', 'discord', 'git', 'github', 'sourcetree', 'postman', 'mongodbcompass', 'dbeaver', 'pgadmin4', 'node', 'npm', 'antigravity'];
+  const productiveApps = ['code', 'idea64', 'cmd', 'powershell', 'wt', 'terminal', 'iterm', 'iterm2', 'gnome-terminal', 'konsole', 'xfce4-terminal', 'slack', 'teams', 'zoom', 'discord', 'git', 'github', 'sourcetree', 'postman', 'mongodbcompass', 'dbeaver', 'pgadmin4', 'node', 'npm', 'antigravity'];
   const productiveKeywords = ['visual studio code', 'vs code', 'stack overflow', 'github', 'supabase', 'pull request', 'jira', 'trello', 'figma', 'bitbucket', 'localhost', 'document', 'sheet', 'slide', 'excel', 'word', 'powerpoint', 'wfh-tracking', 'antigravity'];
 
   const unproductiveApps = ['spotify', 'steam', 'epicgames', 'netflix', 'league of legends', 'valheim', 'minecraft', 'game'];
