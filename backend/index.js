@@ -628,14 +628,25 @@ app.post('/api/users/admins', authenticate, authorize('SuperAdmin'), async (req,
         company_id: req.user.company_id,
         force_password_reset: true
       }])
-      .select('id, name, email, role, department, created_at')
+      .select('id, name, email, role, department, created_at, is_active')
       .single();
 
     if (error) throw error;
 
+    const mappedUser = {
+      _id: newUser.id,
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+      department: newUser.department,
+      createdAt: newUser.created_at,
+      isActive: newUser.is_active
+    };
+
     res.status(201).json({
       message: 'Manager created successfully. Temporary password is: password1234',
-      user: newUser
+      user: mappedUser
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

@@ -256,9 +256,9 @@ function AdminList() {
       ) : (
         <Grid container spacing={2.5}>
           {filtered.map((adm) => {
-            const isSelf = adm._id.toString() === user?.id?.toString();
+            const isSelf = (adm.id || adm._id)?.toString() === (user?.id || user?._id)?.toString();
             return (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={adm._id}>
+              <Grid item xs={12} sm={6} md={4} lg={3} key={adm.id || adm._id}>
                 <Card
                   sx={{
                     borderRadius: 3,
@@ -399,7 +399,7 @@ function AdminList() {
             </DialogContent>
             <DialogActions sx={{ p: 2.5, gap: 1 }}>
               <Button onClick={() => setSelectedAdm(null)} color="inherit">Close</Button>
-              {selectedAdm._id.toString() !== user?.id?.toString() && (
+              {(selectedAdm.id || selectedAdm._id)?.toString() !== (user?.id || user?._id)?.toString() && (
                 <Button
                   variant="contained"
                   color="error"
