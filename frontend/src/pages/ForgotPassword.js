@@ -16,12 +16,13 @@ import {
   IconButton,
   InputAdornment
 } from '@mui/material';
-import { Monitor as MonitoringIcon, Visibility, VisibilityOff } from '@mui/icons-material';
+import { Monitor as MonitoringIcon, Visibility, VisibilityOff, Business as BusinessIcon, Email as EmailIcon } from '@mui/icons-material';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function ForgotPassword() {
   const isElectron = window.api !== undefined;
+  const [companyCode, setCompanyCode] = useState('');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -42,11 +43,11 @@ function ForgotPassword() {
       setErrorMsg('');
       setInfoMsg('');
 
-      const res = await axios.post(`${API_URL}/api/auth/forgot-password`, { email });
+      const res = await axios.post(`${API_URL}/api/auth/forgot-password`, { email, companyCode });
       setInfoMsg(res.data.message);
       setStep(2); // move to reset password step
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Email not found.');
+      setErrorMsg(err.response?.data?.message || 'Email and Company Code mismatch.');
     } finally {
       setLoading(false);
     }
@@ -61,7 +62,7 @@ function ForgotPassword() {
       setErrorMsg('');
       setInfoMsg('');
 
-      const res = await axios.post(`${API_URL}/api/auth/reset-password`, { email, code, newPassword });
+      const res = await axios.post(`${API_URL}/api/auth/reset-password`, { email, code, newPassword, companyCode });
       setInfoMsg(res.data.message);
       
       setTimeout(() => {
@@ -154,6 +155,25 @@ function ForgotPassword() {
               </Typography>
               
               <TextField
+                label="Company Name / Code"
+                variant="outlined"
+                type="text"
+                fullWidth
+                value={companyCode}
+                onChange={(e) => setCompanyCode(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <BusinessIcon sx={{ color: '#94a3b8', fontSize: 20 }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  mb: 2,
+                }}
+              />
+              
+              <TextField
                 label="Email Address"
                 variant="outlined"
                 type="email"
@@ -161,6 +181,13 @@ function ForgotPassword() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <EmailIcon sx={{ color: '#94a3b8', fontSize: 20 }} />
+                    </InputAdornment>
+                  ),
+                }}
                 sx={{
                   mb: { xs: 2, lg: 3 },
                   '@media (max-height: 850px)': { mb: 2 },

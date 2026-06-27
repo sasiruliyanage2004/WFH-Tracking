@@ -81,6 +81,20 @@ function checkRollingWarning(employee, activeSeconds, idleSeconds, minMinutesSet
   return { send: false, productivityPercentage };
 }
 
+function stripEmailPrefix(email) {
+  if (!email) return '';
+  const parts = email.split(':');
+  return parts.length > 1 ? parts[1] : parts[0];
+}
+
+function getSearchEmails(email, companyId) {
+  const cleanEmail = email.trim().toLowerCase();
+  if (companyId) {
+    return [`${companyId}:${cleanEmail}`, cleanEmail];
+  }
+  return [`system:${cleanEmail}`, cleanEmail];
+}
+
 const app = express();
 const server = http.createServer(app);
 
@@ -439,14 +453,16 @@ app.post('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Manager
   try {
     if (!name || !email) return res.status(400).json({ message: 'Name and email are required.' });
 
-    // Check if user already exists
+    // Check if user already exists in the same company
+    const searchEmails = getSearchEmails(email, req.user.company_id);
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
-      .eq('email', email.toLowerCase())
+      .in('email', searchEmails)
+      .eq('company_id', req.user.company_id)
       .maybeSingle();
 
-    if (existingUser) return res.status(400).json({ message: 'Email is already registered.' });
+    if (existingUser) return res.status(400).json({ message: 'Email is already registered in this company.' });
 
     // Temporary password (user must reset)
     const tempPassword = 'password1234';
@@ -458,7 +474,7 @@ app.post('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Manager
       .insert([{
         id: userId,
         name,
-        email: email.toLowerCase(),
+        email: `${req.user.company_id}:${email.toLowerCase()}`,
         password: hashedPassword,
         role: 'Employee',
         department: department || 'Engineering',
@@ -472,7 +488,10 @@ app.post('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Manager
 
     res.status(201).json({
       message: 'Employee created successfully. Temporary password is: password1234',
-      user: newUser
+      user: {
+        ...newUser,
+        email: stripEmailPrefix(newUser.email)
+      }
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -515,7 +534,7 @@ app.get('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Manager'
         _id: emp.id,
         id: emp.id,
         name: emp.name,
-        email: emp.email,
+        email: stripEmailPrefix(emp.email),
         department: emp.department,
         role: emp.role,
         profilePic: emp.profile_pic,
@@ -604,13 +623,16 @@ app.post('/api/users/admins', authenticate, authorize('SuperAdmin'), async (req,
   try {
     if (!name || !email) return res.status(400).json({ message: 'Name and email are required.' });
 
+    // Check if user already exists in the same company
+    const searchEmails = getSearchEmails(email, req.user.company_id);
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
-      .eq('email', email.toLowerCase())
+      .in('email', searchEmails)
+      .eq('company_id', req.user.company_id)
       .maybeSingle();
 
-    if (existingUser) return res.status(400).json({ message: 'Email is already registered.' });
+    if (existingUser) return res.status(400).json({ message: 'Email is already registered in this company.' });
 
     const tempPassword = 'password1234';
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
@@ -621,7 +643,7 @@ app.post('/api/users/admins', authenticate, authorize('SuperAdmin'), async (req,
       .insert([{
         id: userId,
         name,
-        email: email.toLowerCase(),
+        email: `${req.user.company_id}:${email.toLowerCase()}`,
         password: hashedPassword,
         role: 'Manager',
         department: department || 'Engineering',
@@ -637,7 +659,7 @@ app.post('/api/users/admins', authenticate, authorize('SuperAdmin'), async (req,
       _id: newUser.id,
       id: newUser.id,
       name: newUser.name,
-      email: newUser.email,
+      email: stripEmailPrefix(newUser.email),
       role: newUser.role,
       department: newUser.department,
       createdAt: newUser.created_at,
@@ -668,7 +690,7 @@ app.get('/api/users/admins', authenticate, authorize('SuperAdmin'), async (req, 
       _id: adm.id,
       id: adm.id,
       name: adm.name,
-      email: adm.email,
+      email: stripEmailPrefix(adm.email),
       department: adm.department,
       role: adm.role,
       profilePic: adm.profile_pic,
@@ -756,7 +778,7 @@ app.get('/api/users/superadmins', authenticate, authorize('SuperAdmin'), async (
       _id: adm.id,
       id: adm.id,
       name: adm.name,
-      email: adm.email,
+      email: stripEmailPrefix(adm.email),
       department: adm.department,
       role: adm.role,
       profilePic: adm.profile_pic,
@@ -775,13 +797,16 @@ app.post('/api/users/superadmins', authenticate, authorize('SuperAdmin'), async 
   try {
     const { name, email, department } = req.body;
 
+    // Check if user already exists in the same company
+    const searchEmails = getSearchEmails(email, req.user.company_id);
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
-      .eq('email', email.toLowerCase())
+      .in('email', searchEmails)
+      .eq('company_id', req.user.company_id)
       .maybeSingle();
 
-    if (existingUser) return res.status(400).json({ message: 'User with this email already exists' });
+    if (existingUser) return res.status(400).json({ message: 'User with this email already exists in this company.' });
 
     const hashedPassword = await bcrypt.hash('password1234', 10);
     const userId = crypto.randomBytes(12).toString('hex');
@@ -791,7 +816,7 @@ app.post('/api/users/superadmins', authenticate, authorize('SuperAdmin'), async 
       .insert([{
         id: userId,
         name,
-        email: email.toLowerCase(),
+        email: `${req.user.company_id}:${email.toLowerCase()}`,
         password: hashedPassword,
         role: 'SuperAdmin',
         department: department || 'Management',
@@ -807,7 +832,7 @@ app.post('/api/users/superadmins', authenticate, authorize('SuperAdmin'), async 
       _id: newUser.id,
       id: newUser.id,
       name: newUser.name,
-      email: newUser.email,
+      email: stripEmailPrefix(newUser.email),
       role: newUser.role,
       department: newUser.department,
       profilePic: newUser.profile_pic
@@ -986,15 +1011,42 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 app.post('/api/auth/login', async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, companyCode } = req.body;
   try {
-    const { data: user, error } = await supabase
+    let companyId = null;
+    let searchEmails = [];
+
+    if (companyCode && companyCode.trim() !== '') {
+      const { data: company } = await supabase
+        .from('companies')
+        .select('id')
+        .ilike('name', companyCode.trim())
+        .maybeSingle();
+
+      if (!company) {
+        return res.status(400).json({ message: 'Invalid Company Code / Name.' });
+      }
+      companyId = company.id;
+      searchEmails = [`${companyId}:${email.toLowerCase()}`, email.toLowerCase()];
+    } else {
+      // Platform Owner/SystemAdmin login
+      searchEmails = [`system:${email.toLowerCase()}`, email.toLowerCase()];
+    }
+
+    let query = supabase
       .from('users')
       .select('*, company:companies(status)')
-      .eq('email', email.toLowerCase())
-      .maybeSingle();
+      .in('email', searchEmails);
 
-    if (error || !user) return res.status(400).json({ message: 'Invalid credentials.' });
+    if (companyId) {
+      query = query.eq('company_id', companyId);
+    } else {
+      query = query.is('company_id', null);
+    }
+
+    const { data: user, error } = await query.maybeSingle();
+
+    if (error || !user) return res.status(400).json({ message: 'Invalid credentials or missing Company Code.' });
     
     // Check if company is deactivated
     if (user.company && user.company.status === 'inactive') {
@@ -1040,7 +1092,7 @@ app.post('/api/auth/login', async (req, res) => {
         id: user.id,
         _id: user.id,
         name: user.name,
-        email: user.email,
+        email: stripEmailPrefix(user.email),
         role: user.role,
         department: user.department,
         profilePic: user.profile_pic,
@@ -1126,7 +1178,7 @@ app.put('/api/auth/profile', authenticate, async (req, res) => {
       id: updatedUser.id,
       _id: updatedUser.id,
       name: updatedUser.name,
-      email: updatedUser.email,
+      email: stripEmailPrefix(updatedUser.email),
       role: updatedUser.role,
       department: updatedUser.department,
       profilePic: updatedUser.profile_pic
@@ -1138,15 +1190,41 @@ app.put('/api/auth/profile', authenticate, async (req, res) => {
 
 // Database-backed OTP store for password reset verification
 app.post('/api/auth/forgot-password', async (req, res) => {
-  const { email } = req.body;
+  const { email, companyCode } = req.body;
   try {
-    const { data: user } = await supabase
+    let companyId = null;
+    let searchEmails = [];
+
+    if (companyCode && companyCode.trim() !== '') {
+      const { data: company } = await supabase
+        .from('companies')
+        .select('id')
+        .ilike('name', companyCode.trim())
+        .maybeSingle();
+
+      if (!company) {
+        return res.status(400).json({ message: 'Invalid Company Code / Name.' });
+      }
+      companyId = company.id;
+      searchEmails = [`${companyId}:${email.toLowerCase()}`, email.toLowerCase()];
+    } else {
+      searchEmails = [`system:${email.toLowerCase()}`, email.toLowerCase()];
+    }
+
+    let query = supabase
       .from('users')
       .select('*')
-      .eq('email', email.toLowerCase())
-      .maybeSingle();
+      .in('email', searchEmails);
 
-    if (!user) return res.status(404).json({ message: 'User with this email does not exist.' });
+    if (companyId) {
+      query = query.eq('company_id', companyId);
+    } else {
+      query = query.is('company_id', null);
+    }
+
+    const { data: user } = await query.maybeSingle();
+
+    if (!user) return res.status(404).json({ message: 'User with this email and Company Code does not exist.' });
 
     // Clean up any expired OTP codes from database first
     await supabase
@@ -1162,14 +1240,14 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     const { error: dbErr } = await supabase
       .from('password_resets')
       .upsert({
-        email: email.toLowerCase(),
+        email: user.email, // Use database prefixed email!
         otp,
         expires_at: expiresAt
       });
 
     if (dbErr) throw dbErr;
 
-    // Send the actual email containing the OTP
+    // Send the actual email containing the OTP to clean email
     await sendPasswordResetEmail(email.toLowerCase(), otp);
 
     res.json({ message: 'Verification code sent to your registered email address.' });
@@ -1179,21 +1257,47 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 });
 
 app.post('/api/auth/reset-password', async (req, res) => {
-  const { email, code, newPassword } = req.body;
+  const { email, code, newPassword, companyCode } = req.body;
   try {
-    const { data: user } = await supabase
+    let companyId = null;
+    let searchEmails = [];
+
+    if (companyCode && companyCode.trim() !== '') {
+      const { data: company } = await supabase
+        .from('companies')
+        .select('id')
+        .ilike('name', companyCode.trim())
+        .maybeSingle();
+
+      if (!company) {
+        return res.status(400).json({ message: 'Invalid Company Code / Name.' });
+      }
+      companyId = company.id;
+      searchEmails = [`${companyId}:${email.toLowerCase()}`, email.toLowerCase()];
+    } else {
+      searchEmails = [`system:${email.toLowerCase()}`, email.toLowerCase()];
+    }
+
+    let query = supabase
       .from('users')
       .select('*')
-      .eq('email', email.toLowerCase())
-      .maybeSingle();
+      .in('email', searchEmails);
+
+    if (companyId) {
+      query = query.eq('company_id', companyId);
+    } else {
+      query = query.is('company_id', null);
+    }
+
+    const { data: user } = await query.maybeSingle();
 
     if (!user) return res.status(404).json({ message: 'User not found.' });
 
-    // Verify OTP code from database
+    // Verify OTP code from database using user.email (prefixed email)
     const { data: storedData, error: dbErr } = await supabase
       .from('password_resets')
       .select('*')
-      .eq('email', email.toLowerCase())
+      .eq('email', user.email)
       .maybeSingle();
 
     if (dbErr) throw dbErr;
@@ -1206,7 +1310,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
       await supabase
         .from('password_resets')
         .delete()
-        .eq('email', email.toLowerCase());
+        .eq('email', user.email);
       return res.status(400).json({ message: 'Verification code has expired. Please request a new one.' });
     }
 
@@ -1218,7 +1322,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
     await supabase
       .from('password_resets')
       .delete()
-      .eq('email', email.toLowerCase());
+      .eq('email', user.email);
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     const { error } = await supabase
@@ -3234,17 +3338,17 @@ app.post('/api/system/companies', authenticate, authorize(['SystemAdmin']), asyn
       return res.status(400).json({ message: 'Company Name is required.' });
     }
 
-    const adminEmail = email || `admin@${companyName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}.com`;
-
-    const { data: existingUser } = await supabase
-      .from('users')
+    const { data: existingCompany } = await supabase
+      .from('companies')
       .select('id')
-      .eq('email', adminEmail.toLowerCase())
+      .ilike('name', companyName.trim())
       .maybeSingle();
 
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email is already registered or generated email conflicts. Please provide a custom email.' });
+    if (existingCompany) {
+      return res.status(400).json({ message: 'A company with this name already exists.' });
     }
+
+    const adminEmail = email || `admin@${companyName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}.com`;
 
     const { data: company, error: companyErr } = await supabase
       .from('companies')
@@ -3252,6 +3356,20 @@ app.post('/api/system/companies', authenticate, authorize(['SystemAdmin']), asyn
       .select('*')
       .single();
     if (companyErr) throw companyErr;
+
+    // Verify if that admin email already exists in the same company (which is empty anyway, but keep for safety/uniqueness structure)
+    const searchEmails = getSearchEmails(adminEmail, company.id);
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .in('email', searchEmails)
+      .eq('company_id', company.id)
+      .maybeSingle();
+
+    if (existingUser) {
+      await supabase.from('companies').delete().eq('id', company.id);
+      return res.status(400).json({ message: 'Email is already registered in this company.' });
+    }
 
     const tempPassword = 'password1234';
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
@@ -3262,7 +3380,7 @@ app.post('/api/system/companies', authenticate, authorize(['SystemAdmin']), asyn
       .insert([{
         id: userId,
         name: `${companyName} Admin`,
-        email: adminEmail.toLowerCase(),
+        email: `${company.id}:${adminEmail.toLowerCase()}`,
         password: hashedPassword,
         role: 'SuperAdmin',
         department: 'Management',
@@ -3281,7 +3399,10 @@ app.post('/api/system/companies', authenticate, authorize(['SystemAdmin']), asyn
     res.status(201).json({
       message: 'Company created successfully.',
       company,
-      admin: newUser,
+      admin: {
+        ...newUser,
+        email: stripEmailPrefix(newUser.email)
+      },
       tempPassword
     });
   } catch (err) {
