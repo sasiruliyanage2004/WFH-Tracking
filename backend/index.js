@@ -3390,6 +3390,20 @@ app.put('/api/system/companies/:id/status', authenticate, authorize(['SystemAdmi
   }
 });
 
+
+// ─── Serve React frontend ──────────────────────────────────────────
+const frontendBuild = path.join(__dirname, '..', 'frontend', 'build');
+if (fs.existsSync(frontendBuild)) {
+  app.use(express.static(frontendBuild));
+  // All non-API routes return index.html (React HashRouter handles the rest)
+  app.get(/^(?!\/api|\/uploads).*$/, (req, res) => {
+    res.sendFile(path.join(frontendBuild, 'index.html'));
+  });
+  console.log('✅ Serving React frontend from:', frontendBuild);
+} else {
+  console.warn('⚠️  Frontend build not found at:', frontendBuild);
+}
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
