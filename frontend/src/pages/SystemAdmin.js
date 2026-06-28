@@ -243,8 +243,8 @@ function SystemAdmin({ activeTab = 0 }) {
 
   return (
     <Box sx={{ 
-      color: '#fff', 
-      bgcolor: '#0F111A', // deep dark background
+      color: 'text.primary', 
+      bgcolor: 'background.default', // deep dark background
       minHeight: '100vh',
       m: -3, p: 3, // negate parent padding if any
       fontFamily: "'Inter', sans-serif"
@@ -253,10 +253,10 @@ function SystemAdmin({ activeTab = 0 }) {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 5 }}>
         <Box>
-          <Typography variant="h3" sx={{ fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', mb: 1 }}>
+          <Typography variant="h3" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.03em', mb: 1 }}>
             Platform Overlord
           </Typography>
-          <Typography variant="body1" sx={{ color: '#8b949e', fontWeight: 500 }}>
+          <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 500 }}>
             Monitor system health, manage tenant lifecycle, and oversee global performance across the ecosystem.
           </Typography>
         </Box>
@@ -266,12 +266,12 @@ function SystemAdmin({ activeTab = 0 }) {
             startIcon={<SettingsIcon />}
             sx={{ 
               borderRadius: 2, 
-              color: '#fff', 
-              borderColor: 'rgba(255,255,255,0.1)',
+              color: 'text.primary', 
+              borderColor: 'divider',
               textTransform: 'none',
               px: 3,
               fontWeight: 600,
-              '&:hover': { borderColor: 'rgba(255,255,255,0.2)', bgcolor: 'rgba(255,255,255,0.05)' }
+              '&:hover': { borderColor: 'divider', bgcolor: 'divider' }
             }}
           >
             System Settings
@@ -282,13 +282,13 @@ function SystemAdmin({ activeTab = 0 }) {
             onClick={() => setOpenCreateModal(true)}
             sx={{ 
               borderRadius: 2, 
-              bgcolor: '#5EEAD4', 
-              color: '#0F111A',
+              bgcolor: 'primary.main', 
+              color: 'background.default',
               textTransform: 'none',
               fontWeight: 700,
               px: 3,
               boxShadow: '0 0 20px rgba(94, 234, 212, 0.2)',
-              '&:hover': { bgcolor: '#4ADE80', boxShadow: '0 0 30px rgba(74, 222, 128, 0.4)' }
+              '&:hover': { bgcolor: 'success.main', boxShadow: '0 0 30px rgba(74, 222, 128, 0.4)' }
             }}
           >
             Register New Business
@@ -303,57 +303,57 @@ function SystemAdmin({ activeTab = 0 }) {
             <Grid container spacing={3} sx={{ mb: 4 }}>
               {/* Card 1: Total Tenants */}
               <Grid item xs={12} sm={6} md={3}>
-                <Paper sx={{ p: 3, borderRadius: 3, bgcolor: '#161B22', border: '1px solid rgba(255,255,255,0.05)', height: '100%' }}>
+                <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid divider', height: '100%' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
                     <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(94, 234, 212, 0.1)' }}>
-                      <BusinessIcon sx={{ color: '#5EEAD4' }} />
+                      <BusinessIcon sx={{ color: 'primary.main' }} />
                     </Box>
-                    <Chip label="+12% this month" size="small" sx={{ bgcolor: 'rgba(94, 234, 212, 0.1)', color: '#5EEAD4', fontWeight: 600 }} />
+                    <Chip label="+12% this month" size="small" sx={{ bgcolor: 'rgba(94, 234, 212, 0.1)', color: 'primary.main', fontWeight: 600 }} />
                   </Box>
-                  <Typography sx={{ color: '#8b949e', fontWeight: 600, mb: 1 }}>Total Tenants</Typography>
-                  <Typography variant="h3" sx={{ fontWeight: 800, color: '#fff' }}>{analytics.totalCompanies}</Typography>
+                  <Typography sx={{ color: 'text.secondary', fontWeight: 600, mb: 1 }}>Total Tenants</Typography>
+                  <Typography variant="h3" sx={{ fontWeight: 800, color: 'text.primary' }}>{analytics.totalCompanies}</Typography>
                 </Paper>
               </Grid>
 
               {/* Card 2: Total Employees */}
               <Grid item xs={12} sm={6} md={3}>
-                <Paper sx={{ p: 3, borderRadius: 3, bgcolor: '#161B22', border: '1px solid rgba(255,255,255,0.05)', height: '100%' }}>
+                <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid divider', height: '100%' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
                     <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(74, 222, 128, 0.1)' }}>
-                      <PeopleIcon sx={{ color: '#4ADE80' }} />
+                      <PeopleIcon sx={{ color: 'success.main' }} />
                     </Box>
-                    <Chip label={`+${analytics.dailyActiveUsers} Active`} size="small" sx={{ bgcolor: 'rgba(74, 222, 128, 0.1)', color: '#4ADE80', fontWeight: 600 }} />
+                    <Chip label={`+${analytics.dailyActiveUsers} Active`} size="small" sx={{ bgcolor: 'rgba(74, 222, 128, 0.1)', color: 'success.main', fontWeight: 600 }} />
                   </Box>
-                  <Typography sx={{ color: '#8b949e', fontWeight: 600, mb: 1 }}>Total Employees</Typography>
-                  <Typography variant="h3" sx={{ fontWeight: 800, color: '#fff' }}>{analytics.totalUsers}</Typography>
+                  <Typography sx={{ color: 'text.secondary', fontWeight: 600, mb: 1 }}>Total Employees</Typography>
+                  <Typography variant="h3" sx={{ fontWeight: 800, color: 'text.primary' }}>{analytics.totalUsers}</Typography>
                 </Paper>
               </Grid>
 
               {/* Card 3: System Uptime */}
               <Grid item xs={12} sm={6} md={3}>
-                <Paper sx={{ p: 3, borderRadius: 3, bgcolor: '#161B22', border: '1px solid rgba(255,255,255,0.05)', height: '100%' }}>
+                <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid divider', height: '100%' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
                     <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(56, 189, 248, 0.1)' }}>
-                      <SecurityIcon sx={{ color: '#38BDF8' }} />
+                      <SecurityIcon sx={{ color: 'info.main' }} />
                     </Box>
-                    <Chip label="● Healthy" size="small" sx={{ bgcolor: 'rgba(56, 189, 248, 0.1)', color: '#38BDF8', fontWeight: 600 }} />
+                    <Chip label="● Healthy" size="small" sx={{ bgcolor: 'rgba(56, 189, 248, 0.1)', color: 'info.main', fontWeight: 600 }} />
                   </Box>
-                  <Typography sx={{ color: '#8b949e', fontWeight: 600, mb: 1 }}>System Uptime</Typography>
-                  <Typography variant="h3" sx={{ fontWeight: 800, color: '#fff' }}>99.98%</Typography>
+                  <Typography sx={{ color: 'text.secondary', fontWeight: 600, mb: 1 }}>System Uptime</Typography>
+                  <Typography variant="h3" sx={{ fontWeight: 800, color: 'text.primary' }}>99.98%</Typography>
                 </Paper>
               </Grid>
 
               {/* Card 4: Daily Active Users */}
               <Grid item xs={12} sm={6} md={3}>
-                <Paper sx={{ p: 3, borderRadius: 3, bgcolor: '#161B22', border: '1px solid rgba(255,255,255,0.05)', height: '100%' }}>
+                <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid divider', height: '100%' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
                     <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(167, 139, 250, 0.1)' }}>
-                      <TrendingUpIcon sx={{ color: '#A78BFA' }} />
+                      <TrendingUpIcon sx={{ color: 'secondary.main' }} />
                     </Box>
-                    <Chip label="Target: 2k" size="small" sx={{ bgcolor: 'rgba(167, 139, 250, 0.1)', color: '#A78BFA', fontWeight: 600 }} />
+                    <Chip label="Target: 2k" size="small" sx={{ bgcolor: 'rgba(167, 139, 250, 0.1)', color: 'secondary.main', fontWeight: 600 }} />
                   </Box>
-                  <Typography sx={{ color: '#8b949e', fontWeight: 600, mb: 1 }}>Daily Active Users</Typography>
-                  <Typography variant="h3" sx={{ fontWeight: 800, color: '#fff' }}>{analytics.dailyActiveUsers}</Typography>
+                  <Typography sx={{ color: 'text.secondary', fontWeight: 600, mb: 1 }}>Daily Active Users</Typography>
+                  <Typography variant="h3" sx={{ fontWeight: 800, color: 'text.primary' }}>{analytics.dailyActiveUsers}</Typography>
                 </Paper>
               </Grid>
             </Grid>
@@ -366,10 +366,10 @@ function SystemAdmin({ activeTab = 0 }) {
             <Grid item xs={12} md={8}>
               
               {/* Active Managed Tenants Table */}
-              <Paper sx={{ p: 3, borderRadius: 3, bgcolor: '#161B22', border: '1px solid rgba(255,255,255,0.05)', mb: 4 }}>
+              <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid divider', mb: 4 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#fff' }}>Active Managed Tenants</Typography>
-                  <Button endIcon={<ArrowRightIcon />} sx={{ color: '#5EEAD4', textTransform: 'none', fontWeight: 600 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>Active Managed Tenants</Typography>
+                  <Button endIcon={<ArrowRightIcon />} sx={{ color: 'primary.main', textTransform: 'none', fontWeight: 600 }}>
                     View Full Directory
                   </Button>
                 </Box>
@@ -378,43 +378,43 @@ function SystemAdmin({ activeTab = 0 }) {
                   <Table sx={{ minWidth: 600 }}>
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ color: '#8b949e', borderBottom: '1px solid rgba(255,255,255,0.05)', fontWeight: 600 }}>Company Name</TableCell>
-                        <TableCell sx={{ color: '#8b949e', borderBottom: '1px solid rgba(255,255,255,0.05)', fontWeight: 600 }}>Active Seats</TableCell>
-                        <TableCell sx={{ color: '#8b949e', borderBottom: '1px solid rgba(255,255,255,0.05)', fontWeight: 600 }}>Status</TableCell>
-                        <TableCell align="right" sx={{ color: '#8b949e', borderBottom: '1px solid rgba(255,255,255,0.05)', fontWeight: 600 }}>Joined</TableCell>
+                        <TableCell sx={{ color: 'text.secondary', borderBottom: '1px solid divider', fontWeight: 600 }}>Company Name</TableCell>
+                        <TableCell sx={{ color: 'text.secondary', borderBottom: '1px solid divider', fontWeight: 600 }}>Active Seats</TableCell>
+                        <TableCell sx={{ color: 'text.secondary', borderBottom: '1px solid divider', fontWeight: 600 }}>Status</TableCell>
+                        <TableCell align="right" sx={{ color: 'text.secondary', borderBottom: '1px solid divider', fontWeight: 600 }}>Joined</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {companies.slice(0, 5).map((comp) => (
                         <TableRow key={comp.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                          <TableCell sx={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <TableCell sx={{ borderBottom: '1px solid divider' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                              <Avatar variant="rounded" sx={{ bgcolor: 'rgba(255,255,255,0.1)', color: '#fff', width: 40, height: 40, fontWeight: 700 }}>
+                              <Avatar variant="rounded" sx={{ bgcolor: 'divider', color: 'text.primary', width: 40, height: 40, fontWeight: 700 }}>
                                 {comp.name.substring(0,2).toUpperCase()}
                               </Avatar>
                               <Box>
-                                <Typography sx={{ color: '#fff', fontWeight: 600 }}>{comp.name}</Typography>
-                                <Typography variant="caption" sx={{ color: '#8b949e' }}>ID: {comp.id.substring(0,8).toUpperCase()}</Typography>
+                                <Typography sx={{ color: 'text.primary', fontWeight: 600 }}>{comp.name}</Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>ID: {comp.id.substring(0,8).toUpperCase()}</Typography>
                               </Box>
                             </Box>
                           </TableCell>
-                          <TableCell sx={{ color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <TableCell sx={{ color: 'text.primary', borderBottom: '1px solid divider' }}>
                             {comp.users ? comp.users[0]?.count : 0}
                           </TableCell>
-                          <TableCell sx={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <TableCell sx={{ borderBottom: '1px solid divider' }}>
                             <Chip 
                               label={comp.status === 'active' ? 'ENTERPRISE' : 'SUSPENDED'} 
                               size="small" 
                               sx={{ 
                                 bgcolor: comp.status === 'active' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(248, 113, 113, 0.1)', 
-                                color: comp.status === 'active' ? '#4ADE80' : '#F87171', 
+                                color: comp.status === 'active' ? 'success.main' : 'error.main', 
                                 fontWeight: 700,
                                 fontSize: '0.7rem',
                                 letterSpacing: '0.05em'
                               }} 
                             />
                           </TableCell>
-                          <TableCell align="right" sx={{ color: '#8b949e', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <TableCell align="right" sx={{ color: 'text.secondary', borderBottom: '1px solid divider' }}>
                             {new Date(comp.created_at).toLocaleDateString()}
                           </TableCell>
                         </TableRow>
@@ -425,13 +425,13 @@ function SystemAdmin({ activeTab = 0 }) {
               </Paper>
 
               {/* Map UI */}
-              <Paper sx={{ p: 3, borderRadius: 3, bgcolor: '#161B22', border: '1px solid rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden' }}>
+              <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid divider', position: 'relative', overflow: 'hidden' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, position: 'relative', zIndex: 2 }}>
                   <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 700, color: '#fff' }}>Global Node Distribution</Typography>
-                    <Typography variant="body2" sx={{ color: '#8b949e' }}>Real-time load balancing across 14 clusters</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>Global Node Distribution</Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>Real-time load balancing across 14 clusters</Typography>
                   </Box>
-                  <Chip icon={<Box sx={{width:6,height:6,bgcolor:'#5EEAD4',borderRadius:'50%',mr:0.5}}/>} label="LIVE MONITORING" size="small" sx={{ bgcolor: 'rgba(94, 234, 212, 0.1)', color: '#5EEAD4', fontWeight: 600, border: '1px solid rgba(94, 234, 212, 0.2)' }} />
+                  <Chip icon={<Box sx={{width:6,height:6,bgcolor:'primary.main',borderRadius:'50%',mr:0.5}}/>} label="LIVE MONITORING" size="small" sx={{ bgcolor: 'rgba(94, 234, 212, 0.1)', color: 'primary.main', fontWeight: 600, border: '1px solid rgba(94, 234, 212, 0.2)' }} />
                 </Box>
                 {/* Abstract CSS Map background */}
                 <Box sx={{ 
@@ -440,17 +440,17 @@ function SystemAdmin({ activeTab = 0 }) {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   opacity: 0.8
                 }}>
-                  <ShowChartIcon sx={{ fontSize: 150, color: 'rgba(255,255,255,0.05)' }} />
+                  <ShowChartIcon sx={{ fontSize: 150, color: 'divider' }} />
                 </Box>
                 
                 <Box sx={{ display: 'flex', gap: 2, position: 'absolute', bottom: 24, left: 24, zIndex: 2 }}>
-                  <Box sx={{ bgcolor: 'rgba(0,0,0,0.6)', p: 1.5, borderRadius: 2, border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(4px)' }}>
-                    <Typography variant="caption" sx={{ color: '#8b949e', display: 'block', mb: 0.5, fontWeight: 700 }}>LATENCY</Typography>
-                    <Typography variant="subtitle1" sx={{ color: '#5EEAD4', fontWeight: 700, lineHeight: 1 }}>24ms</Typography>
+                  <Box sx={{ bgcolor: 'rgba(0,0,0,0.6)', p: 1.5, borderRadius: 2, border: '1px solid divider', backdropFilter: 'blur(4px)' }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5, fontWeight: 700 }}>LATENCY</Typography>
+                    <Typography variant="subtitle1" sx={{ color: 'primary.main', fontWeight: 700, lineHeight: 1 }}>24ms</Typography>
                   </Box>
-                  <Box sx={{ bgcolor: 'rgba(0,0,0,0.6)', p: 1.5, borderRadius: 2, border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(4px)' }}>
-                    <Typography variant="caption" sx={{ color: '#8b949e', display: 'block', mb: 0.5, fontWeight: 700 }}>THROUGHPUT</Typography>
-                    <Typography variant="subtitle1" sx={{ color: '#5EEAD4', fontWeight: 700, lineHeight: 1 }}>1.2 GB/s</Typography>
+                  <Box sx={{ bgcolor: 'rgba(0,0,0,0.6)', p: 1.5, borderRadius: 2, border: '1px solid divider', backdropFilter: 'blur(4px)' }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5, fontWeight: 700 }}>THROUGHPUT</Typography>
+                    <Typography variant="subtitle1" sx={{ color: 'primary.main', fontWeight: 700, lineHeight: 1 }}>1.2 GB/s</Typography>
                   </Box>
                 </Box>
               </Paper>
@@ -459,25 +459,25 @@ function SystemAdmin({ activeTab = 0 }) {
             {/* Right Column (System Alerts) */}
             <Grid item xs={12} md={4}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: '#fff' }}>System Alerts</Typography>
-                <Chip label="4 CRITICAL" size="small" sx={{ bgcolor: 'rgba(248, 113, 113, 0.1)', color: '#F87171', fontWeight: 700, fontSize: '0.7rem' }} />
+                <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>System Alerts</Typography>
+                <Chip label="4 CRITICAL" size="small" sx={{ bgcolor: 'rgba(248, 113, 113, 0.1)', color: 'error.main', fontWeight: 700, fontSize: '0.7rem' }} />
               </Box>
-              <Typography variant="body2" sx={{ color: '#8b949e', mb: 3 }}>Priority flags requiring immediate action.</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>Priority flags requiring immediate action.</Typography>
 
               {/* Feed Items */}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 
                 {/* Real Announcements history */}
                 {announcements.slice(0,3).map((ann, idx) => (
-                  <Paper key={ann.id} sx={{ p: 2.5, borderRadius: 3, bgcolor: 'transparent', border: '1px solid', borderColor: idx === 0 ? 'rgba(248, 113, 113, 0.3)' : 'rgba(255,255,255,0.1)' }}>
+                  <Paper key={ann.id} sx={{ p: 2.5, borderRadius: 3, bgcolor: 'transparent', border: '1px solid', borderColor: idx === 0 ? 'rgba(248, 113, 113, 0.3)' : 'divider' }}>
                     <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                      <InfoIcon sx={{ color: idx === 0 ? '#F87171' : '#38BDF8' }} />
+                      <InfoIcon sx={{ color: idx === 0 ? 'error.main' : 'info.main' }} />
                       <Box>
-                        <Typography sx={{ color: '#fff', fontWeight: 700, mb: 0.5 }}>{ann.title}</Typography>
-                        <Typography variant="body2" sx={{ color: '#8b949e', mb: 1.5 }}>
+                        <Typography sx={{ color: 'text.primary', fontWeight: 700, mb: 0.5 }}>{ann.title}</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
                           {ann.message.length > 60 ? ann.message.substring(0, 60) + '...' : ann.message}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: idx === 0 ? '#F87171' : '#5EEAD4', fontWeight: 700, cursor: 'pointer' }}>
+                        <Typography variant="caption" sx={{ color: idx === 0 ? 'error.main' : 'primary.main', fontWeight: 700, cursor: 'pointer' }}>
                           REVIEW LOGS
                         </Typography>
                       </Box>
@@ -486,15 +486,15 @@ function SystemAdmin({ activeTab = 0 }) {
                 ))}
 
                 {/* Mock Alerts for UI perfection */}
-                <Paper sx={{ p: 2.5, borderRadius: 3, bgcolor: 'transparent', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <Paper sx={{ p: 2.5, borderRadius: 3, bgcolor: 'transparent', border: '1px solid divider' }}>
                   <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                    <SettingsIcon sx={{ color: '#8b949e' }} />
+                    <SettingsIcon sx={{ color: 'text.secondary' }} />
                     <Box>
-                      <Typography sx={{ color: '#fff', fontWeight: 700, mb: 0.5 }}>Storage Limit Warning</Typography>
-                      <Typography variant="body2" sx={{ color: '#8b949e', mb: 1.5 }}>
+                      <Typography sx={{ color: 'text.primary', fontWeight: 700, mb: 0.5 }}>Storage Limit Warning</Typography>
+                      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
                         Cyberdyne Systems at 92% of allocated disk space.
                       </Typography>
-                      <Typography variant="caption" sx={{ color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                      <Typography variant="caption" sx={{ color: 'text.primary', fontWeight: 700, cursor: 'pointer' }}>
                         UPSELL STORAGE
                       </Typography>
                     </Box>
@@ -502,7 +502,7 @@ function SystemAdmin({ activeTab = 0 }) {
                 </Paper>
               </Box>
 
-              <Button fullWidth variant="outlined" sx={{ mt: 3, borderRadius: 2, color: '#8b949e', borderColor: 'rgba(255,255,255,0.1)', textTransform: 'none', py: 1.5, '&:hover': { borderColor: 'rgba(255,255,255,0.2)', color: '#fff' } }}>
+              <Button fullWidth variant="outlined" sx={{ mt: 3, borderRadius: 2, color: 'text.secondary', borderColor: 'divider', textTransform: 'none', py: 1.5, '&:hover': { borderColor: 'divider', color: 'text.primary' } }}>
                 Mark all as read
               </Button>
             </Grid>
@@ -513,25 +513,25 @@ function SystemAdmin({ activeTab = 0 }) {
       {/* Companies and Broadcast Tabs - Maintained original functionality but with minimal dark theme styling */}
       {activeTab === 1 && (
         <Box>
-          <Box sx={{ borderBottom: 1, borderColor: 'rgba(255,255,255,0.1)', mb: 3 }}>
-            <Tabs value={tabValue} onChange={handleTabChange} textColor="inherit" sx={{ '& .MuiTabs-indicator': { bgcolor: '#5EEAD4' } }}>
-              <Tab label={`Active (${activeCount})`} sx={{ color: '#fff', fontWeight: 600 }} />
-              <Tab label={`Inactive (${inactiveCount})`} sx={{ color: '#8b949e', fontWeight: 600 }} />
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+            <Tabs value={tabValue} onChange={handleTabChange} textColor="inherit" sx={{ '& .MuiTabs-indicator': { bgcolor: 'primary.main' } }}>
+              <Tab label={`Active (${activeCount})`} sx={{ color: 'text.primary', fontWeight: 600 }} />
+              <Tab label={`Inactive (${inactiveCount})`} sx={{ color: 'text.secondary', fontWeight: 600 }} />
             </Tabs>
           </Box>
 
           <Grid container spacing={3}>
             {getFilteredCompanies().map((company) => (
               <Grid item xs={12} md={6} lg={4} key={company.id}>
-                <Paper sx={{ p: 3, borderRadius: 3, bgcolor: '#161B22', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }}>
+                <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid divider', position: 'relative' }}>
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.1)', color: '#fff', width: 48, height: 48 }}>
+                      <Avatar sx={{ bgcolor: 'divider', color: 'text.primary', width: 48, height: 48 }}>
                         <BusinessIcon />
                       </Avatar>
                       <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#fff' }}>{company.name}</Typography>
-                        <Typography variant="body2" sx={{ color: '#8b949e' }}>Registered: {new Date(company.created_at).toLocaleDateString()}</Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>{company.name}</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>Registered: {new Date(company.created_at).toLocaleDateString()}</Typography>
                       </Box>
                     </Box>
                     <Chip 
@@ -539,30 +539,30 @@ function SystemAdmin({ activeTab = 0 }) {
                       size="small" 
                       sx={{ 
                         bgcolor: company.status === 'active' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(248, 113, 113, 0.1)', 
-                        color: company.status === 'active' ? '#4ADE80' : '#F87171', 
+                        color: company.status === 'active' ? 'success.main' : 'error.main', 
                         fontWeight: 600, textTransform: 'capitalize' 
                       }} 
                     />
                   </Box>
 
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                    <PeopleIcon fontSize="small" sx={{ color: '#8b949e' }} />
-                    <Typography variant="body2" sx={{ color: '#fff', fontWeight: 500 }}>
+                    <PeopleIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                    <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
                       Users: {company.users ? company.users[0]?.count : 0}
                     </Typography>
                   </Box>
 
-                  <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.05)' }} />
+                  <Divider sx={{ my: 2, borderColor: 'divider' }} />
 
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="body2" sx={{ color: '#8b949e' }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                       Status: {company.status === 'active' ? 'Active' : 'Disabled'}
                     </Typography>
                     <Switch 
                       checked={company.status === 'active'}
                       onChange={() => toggleCompanyStatus(company.id, company.status)}
                       color="primary"
-                      sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#5EEAD4' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#5EEAD4' } }}
+                      sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: 'primary.main' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: 'primary.main' } }}
                     />
                   </Box>
                 </Paper>
@@ -570,7 +570,7 @@ function SystemAdmin({ activeTab = 0 }) {
             ))}
             {getFilteredCompanies().length === 0 && (
               <Grid item xs={12}>
-                <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 3, bgcolor: '#161B22', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 3, bgcolor: 'background.paper', border: '1px dashed divider' }}>
                   <Typography color="text.secondary">No companies found in this category.</Typography>
                 </Paper>
               </Grid>
@@ -581,8 +581,8 @@ function SystemAdmin({ activeTab = 0 }) {
 
       {activeTab === 2 && (
         <Box>
-          <Typography variant="h5" sx={{ mb: 3, fontWeight: 700, color: '#fff' }}>Broadcast Announcement</Typography>
-          <Paper sx={{ p: 3, borderRadius: 3, mb: 4, border: '1px solid rgba(255,255,255,0.05)', bgcolor: '#161B22' }}>
+          <Typography variant="h5" sx={{ mb: 3, fontWeight: 700, color: 'text.primary' }}>Broadcast Announcement</Typography>
+          <Paper sx={{ p: 3, borderRadius: 3, mb: 4, border: '1px solid divider', bgcolor: 'background.paper' }}>
             <form onSubmit={handleBroadcast}>
               <TextField
                 fullWidth
@@ -592,7 +592,7 @@ function SystemAdmin({ activeTab = 0 }) {
                 value={announcementTitle}
                 onChange={e => setAnnouncementTitle(e.target.value)}
                 required
-                sx={{ input: { color: '#fff' }, label: { color: '#8b949e' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' } } }}
+                sx={{ input: { color: 'text.primary' }, label: { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'divider' } } }}
               />
               <TextField
                 fullWidth
@@ -604,35 +604,35 @@ function SystemAdmin({ activeTab = 0 }) {
                 value={announcementMessage}
                 onChange={e => setAnnouncementMessage(e.target.value)}
                 required
-                sx={{ textarea: { color: '#fff' }, label: { color: '#8b949e' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' } } }}
+                sx={{ textarea: { color: 'text.primary' }, label: { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'divider' } } }}
               />
               <Button
                 type="submit"
                 variant="contained"
                 disabled={announcementLoading}
                 startIcon={<CampaignIcon />}
-                sx={{ mt: 2, bgcolor: '#5EEAD4', color: '#0F111A', fontWeight: 700, '&:hover': { bgcolor: '#4ADE80' } }}
+                sx={{ mt: 2, bgcolor: 'primary.main', color: 'background.default', fontWeight: 700, '&:hover': { bgcolor: 'success.main' } }}
               >
                 {announcementLoading ? 'Broadcasting...' : 'Broadcast Now'}
               </Button>
             </form>
           </Paper>
 
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: '#fff' }}>Recent Broadcasts</Typography>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: 'text.primary' }}>Recent Broadcasts</Typography>
           {announcements.length === 0 ? (
-            <Typography color="#8b949e">No announcements have been broadcasted yet.</Typography>
+            <Typography color="text.secondary">No announcements have been broadcasted yet.</Typography>
           ) : (
             <Grid container spacing={2}>
               {announcements.map(ann => (
                 <Grid item xs={12} key={ann.id}>
-                  <Paper sx={{ p: 3, borderRadius: 3, bgcolor: '#161B22', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid divider' }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#fff' }}>{ann.title}</Typography>
-                      <Typography variant="caption" sx={{ color: '#8b949e' }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>{ann.title}</Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                         {new Date(ann.created_at).toLocaleString()}
                       </Typography>
                     </Box>
-                    <Typography variant="body2" sx={{ color: '#8b949e' }}>{ann.message}</Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>{ann.message}</Typography>
                   </Paper>
                 </Grid>
               ))}
@@ -642,58 +642,58 @@ function SystemAdmin({ activeTab = 0 }) {
       )}
 
       {/* Create Company Modal */}
-      <Dialog open={openCreateModal} onClose={() => setOpenCreateModal(false)} PaperProps={{ sx: { borderRadius: 3, bgcolor: '#161B22', color: '#fff' } }}>
+      <Dialog open={openCreateModal} onClose={() => setOpenCreateModal(false)} PaperProps={{ sx: { borderRadius: 3, bgcolor: 'background.paper', color: 'text.primary' } }}>
         <DialogTitle sx={{ fontWeight: 700 }}>Register New Business</DialogTitle>
         <DialogContent>
           {createError && <Typography color="error" sx={{ mb: 2 }}>{createError}</Typography>}
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Company Name" value={newCompanyName} onChange={e => setNewCompanyName(e.target.value)} required sx={{ input: { color: '#fff' }, label: { color: '#8b949e' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' } } }} />
+              <TextField fullWidth label="Company Name" value={newCompanyName} onChange={e => setNewCompanyName(e.target.value)} required sx={{ input: { color: 'text.primary' }, label: { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'divider' } } }} />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Admin Email" type="email" value={newCompanyEmail} onChange={e => setNewCompanyEmail(e.target.value)} required sx={{ input: { color: '#fff' }, label: { color: '#8b949e' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' } } }} />
+              <TextField fullWidth label="Admin Email" type="email" value={newCompanyEmail} onChange={e => setNewCompanyEmail(e.target.value)} required sx={{ input: { color: 'text.primary' }, label: { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'divider' } } }} />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Registration Number" value={newRegistrationNumber} onChange={e => setNewRegistrationNumber(e.target.value)} required sx={{ input: { color: '#fff' }, label: { color: '#8b949e' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' } } }} />
+              <TextField fullWidth label="Registration Number" value={newRegistrationNumber} onChange={e => setNewRegistrationNumber(e.target.value)} required sx={{ input: { color: 'text.primary' }, label: { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'divider' } } }} />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Industry" value={newIndustry} onChange={e => setNewIndustry(e.target.value)} required sx={{ input: { color: '#fff' }, label: { color: '#8b949e' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' } } }} />
+              <TextField fullWidth label="Industry" value={newIndustry} onChange={e => setNewIndustry(e.target.value)} required sx={{ input: { color: 'text.primary' }, label: { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'divider' } } }} />
             </Grid>
             <Grid item xs={12}>
-              <TextField fullWidth label="Headquarters Location" value={newLocation} onChange={e => setNewLocation(e.target.value)} required sx={{ input: { color: '#fff' }, label: { color: '#8b949e' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' } } }} />
+              <TextField fullWidth label="Headquarters Location" value={newLocation} onChange={e => setNewLocation(e.target.value)} required sx={{ input: { color: 'text.primary' }, label: { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'divider' } } }} />
             </Grid>
             <Grid item xs={12}>
-              <TextField fullWidth label="Website (Optional)" value={newWebsite} onChange={e => setNewWebsite(e.target.value)} sx={{ input: { color: '#fff' }, label: { color: '#8b949e' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' } } }} />
+              <TextField fullWidth label="Website (Optional)" value={newWebsite} onChange={e => setNewWebsite(e.target.value)} sx={{ input: { color: 'text.primary' }, label: { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'divider' } } }} />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button onClick={() => setOpenCreateModal(false)} sx={{ color: '#8b949e' }}>Cancel</Button>
-          <Button variant="contained" onClick={handleCreateCompany} disabled={createLoading} sx={{ bgcolor: '#5EEAD4', color: '#0F111A', fontWeight: 700, '&:hover': { bgcolor: '#4ADE80' } }}>
+          <Button onClick={() => setOpenCreateModal(false)} sx={{ color: 'text.secondary' }}>Cancel</Button>
+          <Button variant="contained" onClick={handleCreateCompany} disabled={createLoading} sx={{ bgcolor: 'primary.main', color: 'background.default', fontWeight: 700, '&:hover': { bgcolor: 'success.main' } }}>
             {createLoading ? 'Creating...' : 'Register Business'}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Success Modal */}
-      <Dialog open={openSuccessModal} onClose={() => setOpenSuccessModal(false)} PaperProps={{ sx: { borderRadius: 3, bgcolor: '#161B22', color: '#fff' } }}>
-        <DialogTitle sx={{ fontWeight: 700, color: '#4ADE80' }}>Success!</DialogTitle>
+      <Dialog open={openSuccessModal} onClose={() => setOpenSuccessModal(false)} PaperProps={{ sx: { borderRadius: 3, bgcolor: 'background.paper', color: 'text.primary' } }}>
+        <DialogTitle sx={{ fontWeight: 700, color: 'success.main' }}>Success!</DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2 }}>The company has been registered and a temporary admin account has been created.</Typography>
-          <Paper sx={{ p: 2, bgcolor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', position: 'relative' }}>
+          <Paper sx={{ p: 2, bgcolor: 'rgba(0,0,0,0.3)', border: '1px solid divider', position: 'relative' }}>
             <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 1 }}><strong>Company ID:</strong> {successData?.companyId}</Typography>
             <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 1 }}><strong>Admin Email:</strong> {successData?.email}</Typography>
             <Typography variant="body2" sx={{ fontFamily: 'monospace' }}><strong>Temp Password:</strong> {successData?.password}</Typography>
-            <IconButton onClick={handleCopyCredentials} size="small" sx={{ position: 'absolute', top: 8, right: 8, color: '#5EEAD4' }}>
+            <IconButton onClick={handleCopyCredentials} size="small" sx={{ position: 'absolute', top: 8, right: 8, color: 'primary.main' }}>
               <CopyIcon fontSize="small" />
             </IconButton>
           </Paper>
-          <Typography variant="caption" color="#8b949e" sx={{ display: 'block', mt: 2 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
             Please securely share these credentials with the company administrator. They will be forced to change their password on first login.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setOpenSuccessModal(false)} sx={{ color: '#5EEAD4', fontWeight: 700 }}>Done</Button>
+          <Button onClick={() => setOpenSuccessModal(false)} sx={{ color: 'primary.main', fontWeight: 700 }}>Done</Button>
         </DialogActions>
       </Dialog>
     </Box>
