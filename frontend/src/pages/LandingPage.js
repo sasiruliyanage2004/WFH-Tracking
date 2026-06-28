@@ -425,7 +425,7 @@ function ConsoleLogin({ onNavigate }) {
     setError('');
     setDenied(false);
     try {
-      const res = await axios.post(`${API_URL}/api/auth/login`, { email, password });
+      const res = await axios.post(`${API_URL}/api/auth/login`, { email: email.trim(), password });
       const u = res.data.user;
       if (u.role === 'Employee') {
         setDenied(true);
