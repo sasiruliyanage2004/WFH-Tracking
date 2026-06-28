@@ -26,7 +26,10 @@ import {
   AdminPanelSettings as AdminIcon,
   Refresh as RefreshIcon,
   Add as AddIcon,
-  ContentCopy as CopyIcon
+  ContentCopy as CopyIcon,
+  Campaign as CampaignIcon,
+  BarChart as BarChartIcon,
+  Domain as DomainIcon
 } from '@mui/icons-material';
 import CustomLoader from '../components/CustomLoader';
 
@@ -38,7 +41,15 @@ function SystemAdmin() {
 
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tabValue, setTabValue] = useState(0);
+  const [tabValue, setTabValue] = useState(0); // For active/inactive companies
+  const [masterTab, setMasterTab] = useState(0); // 0=Overview, 1=Companies, 2=Announcements
+  
+  // New States
+  const [analytics, setAnalytics] = useState(null);
+  const [announcements, setAnnouncements] = useState([]);
+  const [announcementTitle, setAnnouncementTitle] = useState('');
+  const [announcementMessage, setAnnouncementMessage] = useState('');
+  const [announcementLoading, setAnnouncementLoading] = useState(false);
   
   // Create Company Modal State
   const [openCreateModal, setOpenCreateModal] = useState(false);
@@ -60,9 +71,53 @@ function SystemAdmin() {
       navigate('/dashboard');
       return;
     }
-    fetchCompanies();
+    if (masterTab === 0) fetchAnalytics();
+    if (masterTab === 1) fetchCompanies();
+    if (masterTab === 2) fetchAnnouncements();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, navigate]);
+  }, [user, navigate, masterTab]);
+
+  const fetchAnalytics = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/system/analytics`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAnalytics(res.data);
+    } catch (err) {
+      console.error('Failed to fetch analytics:', err);
+    }
+  };
+
+  const fetchAnnouncements = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/system/announcements`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAnnouncements(res.data);
+    } catch (err) {
+      console.error('Failed to fetch announcements:', err);
+    }
+  };
+
+  const handleBroadcast = async (e) => {
+    e.preventDefault();
+    if (!announcementTitle || !announcementMessage) return;
+    setAnnouncementLoading(true);
+    try {
+      await axios.post(`${API_URL}/api/system/announcements`, 
+        { title: announcementTitle, message: announcementMessage },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setAnnouncementTitle('');
+      setAnnouncementMessage('');
+      fetchAnnouncements();
+      alert('Announcement broadcasted successfully!');
+    } catch (err) {
+      alert('Failed to broadcast: ' + err.message);
+    } finally {
+      setAnnouncementLoading(false);
+    }
+  };
 
   const fetchCompanies = async () => {
     try {
@@ -202,13 +257,58 @@ function SystemAdmin() {
 
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={tabValue} onChange={handleTabChange}>
-          <Tab label={`Active (${activeCount})`} />
-          <Tab label={`Deactivated (${inactiveCount})`} />
+        <Tabs value={masterTab} onChange={(e, v) => setMasterTab(v)}>
+          <Tab icon={<BarChartIcon />} iconPosition="start" label="Overview & Analytics" />
+          <Tab icon={<DomainIcon />} iconPosition="start" label="Manage Companies" />
+          <Tab icon={<CampaignIcon />} iconPosition="start" label="Broadcast" />
         </Tabs>
       </Box>
 
-      {/* Company List */}
+      {masterTab === 0 && (
+        <Box>
+          <Typography variant="h5" sx={{ mb: 3, fontWeight: 700 }}>Platform Overview</Typography>
+          {analytics ? (
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+                  <Typography color="text.secondary" variant="body2" sx={{ fontWeight: 600 }}>Total Companies</Typography>
+                  <Typography variant="h3" sx={{ mt: 1, fontWeight: 800, color: 'primary.main' }}>{analytics.totalCompanies}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+                  <Typography color="text.secondary" variant="body2" sx={{ fontWeight: 600 }}>Active Companies</Typography>
+                  <Typography variant="h3" sx={{ mt: 1, fontWeight: 800, color: 'success.main' }}>{analytics.activeCompanies}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+                  <Typography color="text.secondary" variant="body2" sx={{ fontWeight: 600 }}>Total Users</Typography>
+                  <Typography variant="h3" sx={{ mt: 1, fontWeight: 800, color: 'info.main' }}>{analytics.totalUsers}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+                  <Typography color="text.secondary" variant="body2" sx={{ fontWeight: 600 }}>24h Active Users</Typography>
+                  <Typography variant="h3" sx={{ mt: 1, fontWeight: 800, color: 'secondary.main' }}>{analytics.dailyActiveUsers}</Typography>
+                </Paper>
+              </Grid>
+            </Grid>
+          ) : (
+            <CustomLoader />
+          )}
+        </Box>
+      )}
+
+      {masterTab === 1 && (
+        <Box>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+            <Tabs value={tabValue} onChange={handleTabChange}>
+              <Tab label={`Active (${activeCount})`} />
+              <Tab label={`Deactivated (${inactiveCount})`} />
+            </Tabs>
+          </Box>
+          {/* Company List */}
       <Grid container spacing={3}>
         {getFilteredCompanies().map(company => (
           <Grid item xs={12} md={6} lg={4} key={company.id}>
@@ -300,7 +400,50 @@ function SystemAdmin() {
             </Paper>
           </Grid>
         )}
-      </Grid>
+          </Grid>
+        </Box>
+      )}
+
+      {masterTab === 2 && (
+        <Box>
+          <Typography variant="h5" sx={{ mb: 3, fontWeight: 700 }}>Broadcast Announcement</Typography>
+          <Paper sx={{ p: 3, borderRadius: 3, mb: 4, border: '1px solid', borderColor: 'divider' }}>
+            <form onSubmit={handleBroadcast}>
+              <TextField
+                fullWidth label="Announcement Title" variant="outlined" required
+                value={announcementTitle} onChange={e => setAnnouncementTitle(e.target.value)}
+                sx={{ mb: 3 }}
+              />
+              <TextField
+                fullWidth label="Message" variant="outlined" required multiline rows={4}
+                value={announcementMessage} onChange={e => setAnnouncementMessage(e.target.value)}
+                sx={{ mb: 3 }}
+              />
+              <Button type="submit" variant="contained" color="primary" disabled={announcementLoading} size="large">
+                {announcementLoading ? 'Broadcasting...' : 'Broadcast to All Companies'}
+              </Button>
+            </form>
+          </Paper>
+
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>Announcement History</Typography>
+          <Grid container spacing={2}>
+            {announcements.map(ann => (
+              <Grid item xs={12} key={ann.id}>
+                <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{ann.title}</Typography>
+                  <Typography variant="body2" sx={{ mt: 1, mb: 1 }}>{ann.message}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Sent on {new Date(ann.created_at).toLocaleString()} by {ann.created_by_user?.name || 'System Admin'}
+                  </Typography>
+                </Paper>
+              </Grid>
+            ))}
+            {announcements.length === 0 && (
+              <Typography color="text.secondary">No announcements sent yet.</Typography>
+            )}
+          </Grid>
+        </Box>
+      )}
 
       {/* Create Company Modal */}
       <Dialog open={openCreateModal} onClose={() => setOpenCreateModal(false)} maxWidth="xs" fullWidth>

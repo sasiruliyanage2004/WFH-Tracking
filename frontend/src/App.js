@@ -14,6 +14,7 @@ import DashboardLayout from './components/DashboardLayout';
 import ActivityTracker from './components/ActivityTracker';
 import WelcomeSplash from './components/WelcomeSplash';
 import DeveloperBadge from './components/DeveloperBadge';
+import AnnouncementBanner from './components/AnnouncementBanner';
 
 // Pages
 import Login from './pages/Login';
@@ -455,6 +456,9 @@ function App() {
         <Router>
         {/* Background mouse/keyboard monitor */}
         <ActivityTracker />
+        
+        {/* Global Announcement Banner */}
+        <AnnouncementBanner />
 
         <Routes>
           {/* Public Auth Routes */}
