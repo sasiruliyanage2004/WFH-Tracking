@@ -79,23 +79,29 @@ function SystemAdmin() {
 
   const fetchAnalytics = async () => {
     try {
+      setLoading(true);
       const res = await axios.get(`${API_URL}/api/system/analytics`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAnalytics(res.data);
     } catch (err) {
       console.error('Failed to fetch analytics:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchAnnouncements = async () => {
     try {
+      setLoading(true);
       const res = await axios.get(`${API_URL}/api/system/announcements`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAnnouncements(res.data);
     } catch (err) {
       console.error('Failed to fetch announcements:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
