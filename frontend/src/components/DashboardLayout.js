@@ -46,7 +46,10 @@ import {
   ArrowBack as BackIcon,
   ArrowForward as ForwardIcon,
   Warning as AlertIcon,
-  Timer as TimerIcon
+  Timer as TimerIcon,
+  BarChart as BarChartIcon,
+  Domain as DomainIcon,
+  Campaign as CampaignIcon
 } from '@mui/icons-material';
 import { logout } from '../redux/store';
 import DeveloperSignature from './DeveloperSignature';
@@ -162,7 +165,9 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
   ];
 
   const systemAdminLinks = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/system-admin' }
+    { text: 'Overview', icon: <BarChartIcon />, path: '/system-admin' },
+    { text: 'Companies', icon: <DomainIcon />, path: '/system-admin/companies' },
+    { text: 'Broadcast', icon: <CampaignIcon />, path: '/system-admin/broadcast' }
   ];
 
   const isDesktop = !!window.api;

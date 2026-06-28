@@ -550,7 +550,17 @@ function App() {
 
           <Route path="/system-admin" element={
             <ProtectedRoute>
-              <SystemAdmin />
+              <SystemAdmin activeTab={0} />
+            </ProtectedRoute>
+          } />
+          <Route path="/system-admin/companies" element={
+            <ProtectedRoute>
+              <SystemAdmin activeTab={1} />
+            </ProtectedRoute>
+          } />
+          <Route path="/system-admin/broadcast" element={
+            <ProtectedRoute>
+              <SystemAdmin activeTab={2} />
             </ProtectedRoute>
           } />
           

@@ -35,14 +35,13 @@ import CustomLoader from '../components/CustomLoader';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-function SystemAdmin() {
+function SystemAdmin({ activeTab = 0 }) {
   const { token, user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tabValue, setTabValue] = useState(0); // For active/inactive companies
-  const [masterTab, setMasterTab] = useState(0); // 0=Overview, 1=Companies, 2=Announcements
   
   // New States
   const [analytics, setAnalytics] = useState(null);
@@ -71,11 +70,11 @@ function SystemAdmin() {
       navigate('/dashboard');
       return;
     }
-    if (masterTab === 0) fetchAnalytics();
-    if (masterTab === 1) fetchCompanies();
-    if (masterTab === 2) fetchAnnouncements();
+    if (activeTab === 0) fetchAnalytics();
+    if (activeTab === 1) fetchCompanies();
+    if (activeTab === 2) fetchAnnouncements();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, navigate, masterTab]);
+  }, [user, navigate, activeTab]);
 
   const fetchAnalytics = async () => {
     try {
@@ -262,15 +261,9 @@ function SystemAdmin() {
       </Box>
 
 
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={masterTab} onChange={(e, v) => setMasterTab(v)}>
-          <Tab icon={<BarChartIcon />} iconPosition="start" label="Overview & Analytics" />
-          <Tab icon={<DomainIcon />} iconPosition="start" label="Manage Companies" />
-          <Tab icon={<CampaignIcon />} iconPosition="start" label="Broadcast" />
-        </Tabs>
-      </Box>
+      <Box sx={{ mb: 3 }} />
 
-      {masterTab === 0 && (
+      {activeTab === 0 && (
         <Box>
           <Typography variant="h5" sx={{ mb: 3, fontWeight: 700 }}>Platform Overview</Typography>
           {analytics ? (
@@ -306,7 +299,7 @@ function SystemAdmin() {
         </Box>
       )}
 
-      {masterTab === 1 && (
+      {activeTab === 1 && (
         <Box>
           <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
             <Tabs value={tabValue} onChange={handleTabChange}>
@@ -410,7 +403,7 @@ function SystemAdmin() {
         </Box>
       )}
 
-      {masterTab === 2 && (
+      {activeTab === 2 && (
         <Box>
           <Typography variant="h5" sx={{ mb: 3, fontWeight: 700 }}>Broadcast Announcement</Typography>
           <Paper sx={{ p: 3, borderRadius: 3, mb: 4, border: '1px solid', borderColor: 'divider' }}>
