@@ -416,6 +416,7 @@ function ConsoleLogin({ onNavigate }) {
   const [denied, setDenied] = useState(false);
   const [focusedEmail, setFocusedEmail] = useState(false);
   const [focusedPass, setFocusedPass] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async e => {
     e.preventDefault();
@@ -549,14 +550,27 @@ function ConsoleLogin({ onNavigate }) {
                 style={inputStyle(focusedEmail)}
               />
             </div>
-            <div style={{ marginBottom: 24 }}>
+            <div style={{ marginBottom: 24, position: 'relative' }}>
               <label style={{ fontFamily: C.font, fontSize: 13, color: C.muted, display: 'block', marginBottom: 6 }}>Password</label>
               <input
-                type="password" value={password} onChange={e => setPassword(e.target.value)}
+                type={showPassword ? 'text' : 'password'} 
+                value={password} onChange={e => setPassword(e.target.value)}
                 onFocus={() => setFocusedPass(true)} onBlur={() => setFocusedPass(false)}
                 placeholder="••••••••••"
-                style={inputStyle(focusedPass)}
+                style={{ ...inputStyle(focusedPass), paddingRight: 40 }}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute', right: 12, top: 38,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: C.muted, fontSize: 16, padding: 4,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                {showPassword ? '👁️' : '👁️‍🗨️'}
+              </button>
             </div>
 
             <button
