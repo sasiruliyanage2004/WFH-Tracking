@@ -12,8 +12,6 @@ import DashboardLayout from './components/DashboardLayout';
 
 // Background Trackers
 import ActivityTracker from './components/ActivityTracker';
-import WelcomeSplash from './components/WelcomeSplash';
-import DeveloperBadge from './components/DeveloperBadge';
 import AnnouncementBanner from './components/AnnouncementBanner';
 
 // Pages
@@ -44,7 +42,6 @@ import ManagerSettings from './pages/ManagerSettings';
 
 function App() {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
-  const [showSplash, setShowSplash] = useState(true);
 
   // Global Zoom State and Logic
   const [zoomLevel, setZoomLevel] = useState(() => {
@@ -452,13 +449,12 @@ function App() {
           overflow: 'hidden'
         }}
       >
-        {showSplash && <WelcomeSplash onFinish={() => setShowSplash(false)} />}
         <Router>
-        {/* Background mouse/keyboard monitor */}
-        <ActivityTracker />
-        
-        {/* Global Announcement Banner */}
-        <AnnouncementBanner />
+          {/* Background mouse/keyboard monitor */}
+          <ActivityTracker />
+          
+          {/* Global Announcement Banner */}
+          <AnnouncementBanner />
 
         <Routes>
           {/* Public Auth Routes */}
@@ -571,7 +567,6 @@ function App() {
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Router>
-      <DeveloperBadge />
       </Box>
     </ThemeProvider>
   );

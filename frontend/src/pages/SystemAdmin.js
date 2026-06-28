@@ -84,20 +84,25 @@ function SystemAdmin({ activeTab = 0 }) {
       setLoading(true);
       try {
         if (activeTab === 0) {
-          const [analyticsRes, companiesRes, announcementsRes] = await Promise.all([
+          const results = await Promise.allSettled([
             axios.get(`${API_URL}/api/system/analytics`, { headers: { Authorization: `Bearer ${token}` } }),
             axios.get(`${API_URL}/api/system/companies`, { headers: { Authorization: `Bearer ${token}` } }),
             axios.get(`${API_URL}/api/system/announcements`, { headers: { Authorization: `Bearer ${token}` } })
           ]);
-          setAnalytics(analyticsRes.data);
-          setCompanies(companiesRes.data);
-          setAnnouncements(announcementsRes.data);
+          
+          setAnalytics(results[0].status === 'fulfilled' ? results[0].value.data : { totalCompanies: 0, activeCompanies: 0, totalUsers: 0, dailyActiveUsers: 0 });
+          setCompanies(results[1].status === 'fulfilled' ? results[1].value.data : []);
+          setAnnouncements(results[2].status === 'fulfilled' ? results[2].value.data : []);
         } else if (activeTab === 1) {
-          const companiesRes = await axios.get(`${API_URL}/api/system/companies`, { headers: { Authorization: `Bearer ${token}` } });
-          setCompanies(companiesRes.data);
+          try {
+            const companiesRes = await axios.get(`${API_URL}/api/system/companies`, { headers: { Authorization: `Bearer ${token}` } });
+            setCompanies(companiesRes.data);
+          } catch (e) { setCompanies([]); }
         } else if (activeTab === 2) {
-          const announcementsRes = await axios.get(`${API_URL}/api/system/announcements`, { headers: { Authorization: `Bearer ${token}` } });
-          setAnnouncements(announcementsRes.data);
+          try {
+            const announcementsRes = await axios.get(`${API_URL}/api/system/announcements`, { headers: { Authorization: `Bearer ${token}` } });
+            setAnnouncements(announcementsRes.data);
+          } catch (e) { setAnnouncements([]); }
         }
       } catch (err) {
         console.error('Data fetch failed:', err);
