@@ -2,12 +2,6 @@
 const jwt = require('jsonwebtoken');
 const supabase = require('../utils/supabase');
 
-function stripEmailPrefix(email) {
-  if (!email) return '';
-  const parts = email.split(':');
-  return parts.length > 1 ? parts[1] : parts[0];
-}
-
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.header('Authorization');
@@ -33,7 +27,7 @@ const authenticate = async (req, res, next) => {
     req.user = {
       id: user.id,
       name: user.name,
-      email: stripEmailPrefix(user.email),
+      email: user.email,
       role: user.role,
       department: user.department,
       profilePic: user.profile_pic,

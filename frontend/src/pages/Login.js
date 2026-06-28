@@ -22,7 +22,6 @@ import {
   VisibilityOff,
   Monitor as MonitorIcon,
   ArrowForward as ArrowIcon,
-  Business as BusinessIcon,
 } from '@mui/icons-material';
 import { authStart, authSuccess, authFail } from '../redux/store';
 import DeveloperSignature from '../components/DeveloperSignature';
@@ -100,7 +99,6 @@ const CircuitBackground = () => (
 
 function Login() {
   const isElectron = window.api !== undefined;
-  const [companyCode,     setCompanyCode]     = useState('');
   const [email,           setEmail]           = useState('');
   const [password,        setPassword]        = useState('');
   const [showPassword,    setShowPassword]    = useState(false);
@@ -129,20 +127,16 @@ function Login() {
     }
   }, [isAuthenticated, user, navigate]);
 
-  const loginWithCredentials = async (loginEmail, loginPassword, loginCompanyCode) => {
+  const loginWithCredentials = async (loginEmail, loginPassword) => {
     try {
       dispatch(authStart());
       setErrorMsg('');
-      const res = await axios.post(`${API_URL}/api/auth/login`, {
-        email: loginEmail,
-        password: loginPassword,
-        companyCode: loginCompanyCode
-      });
+      const res = await axios.post(`${API_URL}/api/auth/login`, { email: loginEmail, password: loginPassword });
       dispatch(authSuccess({ token: res.data.token, user: res.data.user }));
 
       const updated = [
-        { email: loginEmail, password: loginPassword, companyCode: loginCompanyCode },
-        ...savedAccounts.filter(a => a.email !== loginEmail || a.companyCode !== loginCompanyCode),
+        { email: loginEmail, password: loginPassword },
+        ...savedAccounts.filter(a => a.email !== loginEmail),
       ];
       localStorage.setItem('wfh_saved_accounts', JSON.stringify(updated));
       setSavedAccounts(updated);
@@ -156,7 +150,7 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) return;
-    await loginWithCredentials(email, password, companyCode);
+    await loginWithCredentials(email, password);
   };
 
   return (
@@ -534,34 +528,6 @@ function Login() {
             }}
           >
 
-            {/* Company Code field */}
-            <TextField
-              label="Company Name / Code"
-              type="text"
-              fullWidth
-              value={companyCode}
-              onChange={e => setCompanyCode(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <BusinessIcon sx={{ color: 'rgba(148,163,184,0.45)', fontSize: 20 }} />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '14px',
-                  bgcolor: 'rgba(255,255,255,0.02)',
-                  '& fieldset': { borderColor: 'rgba(255,255,255,0.08)' },
-                  '&:hover fieldset': { borderColor: 'rgba(16,185,129,0.4)' },
-                  '&.Mui-focused fieldset': { borderColor: '#10b981', boxShadow: '0 0 15px rgba(16,185,129,0.15)' },
-                },
-                '& .MuiInputLabel-root': { color: 'rgba(148,163,184,0.55)' },
-                '& .MuiInputLabel-root.Mui-focused': { color: '#10b981' },
-                '& input': { color: '#f8fafc' },
-              }}
-            />
-
             {/* Email field with quick-select dropdown */}
             <Box sx={{ position: 'relative' }}>
               <TextField
@@ -619,7 +585,6 @@ function Login() {
                       key={idx}
                       onMouseDown={e => e.preventDefault()}
                       onClick={() => {
-                        setCompanyCode(acc.companyCode || '');
                         setEmail(acc.email);
                         setPassword(acc.password);
                         setShowDropdown(false);
