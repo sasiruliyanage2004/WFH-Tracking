@@ -728,60 +728,7 @@ function Login() {
             </Button>
           </Box>
 
-          {!isElectron && (
-            <Box sx={{
-              mt: 3,
-              p: 2,
-              borderRadius: '14px',
-              border: '1px dashed rgba(16, 185, 129, 0.15)',
-              bgcolor: 'rgba(16, 185, 129, 0.02)',
-              textAlign: 'center'
-            }}>
-              <Typography sx={{ color: 'rgba(148,163,184,0.7)', fontSize: '0.82rem', mb: 1.2, fontWeight: 600 }}>
-                Employees must use the Desktop Agent to track work time.
-              </Typography>
-              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5 }}>
-                <Button
-                  component="a"
-                  href={`${API_URL}/uploads/WorkforceOS-Agent-Setup.exe`}
-                  download
-                  variant="outlined"
-                  size="small"
-                  sx={{
-                    borderRadius: '8px',
-                    fontSize: '0.75rem',
-                    borderColor: 'rgba(16, 185, 129, 0.4)',
-                    color: '#10b981',
-                    '&:hover': {
-                      borderColor: '#10b981',
-                      bgcolor: 'rgba(16, 185, 129, 0.05)'
-                    }
-                  }}
-                >
-                  Download for Windows
-                </Button>
-                <Button
-                  component="a"
-                  href={`${API_URL}/uploads/WorkforceOS-Agent-Mac.dmg`}
-                  download
-                  variant="outlined"
-                  size="small"
-                  sx={{
-                    borderRadius: '8px',
-                    fontSize: '0.75rem',
-                    borderColor: 'rgba(16, 185, 129, 0.4)',
-                    color: '#10b981',
-                    '&:hover': {
-                      borderColor: '#10b981',
-                      bgcolor: 'rgba(16, 185, 129, 0.05)'
-                    }
-                  }}
-                >
-                  Download for macOS
-                </Button>
-              </Box>
-            </Box>
-          )}
+
 
           {/* Register Link */}
 
