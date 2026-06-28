@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { useDispatch } from 'react-redux';
+import { authSuccess } from '../redux/store';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -404,6 +406,7 @@ function OSCard({ icon, os, ext, desc, steps, href }) {
 
 /* ─── Console Login Tab ───────────────────────────────────────── */
 function ConsoleLogin({ onNavigate }) {
+  const dispatch = useDispatch();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -429,6 +432,7 @@ function ConsoleLogin({ onNavigate }) {
       // Store token and redirect
       localStorage.setItem('wfh_token', res.data.token);
       localStorage.setItem('wfh_user', JSON.stringify(u));
+      dispatch(authSuccess({ token: res.data.token, user: u }));
       window.location.hash = u.role === 'SystemAdmin' ? '/system-admin' : '/manager/dashboard';
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid credentials. Please try again.');
