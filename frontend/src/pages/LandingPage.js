@@ -792,12 +792,7 @@ function Nav({ active, onNavigate }) {
           onClick={() => onNavigate('home')}
           style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
         >
-          <div style={{
-            width: 32, height: 32, borderRadius: 9,
-            background: 'linear-gradient(135deg,#10b981,#059669)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 16, boxShadow: '0 4px 14px rgba(16,185,129,0.4)',
-          }}>⚡</div>
+          <img src="/logo192.png" alt="WorkforceOS Logo" style={{ width: 34, height: 34, objectFit: 'contain' }} />
           <span style={{ fontFamily: C.headFont, fontWeight: 800, fontSize: 18, color: C.text }}>WorkforceOS</span>
         </div>
 
