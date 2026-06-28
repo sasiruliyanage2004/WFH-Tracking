@@ -3228,11 +3228,38 @@ setInterval(cleanupOldScreenshots, 24 * 60 * 60 * 1000);
 
 // 10. SYSTEM ADMIN ROUTES
 
-app.post('/api/system/companies', authenticate, authorize(['SystemAdmin']), async (req, res) => {
-  const { companyName, email } = req.body;
+const companyDetailsPath = path.join(__dirname, 'uploads', 'company_details.json');
+
+function getCompanyDetailsMap() {
   try {
-    if (!companyName) {
-      return res.status(400).json({ message: 'Company Name is required.' });
+    if (!fs.existsSync(companyDetailsPath)) {
+      fs.writeFileSync(companyDetailsPath, JSON.stringify({}));
+      return {};
+    }
+    const raw = fs.readFileSync(companyDetailsPath, 'utf8');
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error('Failed to read company details map:', err.message);
+    return {};
+  }
+}
+
+function saveCompanyDetailsMap(map) {
+  try {
+    fs.writeFileSync(companyDetailsPath, JSON.stringify(map, null, 2));
+  } catch (err) {
+    console.error('Failed to save company details map:', err.message);
+  }
+}
+
+app.post('/api/system/companies', authenticate, authorize(['SystemAdmin']), async (req, res) => {
+  const { companyName, email, registrationNumber, industry, location, website } = req.body;
+  try {
+    if (!companyName || !email) {
+      return res.status(400).json({ message: 'Company Name and Admin Email are required.' });
+    }
+    if (!registrationNumber || !industry || !location) {
+      return res.status(400).json({ message: 'Registration Number, Industry Vertical, and Headquarters Location are required.' });
     }
 
     const { data: existingCompany } = await supabase
@@ -3245,7 +3272,7 @@ app.post('/api/system/companies', authenticate, authorize(['SystemAdmin']), asyn
       return res.status(400).json({ message: 'A company with this name already exists.' });
     }
 
-    const adminEmail = email || `admin@${companyName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}.com`;
+    const adminEmail = email;
 
     const { data: existingUser } = await supabase
       .from('users')
@@ -3254,7 +3281,7 @@ app.post('/api/system/companies', authenticate, authorize(['SystemAdmin']), asyn
       .maybeSingle();
 
     if (existingUser) {
-      return res.status(400).json({ message: 'Email is already registered or generated email conflicts. Please provide a custom email.' });
+      return res.status(400).json({ message: 'Email is already registered. Please provide a custom email.' });
     }
 
     const { data: company, error: companyErr } = await supabase
@@ -3289,9 +3316,25 @@ app.post('/api/system/companies', authenticate, authorize(['SystemAdmin']), asyn
       throw userErr;
     }
 
+    // Save details metadata locally
+    const detailsMap = getCompanyDetailsMap();
+    detailsMap[company.id] = {
+      registrationNumber,
+      industry,
+      location,
+      website: website || ''
+    };
+    saveCompanyDetailsMap(detailsMap);
+
     res.status(201).json({
       message: 'Company created successfully.',
-      company,
+      company: {
+        ...company,
+        registrationNumber,
+        industry,
+        location,
+        website: website || ''
+      },
       admin: newUser,
       tempPassword
     });
@@ -3314,7 +3357,17 @@ app.get('/api/system/companies', authenticate, authorize(['SystemAdmin']), async
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    res.json(companies);
+
+    const detailsMap = getCompanyDetailsMap();
+    const enriched = companies.map(c => ({
+      ...c,
+      registrationNumber: detailsMap[c.id]?.registrationNumber || '',
+      industry: detailsMap[c.id]?.industry || '',
+      location: detailsMap[c.id]?.location || '',
+      website: detailsMap[c.id]?.website || ''
+    }));
+
+    res.json(enriched);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

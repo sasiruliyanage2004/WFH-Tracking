@@ -44,6 +44,10 @@ function SystemAdmin() {
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
   const [newCompanyEmail, setNewCompanyEmail] = useState('');
+  const [newRegistrationNumber, setNewRegistrationNumber] = useState('');
+  const [newIndustry, setNewIndustry] = useState('');
+  const [newLocation, setNewLocation] = useState('');
+  const [newWebsite, setNewWebsite] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState('');
 
@@ -93,11 +97,23 @@ function SystemAdmin() {
   const handleCreateCompany = async (e) => {
     e.preventDefault();
     setCreateError('');
+
+    if (!newCompanyName || !newCompanyEmail || !newRegistrationNumber || !newIndustry || !newLocation) {
+      setCreateError('Please fill in all required fields.');
+      return;
+    }
+
     setCreateLoading(true);
     
     try {
-      const payload = { companyName: newCompanyName };
-      if (newCompanyEmail) payload.email = newCompanyEmail;
+      const payload = {
+        companyName: newCompanyName,
+        email: newCompanyEmail,
+        registrationNumber: newRegistrationNumber,
+        industry: newIndustry,
+        location: newLocation,
+        website: newWebsite
+      };
 
       const res = await axios.post(`${API_URL}/api/system/companies`, payload, {
         headers: { Authorization: `Bearer ${token}` }
@@ -112,6 +128,10 @@ function SystemAdmin() {
       setOpenCreateModal(false);
       setNewCompanyName('');
       setNewCompanyEmail('');
+      setNewRegistrationNumber('');
+      setNewIndustry('');
+      setNewLocation('');
+      setNewWebsite('');
       setOpenSuccessModal(true);
       fetchCompanies();
     } catch (err) {
@@ -228,6 +248,25 @@ function SystemAdmin() {
                   />
                 </Box>
 
+                <Box sx={{ mb: 2, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 650, color: 'text.primary' }}>
+                    Reg: {company.registrationNumber || 'N/A'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Industry: {company.industry || 'N/A'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Location: {company.location || 'N/A'}
+                  </Typography>
+                  {company.website && (
+                    <Typography variant="body2">
+                      Website: <a href={company.website.startsWith('http') ? company.website : `https://${company.website}`} target="_blank" rel="noopener noreferrer" style={{ color: '#10b981', textDecoration: 'none', fontWeight: 700 }}>
+                        {company.website}
+                      </a>
+                    </Typography>
+                  )}
+                </Box>
+
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, color: 'text.secondary' }}>
                   <PeopleIcon fontSize="small" />
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -282,15 +321,53 @@ function SystemAdmin() {
               onChange={(e) => setNewCompanyName(e.target.value)}
               sx={{ mb: 3 }}
             />
-            <TextField
+             <TextField
               fullWidth
-              label="Admin Email (Optional)"
+              label="Admin Email"
               variant="outlined"
               type="email"
-              placeholder="Leave blank to auto-generate"
+              required
               value={newCompanyEmail}
               onChange={(e) => setNewCompanyEmail(e.target.value)}
-              helperText="If left blank, an email will be generated automatically."
+              sx={{ mb: 3 }}
+            />
+            <TextField
+              fullWidth
+              label="Registration Number"
+              variant="outlined"
+              required
+              placeholder="e.g. CRN-12345678"
+              value={newRegistrationNumber}
+              onChange={(e) => setNewRegistrationNumber(e.target.value)}
+              sx={{ mb: 3 }}
+            />
+            <TextField
+              fullWidth
+              label="Industry Vertical"
+              variant="outlined"
+              required
+              placeholder="e.g. Technology, Healthcare, Finance"
+              value={newIndustry}
+              onChange={(e) => setNewIndustry(e.target.value)}
+              sx={{ mb: 3 }}
+            />
+            <TextField
+              fullWidth
+              label="Headquarters Location"
+              variant="outlined"
+              required
+              placeholder="e.g. Colombo, Sri Lanka"
+              value={newLocation}
+              onChange={(e) => setNewLocation(e.target.value)}
+              sx={{ mb: 3 }}
+            />
+            <TextField
+              fullWidth
+              label="Company Website (Optional)"
+              variant="outlined"
+              placeholder="e.g. www.company.com"
+              value={newWebsite}
+              onChange={(e) => setNewWebsite(e.target.value)}
             />
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
