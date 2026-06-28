@@ -132,7 +132,16 @@ function Login() {
       dispatch(authStart());
       setErrorMsg('');
       const res = await axios.post(`${API_URL}/api/auth/login`, { email: loginEmail, password: loginPassword });
-      dispatch(authSuccess({ token: res.data.token, user: res.data.user }));
+      
+      const loggedUser = res.data.user;
+      if (loggedUser.role === 'Employee' && !isElectron) {
+        const errorMsg = 'Access denied. Employees can only log in through the Desktop Agent.';
+        dispatch(authFail(errorMsg));
+        setErrorMsg(errorMsg);
+        return;
+      }
+
+      dispatch(authSuccess({ token: res.data.token, user: loggedUser }));
 
       const updated = [
         { email: loginEmail, password: loginPassword },

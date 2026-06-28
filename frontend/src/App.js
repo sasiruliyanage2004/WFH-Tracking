@@ -1,9 +1,10 @@
 // frontend/src/App.js
 import React, { useState, useMemo, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline, Box } from '@mui/material';
+import { authFail } from './redux/store';
 
 // Layout
 import DashboardLayout from './components/DashboardLayout';
@@ -393,11 +394,19 @@ function App() {
 
   // Authorization Wrappers
   const ProtectedRoute = ({ children, allowedRoles = [] }) => {
-    if (!isAuthenticated) {
+    const dispatch = useDispatch();
+    const isDesktop = !!window.api;
+
+    useEffect(() => {
+      if (isAuthenticated && user?.role === 'Employee' && !isDesktop) {
+        dispatch(authFail('Access denied. Employees can only log in through the Desktop Agent.'));
+      }
+    }, [isAuthenticated, user, isDesktop, dispatch]);
+
+    if (!isAuthenticated || (user?.role === 'Employee' && !isDesktop)) {
       return <Navigate to="/login" replace />;
     }
     
-    const isDesktop = !!window.api;
     const path = window.location.hash.replace('#', '');
     const isManagerRoute = path.startsWith('/manager');
     const isTrackingDashboard = path === '/dashboard' || path === '/tasks';
