@@ -17,6 +17,7 @@ import DeveloperBadge from './components/DeveloperBadge';
 
 // Pages
 import Login from './pages/Login';
+import LandingPage from './pages/LandingPage';
 import Register from './pages/Register';
 
 import ForgotPassword from './pages/ForgotPassword';
@@ -550,8 +551,8 @@ function App() {
             </ProtectedRoute>
           } />
           
-          {/* Default Route */}
-          <Route path="/" element={<Navigate to="/dashboard" />} />
+          {/* Public Landing */}
+          <Route path="/" element={<LandingPage />} />
 
           {/* Wildcard redirects */}
           <Route path="*" element={<Navigate to="/login" replace />} />
