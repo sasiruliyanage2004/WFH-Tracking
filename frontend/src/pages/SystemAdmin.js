@@ -75,6 +75,14 @@ function SystemAdmin({ activeTab = 0 }) {
   const [openSuccessModal, setOpenSuccessModal] = useState(false);
   const [successData, setSuccessData] = useState(null);
 
+  const [openDetailsModal, setOpenDetailsModal] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState(null);
+
+  const handleViewDetails = (company) => {
+    setSelectedCompany(company);
+    setOpenDetailsModal(true);
+  };
+
   useEffect(() => {
     if (user?.role !== 'SystemAdmin') {
       navigate('/dashboard');
@@ -261,21 +269,6 @@ function SystemAdmin({ activeTab = 0 }) {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<SettingsIcon />}
-            sx={{ 
-              borderRadius: 2, 
-              color: 'text.primary', 
-              borderColor: 'divider',
-              textTransform: 'none',
-              px: 3,
-              fontWeight: 600,
-              '&:hover': { borderColor: 'divider', bgcolor: 'divider' }
-            }}
-          >
-            System Settings
-          </Button>
           <Button
             variant="contained"
             startIcon={<BusinessIcon />}
@@ -545,11 +538,16 @@ function SystemAdmin({ activeTab = 0 }) {
                     />
                   </Box>
 
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                    <PeopleIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                    <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
-                      Users: {company.users ? company.users[0]?.count : 0}
-                    </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <PeopleIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                      <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
+                        Users: {company.users ? company.users[0]?.count : 0}
+                      </Typography>
+                    </Box>
+                    <Button size="small" variant="outlined" onClick={() => handleViewDetails(company)} sx={{ textTransform: 'none', borderRadius: 2 }}>
+                      View Details
+                    </Button>
                   </Box>
 
                   <Divider sx={{ my: 2, borderColor: 'divider' }} />
@@ -695,6 +693,48 @@ function SystemAdmin({ activeTab = 0 }) {
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setOpenSuccessModal(false)} sx={{ color: 'primary.main', fontWeight: 700 }}>Done</Button>
         </DialogActions>
+      </Dialog>
+
+      {/* Details Modal */}
+      <Dialog open={openDetailsModal} onClose={() => setOpenDetailsModal(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3, bgcolor: 'background.paper', color: 'text.primary' } }}>
+        <DialogTitle sx={{ fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Company Details
+          <Button onClick={() => setOpenDetailsModal(false)} size="small" sx={{ minWidth: 'auto', p: 0.5, color: 'text.secondary' }}>✕</Button>
+        </DialogTitle>
+        <DialogContent dividers sx={{ borderColor: 'divider' }}>
+          {selectedCompany && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Company Name</Typography>
+                <Typography variant="body1" fontWeight="600">{selectedCompany.name}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Registration Number</Typography>
+                <Typography variant="body1">{selectedCompany.registrationNumber || 'N/A'}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Industry</Typography>
+                <Typography variant="body1">{selectedCompany.industry || 'N/A'}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Location</Typography>
+                <Typography variant="body1">{selectedCompany.location || 'N/A'}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Website</Typography>
+                <Typography variant="body1">{selectedCompany.website ? <a href={selectedCompany.website} target="_blank" rel="noopener noreferrer" style={{color: '#10b981'}}>{selectedCompany.website}</a> : 'N/A'}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Total Users</Typography>
+                <Typography variant="body1">{selectedCompany.users ? selectedCompany.users[0]?.count : 0}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Registered Date</Typography>
+                <Typography variant="body1">{new Date(selectedCompany.created_at).toLocaleString()}</Typography>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
       </Dialog>
     </Box>
   );
