@@ -11,17 +11,22 @@
     "axios": "^1.6.8"
   },
   "devDependencies": {
-    "electron": "^30.0.1"
+    "electron": "^30.0.1",
+    "electron-builder": "^26.15.3"
   },
   "build": {
     "appId": "com.wfh.desktopagent",
     "productName": "WorkforceOS-Agent",
     "win": {
       "target": [
-        "nsis",
-        "portable"
+        "nsis"
       ],
-      "icon": "build/icon.ico"
+      "icon": "build/icon.ico",
+      "artifactName": "WorkforceOS-Agent-Setup.${ext}"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "artifactName": "WorkforceOS-Agent-Mac.${ext}"
     },
     "directories": {
       "output": "dist"

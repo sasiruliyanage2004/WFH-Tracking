@@ -13,6 +13,7 @@ public class GlobalHook {
     private const int WM_LBUTTONDOWN = 0x0201;
     private const int WM_RBUTTONDOWN = 0x0204;
     private const int WM_MBUTTONDOWN = 0x0207;
+    private const int WM_MOUSEMOVE = 0x0200;
 
     private static LowLevelProc _keyboardProc = KeyboardHookCallback;
     private static LowLevelProc _mouseProc = MouseHookCallback;
@@ -22,6 +23,7 @@ public class GlobalHook {
     public static int KeyboardCount = 0;
     public static int MouseCount = 0;
     private static System.Threading.Timer _timer;
+    private static long _lastMouseMoveTime = 0;
 
     public static void Start() {
         _keyboardHookID = SetHook(_keyboardProc, WH_KEYBOARD_LL);
@@ -54,8 +56,16 @@ public class GlobalHook {
     }
 
     private static IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam) {
-        if (nCode >= 0 && (wParam == (IntPtr)WM_LBUTTONDOWN || wParam == (IntPtr)WM_RBUTTONDOWN || wParam == (IntPtr)WM_MBUTTONDOWN)) {
-            MouseCount++;
+        if (nCode >= 0) {
+            if (wParam == (IntPtr)WM_LBUTTONDOWN || wParam == (IntPtr)WM_RBUTTONDOWN || wParam == (IntPtr)WM_MBUTTONDOWN) {
+                MouseCount++;
+            } else if (wParam == (IntPtr)WM_MOUSEMOVE) {
+                long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                if (now - _lastMouseMoveTime > 1000) {
+                    MouseCount++;
+                    _lastMouseMoveTime = now;
+                }
+            }
         }
         return CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
     }
