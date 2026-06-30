@@ -458,46 +458,42 @@ function SystemAdmin({ activeTab = 0 }) {
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>Priority flags requiring immediate action.</Typography>
 
               {/* Feed Items */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                
-                {/* Real Announcements history */}
-                {announcements.slice(0,3).map((ann, idx) => (
-                  <Paper key={ann.id} sx={{ p: 2.5, borderRadius: 3, bgcolor: 'transparent', border: '1px solid', borderColor: idx === 0 ? 'rgba(248, 113, 113, 0.3)' : 'divider' }}>
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                      <InfoIcon sx={{ color: idx === 0 ? 'error.main' : 'info.main' }} />
-                      <Box>
-                        <Typography sx={{ color: 'text.primary', fontWeight: 700, mb: 0.5 }}>{ann.title}</Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
-                          {ann.message.length > 60 ? ann.message.substring(0, 60) + '...' : ann.message}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: idx === 0 ? 'error.main' : 'primary.main', fontWeight: 700, cursor: 'pointer' }}>
-                          REVIEW LOGS
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Paper>
-                ))}
-
-                {/* Mock Alerts for UI perfection */}
-                <Paper sx={{ p: 2.5, borderRadius: 3, bgcolor: 'transparent', border: '1px solid divider' }}>
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                    <SettingsIcon sx={{ color: 'text.secondary' }} />
-                    <Box>
-                      <Typography sx={{ color: 'text.primary', fontWeight: 700, mb: 0.5 }}>Storage Limit Warning</Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
-                        Cyberdyne Systems at 92% of allocated disk space.
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.primary', fontWeight: 700, cursor: 'pointer' }}>
-                        UPSELL STORAGE
-                      </Typography>
-                    </Box>
+              {announcements.length > 0 ? (
+                <>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {/* Real Announcements history */}
+                    {announcements.slice(0,3).map((ann, idx) => (
+                      <Paper key={ann.id} sx={{ p: 2.5, borderRadius: 3, bgcolor: 'transparent', border: '1px solid', borderColor: idx === 0 ? 'rgba(248, 113, 113, 0.3)' : 'divider' }}>
+                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                          <InfoIcon sx={{ color: idx === 0 ? 'error.main' : 'info.main' }} />
+                          <Box>
+                            <Typography sx={{ color: 'text.primary', fontWeight: 700, mb: 0.5 }}>{ann.title}</Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
+                              {ann.message.length > 60 ? ann.message.substring(0, 60) + '...' : ann.message}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: idx === 0 ? 'error.main' : 'primary.main', fontWeight: 700, cursor: 'pointer' }}>
+                              REVIEW LOGS
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Paper>
+                    ))}
                   </Box>
-                </Paper>
-              </Box>
 
-              <Button fullWidth variant="outlined" sx={{ mt: 3, borderRadius: 2, color: 'text.secondary', borderColor: 'divider', textTransform: 'none', py: 1.5, '&:hover': { borderColor: 'divider', color: 'text.primary' } }}>
-                Mark all as read
-              </Button>
+                  <Button 
+                    fullWidth 
+                    variant="outlined" 
+                    onClick={() => setAnnouncements([])}
+                    sx={{ mt: 3, borderRadius: 2, color: 'text.secondary', borderColor: 'divider', textTransform: 'none', py: 1.5, '&:hover': { borderColor: 'divider', color: 'text.primary' } }}
+                  >
+                    Mark all as read
+                  </Button>
+                </>
+              ) : (
+                <Box sx={{ textAlign: 'center', p: 4, bgcolor: 'background.paper', borderRadius: 3, border: '1px dashed divider' }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>All caught up! No new alerts.</Typography>
+                </Box>
+              )}
             </Grid>
           </Grid>
         </Box>
