@@ -166,6 +166,19 @@ function SystemAdmin({ activeTab = 0 }) {
     }
   };
 
+  const handleDeleteAnnouncement = async (id) => {
+    if (!window.confirm('Are you sure you want to revoke this broadcast? It will be removed immediately for all users.')) return;
+    try {
+      await axios.delete(`${API_URL}/api/system/announcements/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAnnouncements(prev => prev.filter(a => a.id !== id));
+      alert('Broadcast revoked successfully.');
+    } catch (err) {
+      alert('Failed to revoke broadcast: ' + err.message);
+    }
+  };
+
   const toggleCompanyStatus = async (companyId, currentStatus) => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     try {
@@ -471,8 +484,12 @@ function SystemAdmin({ activeTab = 0 }) {
                             <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
                               {ann.message.length > 60 ? ann.message.substring(0, 60) + '...' : ann.message}
                             </Typography>
-                            <Typography variant="caption" sx={{ color: idx === 0 ? 'error.main' : 'primary.main', fontWeight: 700, cursor: 'pointer' }}>
-                              REVIEW LOGS
+                            <Typography 
+                              onClick={() => handleDeleteAnnouncement(ann.id)}
+                              variant="caption" 
+                              sx={{ color: 'error.main', fontWeight: 700, cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                            >
+                              REVOKE BROADCAST
                             </Typography>
                           </Box>
                         </Box>
