@@ -190,6 +190,7 @@ let localKeyboardCount = 0;
 let localMouseCount = 0;
 let activeSecondsInTick = 0;
 let idleSecondsInTick = 0;
+let lastInputTime = Date.now();
 
 let splashWindow = null;
 let currentActiveAppType = 'Neutral';
@@ -590,10 +591,13 @@ function startTracking() {
             localKeyboardCount += keys;
             localMouseCount += clicks;
 
-            // If there was any user input (keys or clicks) in this 10-second tick,
-            // or if the current active app is classified as 'Productive',
-            // it counts as active time, otherwise idle.
-            if (keys > 0 || clicks > 0 || currentActiveAppType === 'Productive') {
+            // If there was any user input (keys or clicks), update last input time
+            if (keys > 0 || clicks > 0) {
+              lastInputTime = Date.now();
+            }
+            
+            // 2 minutes idle threshold (same as web ActivityTracker.js)
+            if (Date.now() - lastInputTime < 2 * 60 * 1000) {
               activeSecondsInTick += 10;
             } else {
               idleSecondsInTick += 10;
@@ -648,7 +652,7 @@ function startTracking() {
     if (process.platform !== 'win32') {
       try {
         const idleTime = powerMonitor.getSystemIdleTime();
-        if (idleTime < 10 || currentActiveAppType === 'Productive') {
+        if (idleTime < 120) {
           activeSecondsInTick += 10;
         } else {
           idleSecondsInTick += 10;
