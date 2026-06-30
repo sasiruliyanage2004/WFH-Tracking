@@ -147,7 +147,7 @@ function ManagerSettings() {
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2.5, minHeight: 40, p: 1, border: '1px dashed', borderColor: 'divider', borderRadius: 2, bgcolor: 'action.hover' }}>
             {warningEmails.length === 0 ? (
               <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', m: 'auto' }}>
-                No recipient emails configured. Fallback (liyanagesasiru@gmail.com) active.
+                No recipient emails configured. Fallback (l************u@gmail.com) active.
               </Typography>
             ) : (
               warningEmails.map((email) => (
