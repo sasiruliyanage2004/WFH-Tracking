@@ -15,6 +15,21 @@ public class GlobalHook {
     private const int WM_MBUTTONDOWN = 0x0207;
     private const int WM_MOUSEMOVE = 0x0200;
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct POINT {
+        public int x;
+        public int y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MSLLHOOKSTRUCT {
+        public POINT pt;
+        public uint mouseData;
+        public uint flags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
     private static LowLevelProc _keyboardProc = KeyboardHookCallback;
     private static LowLevelProc _mouseProc = MouseHookCallback;
     private static IntPtr _keyboardHookID = IntPtr.Zero;
@@ -24,6 +39,8 @@ public class GlobalHook {
     public static int MouseCount = 0;
     private static System.Threading.Timer _timer;
     private static long _lastMouseMoveTime = 0;
+    private static int _lastMouseX = 0;
+    private static int _lastMouseY = 0;
 
     public static void Start() {
         _keyboardHookID = SetHook(_keyboardProc, WH_KEYBOARD_LL);
@@ -60,19 +77,51 @@ public class GlobalHook {
             if (wParam == (IntPtr)WM_LBUTTONDOWN || wParam == (IntPtr)WM_RBUTTONDOWN || wParam == (IntPtr)WM_MBUTTONDOWN) {
                 MouseCount++;
             } else if (wParam == (IntPtr)WM_MOUSEMOVE) {
+                MSLLHOOKSTRUCT hookStruct = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT));
                 long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 if (now - _lastMouseMoveTime > 1000) {
-                    MouseCount++;
-                    _lastMouseMoveTime = now;
+                    int dx = hookStruct.pt.x - _lastMouseX;
+                    int dy = hookStruct.pt.y - _lastMouseY;
+                    if (Math.Abs(dx) > 5 || Math.Abs(dy) > 5) {
+                        MouseCount++;
+                        _lastMouseMoveTime = now;
+                        _lastMouseX = hookStruct.pt.x;
+                        _lastMouseY = hookStruct.pt.y;
+                    }
                 }
             }
         }
         return CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
     }
 
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
     private static void Tick(object state) {
+        string processName = "Unknown";
+        string windowTitle = "Active Window";
+        try {
+            IntPtr hwnd = GetForegroundWindow();
+            if (hwnd != IntPtr.Zero) {
+                uint pid = 0;
+                GetWindowThreadProcessId(hwnd, out pid);
+                if (pid > 0) {
+                    Process proc = Process.GetProcessById((int)pid);
+                    processName = proc.ProcessName;
+                    windowTitle = proc.MainWindowTitle;
+                    if (string.IsNullOrEmpty(processName)) processName = "Unknown";
+                    if (string.IsNullOrEmpty(windowTitle)) windowTitle = "Active Window";
+                }
+            }
+        } catch {
+            // Fail silently if access denied
+        }
+
         // Output to stdout for Electron to read
-        Console.WriteLine("KEYS:" + KeyboardCount + "|CLICKS:" + MouseCount);
+        Console.WriteLine("KEYS:" + KeyboardCount + "|CLICKS:" + MouseCount + "|App:" + processName + "|Title:" + windowTitle);
         Console.Out.Flush();
         KeyboardCount = 0;
         MouseCount = 0;

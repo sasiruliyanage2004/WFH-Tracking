@@ -20,12 +20,13 @@ const crypto = require('crypto');
 const supabase = require('./utils/supabase');
 const { sendWarningEmail, sendPasswordResetEmail, sendRegistrationOTPEmail } = require('./utils/email');
 const { authenticate, authorize } = require('./middleware/auth');
+const logger = require('./utils/logger');
 
 // In-memory cache for rolling 1-hour activity details to prevent warning email spam
 // Structure: { [employeeId]: { logs: Array<{ timestamp, activeSeconds, idleSeconds }>, lastWarningSentAt: number } }
 const rollingActivityCache = {};
 
-function checkRollingWarning(employee, activeSeconds, idleSeconds, minMinutesSetting) {
+async function checkRollingWarning(employee, activeSeconds, idleSeconds, minMinutesSetting) {
   const employeeId = employee.id;
   const now = Date.now();
 
@@ -39,17 +40,11 @@ function checkRollingWarning(employee, activeSeconds, idleSeconds, minMinutesSet
   const cache = rollingActivityCache[employeeId];
 
   // 1. Add current activity chunk
-  cache.logs.push({
-    timestamp: now,
-    activeSeconds: parseFloat(activeSeconds) || 0,
-    idleSeconds: parseFloat(idleSeconds) || 0
-  });
-
-  // 2. Clear entries older than 60 minutes
   const oneHourAgo = now - (60 * 60 * 1000);
+
+  cache.logs.push({ activeSeconds, idleSeconds, timestamp: now });
   cache.logs = cache.logs.filter(log => log.timestamp >= oneHourAgo);
 
-  // 3. Sum active and idle seconds in the 1-hour window
   let totalActive = 0;
   let totalIdle = 0;
   for (const log of cache.logs) {
@@ -61,10 +56,6 @@ function checkRollingWarning(employee, activeSeconds, idleSeconds, minMinutesSet
   const totalMinutes = totalSeconds / 60;
   const productivityPercentage = totalSeconds > 0 ? Math.round((totalActive / totalSeconds) * 100) : 100;
 
-  // 4. Check conditions to send warning email:
-  // - Monitored for at least minMinutesForRolling (default 10 mins, or lower if warning_min_minutes setting is lower for testing)
-  // - Productivity average in this 1-hour window is <= 50%
-  // - Cooldown: At least 1 hour (3600000 ms) has elapsed since the last warning email was sent to this employee
   const minMinutesForRolling = Math.min(10, minMinutesSetting || 60);
   const cooldownPeriod = 60 * 60 * 1000; // 1 hour
   const hasMinData = totalMinutes >= minMinutesForRolling;
@@ -72,10 +63,12 @@ function checkRollingWarning(employee, activeSeconds, idleSeconds, minMinutesSet
   const isCooldownOver = (now - cache.lastWarningSentAt) >= cooldownPeriod;
 
   if (hasMinData && isBelowThreshold && isCooldownOver) {
-    cache.lastWarningSentAt = now;
-    // Send email warning asynchronously
-    sendWarningEmail(employee, productivityPercentage);
-    return { send: true, productivityPercentage };
+    // Await email warning asynchronously
+    const emailSuccess = await sendWarningEmail(employee, productivityPercentage);
+    if (emailSuccess) {
+      cache.lastWarningSentAt = now;
+      return { send: true, productivityPercentage };
+    }
   }
 
   return { send: false, productivityPercentage };
@@ -86,7 +79,19 @@ const server = http.createServer(app);
 
 // Security Headers
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      connectSrc: ["'self'", "http://localhost:*", "ws://localhost:*", "wss://localhost:*", "https:"],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+    }
+  }
 }));
 
 // CORS configuration - secure for production
@@ -1321,12 +1326,15 @@ app.post('/api/attendance/checkin', authenticate, async (req, res) => {
 app.post('/api/attendance/checkout', authenticate, async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   try {
-    const { data: att, error: fetchErr } = await supabase
+    const { data: atts, error: fetchErr } = await supabase
       .from('attendance')
       .select('*')
       .eq('employee_id', req.user.id)
-      .eq('date', today)
-      .maybeSingle();
+      .is('check_out_time', null)
+      .order('check_in_time', { ascending: false })
+      .limit(1);
+    
+    const att = atts && atts.length > 0 ? atts[0] : null;
 
     if (fetchErr || !att) {
       return res.status(400).json({ message: 'No check-in record found for today.' });
@@ -1379,11 +1387,13 @@ app.post('/api/attendance/checkout', authenticate, async (req, res) => {
       if (log) {
         const totalMinutes = log.active_minutes + log.idle_minutes;
         if (totalMinutes >= minMinutes && log.productivity_percentage <= 50 && !log.warning_email_sent) {
-          sendWarningEmail(req.user, log.productivity_percentage);
-          await supabase
-            .from('activity_logs')
-            .update({ warning_email_sent: true })
-            .eq('id', log.id);
+          const emailSuccess = await sendWarningEmail(req.user, log.productivity_percentage);
+          if (emailSuccess) {
+            await supabase
+              .from('activity_logs')
+              .update({ warning_email_sent: true })
+              .eq('id', log.id);
+          }
         }
       }
     } catch (emailErr) {
@@ -1403,13 +1413,15 @@ app.post('/api/attendance/break/start', authenticate, async (req, res) => {
   const { breakType, note } = req.body;
   const today = new Date().toISOString().split('T')[0];
   try {
-    const { data: att, error: fetchErr } = await supabase
+    const { data: atts, error: fetchErr } = await supabase
       .from('attendance')
       .select('*')
       .eq('employee_id', req.user.id)
-      .eq('date', today)
       .is('check_out_time', null)
-      .maybeSingle();
+      .order('check_in_time', { ascending: false })
+      .limit(1);
+      
+    const att = atts && atts.length > 0 ? atts[0] : null;
 
     if (fetchErr || !att) {
       return res.status(400).json({ message: 'You must check in before taking a break.' });
@@ -1460,13 +1472,15 @@ app.post('/api/attendance/break/start', authenticate, async (req, res) => {
 app.post('/api/attendance/break/end', authenticate, async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   try {
-    const { data: att, error: fetchErr } = await supabase
+    const { data: atts, error: fetchErr } = await supabase
       .from('attendance')
       .select('*')
       .eq('employee_id', req.user.id)
-      .eq('date', today)
       .is('check_out_time', null)
-      .maybeSingle();
+      .order('check_in_time', { ascending: false })
+      .limit(1);
+      
+    const att = atts && atts.length > 0 ? atts[0] : null;
 
     if (fetchErr || !att) {
       return res.status(400).json({ message: 'Attendance record not found.' });
@@ -1514,13 +1528,15 @@ app.post('/api/attendance/break/retroactive', authenticate, async (req, res) => 
   const { breakType, durationMinutes } = req.body;
   const today = new Date().toISOString().split('T')[0];
   try {
-    const { data: att, error: fetchErr } = await supabase
+    const { data: atts, error: fetchErr } = await supabase
       .from('attendance')
       .select('*')
       .eq('employee_id', req.user.id)
-      .eq('date', today)
       .is('check_out_time', null)
-      .maybeSingle();
+      .order('check_in_time', { ascending: false })
+      .limit(1);
+      
+    const att = atts && atts.length > 0 ? atts[0] : null;
 
     if (fetchErr || !att) {
       return res.status(400).json({ message: 'Attendance record not found.' });
@@ -1571,8 +1587,8 @@ app.get('/api/attendance/status', authenticate, async (req, res) => {
       .from('attendance')
       .select('*')
       .eq('employee_id', req.user.id)
-      .eq('date', today)
-      .order('check_in_time', { ascending: false });
+      .order('check_in_time', { ascending: false })
+      .limit(1);
 
     const att = atts && atts.length > 0 ? atts[0] : null;
 
@@ -2364,7 +2380,7 @@ app.post('/api/monitoring/activity', authenticate, async (req, res) => {
       .maybeSingle();
 
     let updatedLog;
-    const rollingWarning = checkRollingWarning(req.user, activeSeconds, idleSeconds, minMinutes);
+    const rollingWarning = await checkRollingWarning(req.user, activeSeconds, idleSeconds, minMinutes);
 
     if (log) {
       // Calculate minutes and percentages
@@ -2779,7 +2795,7 @@ app.get('/api/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdm
       .from('attendance')
       .select('*')
       .eq('company_id', req.user.company_id)
-      .eq('date', today);
+      .or(`date.eq.${today},check_out_time.is.null`);
       
     if (isManager) {
       if (employeeIds.length === 0) {
@@ -3391,6 +3407,95 @@ app.put('/api/system/companies/:id/status', authenticate, authorize(['SystemAdmi
 });
 
 
+// --- Analytics Endpoint ---
+app.get('/api/system/analytics', authenticate, authorize(['SystemAdmin']), async (req, res) => {
+  try {
+    const { count: totalCompanies, error: cErr } = await supabase.from('companies').select('*', { count: 'exact', head: true });
+    const { count: activeCompanies, error: acErr } = await supabase.from('companies').select('*', { count: 'exact', head: true }).eq('status', 'active');
+    
+    // total non-systemadmin users
+    const { count: totalUsers, error: uErr } = await supabase.from('users').select('*', { count: 'exact', head: true }).neq('role', 'SystemAdmin');
+    
+    // daily active users (last_login within 24 hours)
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: activeUsersToday, error: auErr } = await supabase.from('users').select('*', { count: 'exact', head: true }).gte('last_login', oneDayAgo);
+
+    if (cErr || acErr || uErr || auErr) throw new Error('Failed to compute analytics');
+
+    res.json({
+      totalCompanies: totalCompanies || 0,
+      activeCompanies: activeCompanies || 0,
+      totalUsers: totalUsers || 0,
+      dailyActiveUsers: activeUsersToday || 0
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// --- Announcements Endpoints ---
+app.post('/api/system/announcements', authenticate, authorize(['SystemAdmin']), async (req, res) => {
+  const { title, message, target_role } = req.body;
+  if (!title || !message) return res.status(400).json({ message: 'Title and message are required' });
+  
+  try {
+    const { data, error } = await supabase
+      .from('system_announcements')
+      .insert([{ title, message, target_role: target_role || 'all', created_by: req.user.id }])
+      .select()
+      .single();
+    if (error) throw error;
+    res.status(201).json({ message: 'Announcement created', data });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.delete('/api/system/announcements/:id', authenticate, authorize(['SystemAdmin']), async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('system_announcements')
+      .delete()
+      .eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ message: 'Announcement deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/system/announcements', authenticate, authorize(['SystemAdmin']), async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('system_announcements')
+      .select('*, created_by_user:users!created_by(name, email)')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/announcements/latest', authenticate, async (req, res) => {
+  try {
+    // Basic logic: get latest active announcement matching target_role = 'all' or req.user.role
+    const { data, error } = await supabase
+      .from('system_announcements')
+      .select('*')
+      .eq('is_active', true)
+      .in('target_role', ['all', req.user.role])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    res.json(data || null);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // ─── Serve React frontend ──────────────────────────────────────────
 const frontendBuild = path.join(__dirname, '..', 'frontend', 'build');
 if (fs.existsSync(frontendBuild)) {
@@ -3403,6 +3508,19 @@ if (fs.existsSync(frontendBuild)) {
 } else {
   console.warn('⚠️  Frontend build not found at:', frontendBuild);
 }
+
+app.use((err, req, res, next) => {
+  logger.error(`${err.status || 500} - ${err.message} - ${req.originalUrl} - ${req.method} - ${req.ip}`);
+  res.status(err.status || 500).json({ message: 'Internal Server Error' });
+});
+
+process.on('uncaughtException', (err) => {
+  logger.error(`Uncaught Exception: ${err.message}`, err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, '0.0.0.0', () => {

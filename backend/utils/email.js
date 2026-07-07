@@ -43,7 +43,7 @@ const sendWarningEmail = async (employee, productivity) => {
       console.log(`Subject: WFH Warning: Low Productivity Alert - ${employee.name}`);
       console.log(`Body: Employee ${employee.name} (Email: ${employee.email}) has a productivity score of ${productivity}%, which is below the 50% threshold today.`);
       console.log('-------------------------------------------------------\n');
-      return;
+      return true;
     }
 
     const sender = process.env.SENDER_EMAIL || user;
@@ -72,8 +72,10 @@ const sendWarningEmail = async (employee, productivity) => {
 
     await transporter.sendMail(mailOptions);
     console.log(`Warning email successfully sent to ${recipientEmails.join(', ')} for ${employee.name}`);
+    return true;
   } catch (err) {
     console.error('Failed to send warning email:', err.message);
+    return false;
   }
 };
 

@@ -583,7 +583,7 @@ function startTracking() {
         for (let line of outputLines) {
           line = line.trim();
           if (line.startsWith('KEYS:')) {
-            // Parse "KEYS:X|CLICKS:Y"
+            // Parse "KEYS:X|CLICKS:Y|App:AppName|Title:WindowTitle"
             const parts = line.split('|');
             const keys = parseInt(parts[0].replace('KEYS:', '')) || 0;
             const clicks = parseInt(parts[1].replace('CLICKS:', '')) || 0;
@@ -606,6 +606,11 @@ function startTracking() {
             try {
               fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Parsed Activity - Keys: ${keys}, Clicks: ${clicks}. Cumulative Active in tick: ${activeSecondsInTick}s, Idle: ${idleSecondsInTick}s\n`);
             } catch (e) {}
+
+            // Pass the active window info if available
+            if (parts.length >= 4 && parts[2].startsWith('App:') && parts[3].startsWith('Title:')) {
+              handleActiveWindowOutput(parts[2] + '|' + parts[3]);
+            }
           }
         }
       });
@@ -643,8 +648,21 @@ function startTracking() {
     }
   }
 
+  let lastTrackingTickTime = Date.now();
   // Run tracking loop every 10 seconds
   trackingInterval = setInterval(() => {
+    const now = Date.now();
+    const elapsedSeconds = Math.round((now - lastTrackingTickTime) / 1000);
+    lastTrackingTickTime = now;
+
+    // If elapsed time is significantly more than the 10s interval (e.g., > 15s),
+    // the system was likely asleep/suspended. We count that suspended time as idle time.
+    if (elapsedSeconds >= 15) {
+      const suspendedSeconds = elapsedSeconds - 10;
+      idleSecondsInTick += suspendedSeconds;
+      console.log(`Desktop Agent: System was suspended for ${suspendedSeconds}s. Added to idle time.`);
+    }
+
     totalTrackedSeconds += 10;
     tickCount++;
 
@@ -776,45 +794,8 @@ function captureActiveWindow() {
   const platform = process.platform;
 
   if (platform === 'win32') {
-    const psScript = `
-Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-public class User32 {
-    [DllImport("user32.dll")]
-    public static extern IntPtr GetForegroundWindow();
-    [DllImport("user32.dll")]
-    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-}
-"@
-try {
-    $hwnd = [User32]::GetForegroundWindow()
-    if ($hwnd -ne [IntPtr]::Zero) {
-        $windowPid = 0
-        [void][User32]::GetWindowThreadProcessId($hwnd, [ref]$windowPid)
-        if ($windowPid -gt 0) {
-            $process = Get-Process -Id $windowPid
-            $processName = $process.ProcessName
-            $windowTitle = $process.MainWindowTitle
-            if ([string]::IsNullOrEmpty($processName)) { $processName = "Unknown" }
-            if ([string]::IsNullOrEmpty($windowTitle)) { $windowTitle = "Active Window" }
-            Write-Output "App:$processName|Title:$windowTitle"
-        }
-    }
-} catch {
-    # Fail silently
-}
-    `.trim();
-
-    const buffer = Buffer.from(psScript, 'utf16le');
-    const base64Script = buffer.toString('base64');
-    const command = `powershell -NoProfile -EncodedCommand ${base64Script}`;
-
-    exec(command, (error, stdout, stderr) => {
-      if (!error && stdout) {
-        handleActiveWindowOutput(stdout);
-      }
-    });
+    // Handled natively by the continuous activity-monitor.ps1 background process to save battery/CPU
+    return;
   } else if (platform === 'darwin') {
     const appleScript = `
 tell application "System Events"
