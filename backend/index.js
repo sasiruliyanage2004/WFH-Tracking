@@ -1611,6 +1611,7 @@ app.get('/api/attendance/status', authenticate, async (req, res) => {
       .from('attendance')
       .select('*')
       .eq('employee_id', req.user.id)
+      .or(`date.eq.${today},check_out_time.is.null`)
       .order('check_in_time', { ascending: false })
       .limit(1);
 
