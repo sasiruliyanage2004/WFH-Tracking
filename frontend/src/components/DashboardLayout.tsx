@@ -48,7 +48,8 @@ import {
   BarChart as BarChartIcon,
   Domain as DomainIcon,
   Campaign as CampaignIcon,
-  Palette as PaletteIcon
+  Palette as PaletteIcon,
+  OpenInNew as OpenInNewIcon
 } from '@mui/icons-material';
 import { logout } from '../redux/store';
 import DeveloperSignature from './DeveloperSignature';
@@ -182,7 +183,16 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode, appTheme = 'dark
     links = systemAdminLinks;
   } else if (isDesktop) {
     // Desktop App: Strictly for Time Tracking (All users except SystemAdmin)
-    links = employeeLinks;
+    links = [...employeeLinks];
+    if (user?.role === 'Admin' || user?.role === 'SuperAdmin') {
+      links.push({ isDivider: true });
+      links.push({ 
+        text: 'Open Web Dashboard', 
+        icon: <OpenInNewIcon />, 
+        isExternal: true, 
+        path: 'https://wfh-tracking-k5ap.vercel.app' 
+      });
+    }
   } else {
     // Web App
     if (user?.role === 'Manager' || user?.role === 'SuperAdmin') {
@@ -285,8 +295,12 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode, appTheme = 'dark
               <Tooltip title={expanded ? '' : link.text} placement="right">
                 <ListItemButton
                   onClick={() => {
-                    navigate(link.path);
-                    setMobileOpen(false);
+                    if (link.isExternal) {
+                      window.open(link.path, '_blank');
+                    } else {
+                      navigate(link.path);
+                      setMobileOpen(false);
+                    }
                   }}
                   sx={{
                     borderRadius: '12px',
