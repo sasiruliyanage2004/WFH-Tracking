@@ -452,14 +452,16 @@ function ManagerDashboard() {
             {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} • {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} • Hybrid Workspace
           </Typography>
         </Box>
-        <Button
-          variant="outlined"
-          color="primary"
-          onClick={() => window.open('https://wfh-tracking-k5ap.vercel.app', '_blank')}
-          sx={{ borderRadius: 2, fontWeight: 700, px: 3, boxShadow: '0 4px 12px rgba(0,225,171,0.1)' }}
-        >
-          Open Web Dashboard
-        </Button>
+        {!!window.api && (
+          <Button
+            variant="outlined"
+            color="primary"
+            onClick={() => window.open('https://wfh-tracking-k5ap.vercel.app', '_blank')}
+            sx={{ borderRadius: 2, fontWeight: 700, px: 3, boxShadow: '0 4px 12px rgba(0,225,171,0.1)' }}
+          >
+            Open Web Dashboard
+          </Button>
+        )}
       </Box>
 
       {/* Visual Analytics top summary cards */}

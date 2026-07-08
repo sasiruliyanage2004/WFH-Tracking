@@ -741,7 +741,7 @@ function EmployeeDashboard() {
               {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} • {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} • Hybrid Workspace
             </Typography>
           </Box>
-          {(user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.role === 'Manager') && (
+          {!!window.api && (user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.role === 'Manager') && (
             <Button
               variant="outlined"
               color="primary"
