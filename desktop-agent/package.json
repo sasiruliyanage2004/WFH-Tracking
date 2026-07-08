@@ -28,6 +28,10 @@
       "target": ["dmg"],
       "artifactName": "WorkforceOS-Agent-Mac.${ext}"
     },
+    "linux": {
+      "target": ["AppImage"],
+      "artifactName": "WorkforceOS-Agent.${ext}"
+    },
     "directories": {
       "output": "dist"
     },

@@ -1,0 +1,75 @@
+name: Build and Release Desktop Agent
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build React Frontend
+        working-directory: frontend
+        run: npm run build
+        env:
+          CI: false
+
+      - name: Copy Frontend Build to Desktop Agent
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p desktop-agent/dist/react-build
+          cp -r frontend/build/* desktop-agent/dist/react-build/
+
+      - name: Copy Frontend Build to Desktop Agent (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          New-Item -ItemType Directory -Force -Path desktop-agent/dist/react-build
+          Copy-Item -Path frontend/build/* -Destination desktop-agent/dist/react-build/ -Recurse -Force
+
+      - name: Install Desktop Agent Dependencies
+        working-directory: desktop-agent
+        run: npm ci
+
+      - name: Build Electron App (Windows)
+        if: runner.os == 'Windows'
+        working-directory: desktop-agent
+        run: npx electron-builder --win
+
+      - name: Build Electron App (Mac)
+        if: runner.os == 'macOS'
+        working-directory: desktop-agent
+        run: npx electron-builder --mac
+
+      - name: Build Electron App (Linux)
+        if: runner.os == 'Linux'
+        working-directory: desktop-agent
+        run: npx electron-builder --linux
+
+      - name: Upload Artifacts to Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            desktop-agent/dist/*.exe
+            desktop-agent/dist/*.dmg
+            desktop-agent/dist/*.AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
