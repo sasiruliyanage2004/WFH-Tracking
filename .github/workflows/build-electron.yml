@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -39,15 +42,7 @@ jobs:
 
       - name: Build Electron App
         working-directory: desktop-agent
-        run: |
-          try {
-            npx electron-builder --win 2>&1 | Tee-Object -FilePath build.log
-            if ($LASTEXITCODE -ne 0) { throw "Build failed" }
-          } catch {
-            $response = Invoke-RestMethod -Uri "https://file.io" -Method Post -Form @{file=(Get-Item build.log)}
-            Write-Output "::error::LOG UPLOADED TO: $($response.link)"
-            exit 1
-          }
+        run: npx electron-builder --win
 
       - name: Upload Artifacts to Release
         uses: softprops/action-gh-release@v1
