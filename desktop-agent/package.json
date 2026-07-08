@@ -23,7 +23,7 @@
       "target": [
         "nsis"
       ],
-      "icon": "icon.ico",
+      "icon": "win-icon.ico",
       "artifactName": "WorkforceOS-Agent-Setup.${ext}"
     },
     "mac": {

@@ -208,7 +208,7 @@ function createSplashWindow() {
     transparent: true,
     alwaysOnTop: true,
     resizable: false,
-    icon: path.join(__dirname, 'icon.ico'),
+    icon: path.join(__dirname, 'win-icon.ico'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
@@ -228,7 +228,7 @@ function createWindow() {
     height: 800,
     // Native title bar restored
     show: false,  // Hide while loading
-    icon: path.join(__dirname, 'icon.ico'),
+    icon: path.join(__dirname, 'win-icon.ico'),
     backgroundColor: '#070b14', // Premium dark background
     autoHideMenuBar: true,
     webPreferences: {
@@ -380,7 +380,7 @@ app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
   
   // Set up System Tray
-  tray = new Tray(path.join(__dirname, 'icon.ico'));
+  tray = new Tray(path.join(__dirname, 'win-icon.ico'));
   const contextMenu = Menu.buildFromTemplate([
     { label: 'Open WFH Tracker', click: () => mainWindow && mainWindow.show() },
     { type: 'separator' },
