@@ -443,13 +443,23 @@ function ManagerDashboard() {
   return (
     <Box sx={{ pb: 5 }}>
       {/* Top Greeting and Ticking Clock Banner */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.025em' }}>
-          {getGreeting()}, {user?.name ? user.name.split(' ')[0] : 'Admin'}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, mt: 0.5 }}>
-          {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} • {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} • Hybrid Workspace
-        </Typography>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.025em' }}>
+            {getGreeting()}, {user?.name ? user.name.split(' ')[0] : 'Admin'}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, mt: 0.5 }}>
+            {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} • {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} • Hybrid Workspace
+          </Typography>
+        </Box>
+        <Button
+          variant="outlined"
+          color="primary"
+          onClick={() => window.open('https://wfh-tracking-k5ap.vercel.app', '_blank')}
+          sx={{ borderRadius: 2, fontWeight: 700, px: 3, boxShadow: '0 4px 12px rgba(0,225,171,0.1)' }}
+        >
+          Open Web Dashboard
+        </Button>
       </Box>
 
       {/* Visual Analytics top summary cards */}

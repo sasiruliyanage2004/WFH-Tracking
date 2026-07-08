@@ -283,6 +283,14 @@ function SystemAdmin({ activeTab = 0 }) {
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
+            variant="outlined"
+            color="primary"
+            onClick={() => window.open('https://wfh-tracking-k5ap.vercel.app', '_blank')}
+            sx={{ borderRadius: 2, fontWeight: 700, px: 3 }}
+          >
+            Open Web Dashboard
+          </Button>
+          <Button
             variant="contained"
             startIcon={<BusinessIcon />}
             onClick={() => setOpenCreateModal(true)}

@@ -171,8 +171,8 @@ async function flushOfflineCache() {
   }
 }
 
-const BACKEND_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://127.0.0.1:3000';
+const BACKEND_URL = process.env.REACT_APP_API_URL || 'https://wfh-tracking.onrender.com';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://wfh-tracking-k5ap.vercel.app';
 
 let mainWindow = null;
 let sessionToken = null;
@@ -259,15 +259,13 @@ function createWindow() {
     console.log(`[RENDERER CONSOLE] [Level ${level}] ${message} (at ${sourceId}:${line})`);
   });
 
-  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-  const startUrl = isDev 
-    ? FRONTEND_URL 
-    : url.format({
-        pathname: path.join(__dirname, 'app-build/index.html'),
-        protocol: 'file:',
-        slashes: true
-      });
+const startUrl = FRONTEND_URL;
   mainWindow.loadURL(startUrl);
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    require('electron').shell.openExternal(url);
+    return { action: 'deny' };
+  });
 
   mainWindow.webContents.on('did-finish-load', () => {
     // mainWindow.webContents.openDevTools();
