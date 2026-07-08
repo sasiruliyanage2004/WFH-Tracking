@@ -28,6 +28,7 @@ import {
   Paper,
   Switch
 } from '@mui/material';
+import { maskEmail } from '../utils/maskEmail';
 import {
   Search as SearchIcon,
   People as PeopleIcon,
@@ -285,7 +286,7 @@ function AdminList() {
                           {adm.name} {isSelf && "(You)"}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
-                          {adm.role === 'SuperAdmin' ? 'HR Head' : 'Manager'}
+                          {maskEmail(adm.email)}
                         </Typography>
                       </Box>
                     </Box>
@@ -383,7 +384,7 @@ function AdminList() {
 
               {/* Detail rows */}
               {[
-                { icon: <EmailIcon fontSize="small" />, label: 'Email', value: selectedAdm.email },
+                { icon: <EmailIcon fontSize="small" />, label: 'Email', value: maskEmail(selectedAdm.email) },
                 { icon: <DepartmentIcon fontSize="small" />, label: 'Department', value: selectedAdm.department || 'N/A' },
                 { icon: <JoinedIcon fontSize="small" />, label: 'Registered on', value: new Date(selectedAdm.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) },
               ].map(({ icon, label, value }) => (

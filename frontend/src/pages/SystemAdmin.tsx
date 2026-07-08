@@ -430,36 +430,6 @@ function SystemAdmin({ activeTab = 0 }) {
                 </TableContainer>
               </Paper>
 
-              {/* Map UI */}
-              <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid divider', position: 'relative', overflow: 'hidden' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, position: 'relative', zIndex: 2 }}>
-                  <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>Global Node Distribution</Typography>
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>Real-time load balancing across 14 clusters</Typography>
-                  </Box>
-                  <Chip icon={<Box sx={{width:6,height:6,bgcolor:'primary.main',borderRadius:'50%',mr:0.5}}/>} label="LIVE MONITORING" size="small" sx={{ bgcolor: 'rgba(94, 234, 212, 0.1)', color: 'primary.main', fontWeight: 600, border: '1px solid rgba(94, 234, 212, 0.2)' }} />
-                </Box>
-                {/* Abstract CSS Map background */}
-                <Box sx={{ 
-                  height: 250, 
-                  background: 'radial-gradient(circle at center, rgba(94, 234, 212, 0.15) 0%, transparent 70%)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  opacity: 0.8
-                }}>
-                  <ShowChartIcon sx={{ fontSize: 150, color: 'divider' }} />
-                </Box>
-                
-                <Box sx={{ display: 'flex', gap: 2, position: 'absolute', bottom: 24, left: 24, zIndex: 2 }}>
-                  <Box sx={{ bgcolor: 'rgba(0,0,0,0.6)', p: 1.5, borderRadius: 2, border: '1px solid divider', backdropFilter: 'blur(4px)' }}>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5, fontWeight: 700 }}>LATENCY</Typography>
-                    <Typography variant="subtitle1" sx={{ color: 'primary.main', fontWeight: 700, lineHeight: 1 }}>24ms</Typography>
-                  </Box>
-                  <Box sx={{ bgcolor: 'rgba(0,0,0,0.6)', p: 1.5, borderRadius: 2, border: '1px solid divider', backdropFilter: 'blur(4px)' }}>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5, fontWeight: 700 }}>THROUGHPUT</Typography>
-                    <Typography variant="subtitle1" sx={{ color: 'primary.main', fontWeight: 700, lineHeight: 1 }}>1.2 GB/s</Typography>
-                  </Box>
-                </Box>
-              </Paper>
             </Grid>
 
             {/* Right Column (System Alerts) */}
@@ -653,8 +623,7 @@ function SystemAdmin({ activeTab = 0 }) {
       )}
 
       {/* Create Company Modal */}
-      <Dialog open={openCreateModal} onClose={() => setOpenCreateModal(false)} // @ts-ignore
-PaperProps={{ sx: { borderRadius: 3, bgcolor: 'background.paper', color: 'text.primary' } }}>
+      <Dialog open={openCreateModal} onClose={() => setOpenCreateModal(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>Register New Business</DialogTitle>
         <DialogContent>
           {createError && <Typography color="error" sx={{ mb: 2 }}>{createError}</Typography>}

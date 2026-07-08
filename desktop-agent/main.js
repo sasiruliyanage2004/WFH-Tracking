@@ -689,6 +689,7 @@ function startTracking() {
       flushUsageBuffer();
       flushActivityTelemetry();
       flushOfflineCache();
+      sendHeartbeat();
       tickCount = 0;
     }
   }, 10000);
@@ -718,6 +719,37 @@ function stopTracking() {
   // Flush remaining buffer data before stopping
   flushUsageBuffer();
   flushActivityTelemetry();
+}
+
+async function sendHeartbeat() {
+  if (!sessionToken) return;
+  try {
+    const response = await axios.post(
+      `${BACKEND_URL}/api/attendance/heartbeat`,
+      {},
+      { headers: { Authorization: `Bearer ${sessionToken}` } }
+    );
+    
+    if (response.data && response.data.autoCheckedOut) {
+      console.log('Desktop Agent: Auto-checkout detected from backend.');
+      
+      // Stop tracking
+      stopTracking();
+      
+      // Notify all renderer windows
+      BrowserWindow.getAllWindows().forEach(win => {
+        win.webContents.send('shift-auto-checked-out');
+      });
+      
+      // Show notification to user
+      new Notification({
+        title: 'Shift Auto-Ended',
+        body: 'You were automatically checked out due to long inactivity (e.g. PC went to sleep).'
+      }).show();
+    }
+  } catch (err) {
+    console.error('Failed to send heartbeat:', err.message);
+  }
 }
 
 async function flushActivityTelemetry() {

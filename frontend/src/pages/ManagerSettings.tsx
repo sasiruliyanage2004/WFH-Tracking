@@ -12,13 +12,20 @@ import {
   Button,
   CircularProgress,
   Snackbar,
-  Alert
+  Alert,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
 } from '@mui/material';
 import {
   Email as EmailIcon,
   Add as AddIcon,
   Save as SaveIcon,
-  Monitor as MonitorIcon
+  Monitor as MonitorIcon,
+  CloudUpload as CloudUploadIcon,
+  CheckCircle as CheckCircleIcon,
+  SettingsInputComponent as SmtpIcon
 } from '@mui/icons-material';
 
 import CustomLoader from '../components/CustomLoader';
@@ -42,6 +49,18 @@ function ManagerSettings() {
     standardInterval: 5
   });
 
+  // SMTP Settings
+  const [smtpConfig, setSmtpConfig] = useState({
+    host: '',
+    port: 587,
+    user: '',
+    pass: '',
+    sender_email: '',
+    use_custom: false
+  });
+  const [smtpLoading, setSmtpLoading] = useState(false);
+  const [testLoading, setTestLoading] = useState(false);
+
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -55,6 +74,12 @@ function ManagerSettings() {
         // Fetch screenshot rules setting
         const rulesRes = await axios.get(`${API_URL}/api/settings/screenshot-rules`, authHeader);
         setScreenshotRules(rulesRes.data);
+
+        // Fetch SMTP config
+        const smtpRes = await axios.get(`${API_URL}/api/settings/smtp`, authHeader);
+        if (smtpRes.data) {
+          setSmtpConfig(smtpRes.data);
+        }
       } catch (err) {
         console.warn('Failed to load settings:', err.message);
       } finally {
@@ -116,6 +141,34 @@ function ManagerSettings() {
       setSettingsMessage({ show: true, text: 'Failed to save screenshot rules.', severity: 'error' });
     } finally {
       setSettingsLoading(false);
+    }
+  };
+
+  const handleSaveSmtpSettings = async () => {
+    try {
+      setSmtpLoading(true);
+      const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+      await axios.post(`${API_URL}/api/settings/smtp`, smtpConfig, authHeader);
+      setSettingsMessage({ show: true, text: 'SMTP settings saved successfully.', severity: 'success' });
+    } catch (err) {
+      console.error('Failed to save SMTP settings:', err.message);
+      setSettingsMessage({ show: true, text: 'Failed to save SMTP settings.', severity: 'error' });
+    } finally {
+      setSmtpLoading(false);
+    }
+  };
+
+  const handleTestSmtpConnection = async () => {
+    try {
+      setTestLoading(true);
+      const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+      const res = await axios.post(`${API_URL}/api/settings/smtp/test`, smtpConfig, authHeader);
+      setSettingsMessage({ show: true, text: res.data.message || 'Test successful.', severity: 'success' });
+    } catch (err) {
+      console.error('Failed to test SMTP connection:', err.message);
+      setSettingsMessage({ show: true, text: err.response?.data?.message || 'SMTP Connection Test Failed.', severity: 'error' });
+    } finally {
+      setTestLoading(false);
     }
   };
 
@@ -261,6 +314,93 @@ function ManagerSettings() {
               startIcon={settingsLoading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
             >
               {settingsLoading ? 'Saving...' : 'Save Screenshot Rules'}
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+
+      <Card sx={{ borderRadius: 3, mt: 3 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <SmtpIcon color="primary" /> Custom Email Server (SMTP)
+          </Typography>
+          <Typography variant="caption" color="text.secondary" component="div" sx={{ mb: 2 }}>
+            Configure your own email server to send alerts and OTPs from your company's email address. Leave disabled to use the system default.
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+            <input 
+              type="checkbox" 
+              checked={smtpConfig.use_custom} 
+              onChange={(e) => setSmtpConfig(prev => ({ ...prev, use_custom: e.target.checked }))} 
+              style={{ width: '20px', height: '20px', cursor: 'pointer', marginRight: '10px' }}
+            />
+            <Typography sx={{ fontWeight: 600 }}>Enable Custom SMTP Server</Typography>
+          </Box>
+
+          {smtpConfig.use_custom && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mb: 3 }}>
+              
+              <Alert severity="info" sx={{ '& .MuiAlert-message': { width: '100%' } }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>How to get a Gmail App Password:</Typography>
+                <ol style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                  <li>Go to your Google Account (Manage your Google Account).</li>
+                  <li>Go to Security &rarr; Enable 2-Step Verification.</li>
+                  <li>Search for "App Passwords" in the top search bar.</li>
+                  <li>Create a new App Password (e.g. name it "WFH App").</li>
+                  <li>Copy the 16-character password and paste it below.</li>
+                </ol>
+              </Alert>
+
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <FormControl size="small" sx={{ flex: 1, minWidth: 150 }}>
+                  <InputLabel>Provider</InputLabel>
+                  <Select
+                    label="Provider"
+                    value={smtpConfig.host === 'smtp.gmail.com' ? 'gmail' : 'custom'}
+                    onChange={(e) => {
+                      if (e.target.value === 'gmail') {
+                        setSmtpConfig(prev => ({ ...prev, host: 'smtp.gmail.com', port: 465 }));
+                      }
+                    }}
+                  >
+                    <MenuItem value="gmail">Gmail</MenuItem>
+                    <MenuItem value="custom">Custom Server</MenuItem>
+                  </Select>
+                </FormControl>
+                
+                <TextField label="SMTP Host" size="small" value={smtpConfig.host} onChange={(e) => setSmtpConfig(prev => ({ ...prev, host: e.target.value }))} sx={{ flex: 2, minWidth: 200 }} />
+                <TextField label="Port" type="number" size="small" value={smtpConfig.port} onChange={(e) => setSmtpConfig(prev => ({ ...prev, port: Number(e.target.value) }))} sx={{ flex: 1, minWidth: 100 }} />
+              </Box>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <TextField label="SMTP Username / Email" size="small" value={smtpConfig.user} onChange={(e) => setSmtpConfig(prev => ({ ...prev, user: e.target.value }))} sx={{ flex: 1, minWidth: 200 }} />
+                <TextField label="SMTP App Password" type="password" size="small" value={smtpConfig.pass} onChange={(e) => setSmtpConfig(prev => ({ ...prev, pass: e.target.value }))} sx={{ flex: 1, minWidth: 200 }} />
+              </Box>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <TextField label="Sender Email Address (From)" size="small" value={smtpConfig.sender_email} onChange={(e) => setSmtpConfig(prev => ({ ...prev, sender_email: e.target.value }))} helperText="The email address your employees will see (e.g. no-reply@company.com)" sx={{ flex: 1, minWidth: 200 }} />
+              </Box>
+            </Box>
+          )}
+
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={handleTestSmtpConnection}
+              disabled={testLoading || !smtpConfig.use_custom}
+              startIcon={testLoading ? <CircularProgress size={20} color="inherit" /> : <CloudUploadIcon />}
+            >
+              {testLoading ? 'Testing...' : 'Test Connection'}
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSaveSmtpSettings}
+              disabled={smtpLoading}
+              startIcon={smtpLoading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+            >
+              {smtpLoading ? 'Saving...' : 'Save SMTP Config'}
             </Button>
           </Box>
         </CardContent>

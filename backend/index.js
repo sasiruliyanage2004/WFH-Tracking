@@ -1323,6 +1323,30 @@ app.post('/api/attendance/checkin', authenticate, async (req, res) => {
   }
 });
 
+// --- Hearbeat Endpoint ---
+app.post('/api/attendance/heartbeat', authenticate, async (req, res) => {
+  try {
+    const { data: att } = await supabase
+      .from('attendance')
+      .select('id')
+      .eq('employee_id', req.user.id)
+      .is('check_out_time', null)
+      .maybeSingle();
+
+    if (att) {
+      await supabase
+        .from('attendance')
+        .update({ last_heartbeat: new Date() })
+        .eq('id', att.id);
+      res.json({ success: true, active: true });
+    } else {
+      res.json({ success: true, autoCheckedOut: true });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
+
 app.post('/api/attendance/checkout', authenticate, async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   try {
@@ -2933,7 +2957,7 @@ app.get('/api/notifications', authenticate, async (req, res) => {
       .select('*')
       .eq('recipient_id', req.user.id)
       .order('timestamp', { ascending: false })
-      .limit(30);
+      .limit(50);
 
     if (error) throw error;
     res.json(formatNotification(notifications || []));
@@ -2955,15 +2979,13 @@ app.put('/api/notifications/:id/read', authenticate, async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    const { data: updated, error: updateErr } = await supabase
+    const { error: updateErr } = await supabase
       .from('notifications')
-      .update({ is_read: true })
-      .eq('id', req.params.id)
-      .select('*')
-      .single();
+      .delete()
+      .eq('id', req.params.id);
 
     if (updateErr) throw updateErr;
-    res.json(formatNotification(updated));
+    res.json({ message: 'Notification deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -2983,7 +3005,8 @@ app.get('/api/settings/warning-emails', authenticate, authorize(['SuperAdmin']),
         .from('settings')
         .insert([{
           key: 'warning_emails',
-          value: ['liyanagesasiru@gmail.com']
+          value: ['liyanagesasiru@gmail.com'],
+          company_id: req.user.company_id
         }])
         .select('*')
         .single();
@@ -3001,11 +3024,11 @@ app.post('/api/settings/warning-emails', authenticate, authorize(['SuperAdmin'])
     return res.status(400).json({ message: 'Invalid email list format.' });
   }
   try {
-    const { data: setting } = await supabase
-      .from('settings')
-      .select('*')
-      .eq('key', 'warning_emails')
-      .maybeSingle();
+    let query = supabase.from('settings').select('*').eq('key', 'warning_emails');
+    if (req.user.company_id) {
+      query = query.eq('company_id', req.user.company_id);
+    }
+    const { data: setting } = await query.maybeSingle();
 
     let updatedSetting;
     if (!setting) {
@@ -3030,6 +3053,120 @@ app.post('/api/settings/warning-emails', authenticate, authorize(['SuperAdmin'])
   }
 });
 
+// --- Custom SMTP Settings ---
+app.get('/api/settings/smtp', authenticate, authorize(['SuperAdmin']), async (req, res) => {
+  try {
+    let query = supabase.from('settings').select('value').eq('key', 'smtp_config');
+    if (req.user.company_id) {
+      query = query.eq('company_id', req.user.company_id);
+    } else {
+      query = query.is('company_id', null);
+    }
+    const { data: setting } = await query.maybeSingle();
+
+    if (setting && setting.value) {
+      // Don't send the password back to the frontend for security, or send a placeholder
+      const config = { ...setting.value };
+      if (config.pass) config.pass = '********';
+      res.json(config);
+    } else {
+      res.json(null);
+    }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/settings/smtp', authenticate, authorize(['SuperAdmin']), async (req, res) => {
+  const { host, port, user, pass, sender_email, use_custom } = req.body;
+  try {
+    let query = supabase.from('settings').select('*').eq('key', 'smtp_config');
+    if (req.user.company_id) {
+      query = query.eq('company_id', req.user.company_id);
+    } else {
+      query = query.is('company_id', null);
+    }
+    const { data: setting } = await query.maybeSingle();
+
+    // If the frontend sends '********', we keep the old password
+    let finalPass = pass;
+    if (pass === '********' && setting && setting.value && setting.value.pass) {
+      finalPass = setting.value.pass;
+    }
+
+    const newConfig = {
+      host: host || '',
+      port: port || 587,
+      user: user || '',
+      pass: finalPass || '',
+      sender_email: sender_email || '',
+      use_custom: !!use_custom
+    };
+
+    let updatedSetting;
+    if (!setting) {
+      const { data } = await supabase
+        .from('settings')
+        .insert([{ key: 'smtp_config', value: newConfig, company_id: req.user.company_id }])
+        .select('*')
+        .single();
+      updatedSetting = data;
+    } else {
+      const { data } = await supabase
+        .from('settings')
+        .update({ value: newConfig, updated_at: new Date() })
+        .eq('id', setting.id)
+        .select('*')
+        .single();
+      updatedSetting = data;
+    }
+    res.json({ message: 'SMTP settings saved successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/settings/smtp/test', authenticate, authorize(['SuperAdmin']), async (req, res) => {
+  const { host, port, user, pass, sender_email } = req.body;
+  try {
+    let finalPass = pass;
+    if (pass === '********') {
+      let query = supabase.from('settings').select('value').eq('key', 'smtp_config');
+      if (req.user.company_id) query = query.eq('company_id', req.user.company_id);
+      else query = query.is('company_id', null);
+      const { data: setting } = await query.maybeSingle();
+      if (setting && setting.value && setting.value.pass) {
+        finalPass = setting.value.pass;
+      } else {
+        return res.status(400).json({ message: 'Password is required for testing.' });
+      }
+    }
+
+    if (!host || !port || !user || !finalPass || !sender_email) {
+      return res.status(400).json({ message: 'All SMTP fields are required for a test connection.' });
+    }
+
+    const nodemailer = require('nodemailer');
+    const transporter = nodemailer.createTransport({
+      host,
+      port: parseInt(port, 10),
+      secure: parseInt(port, 10) === 465,
+      auth: { user, pass: finalPass }
+    });
+
+    const mailOptions = {
+      from: `"WFH Tracking System (Test)" <${sender_email}>`,
+      to: req.user.email,
+      subject: '✅ SMTP Connection Test Successful',
+      html: '<p>If you are reading this, your custom SMTP configuration is working correctly.</p>'
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.json({ message: 'Test email sent successfully! Please check your inbox.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to send test email: ' + err.message });
+  }
+});
 app.get('/api/settings/screenshot-rules', authenticate, async (req, res) => {
   try {
     let query = supabase.from('settings').select('*').eq('key', 'screenshot_rules');
@@ -3521,6 +3658,65 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason, promise) => {
   logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
+
+// --- Auto-Checkout Background Task ---
+setInterval(async () => {
+  try {
+    const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    
+    // Find all attendance records without checkout where last_heartbeat is older than 15 mins
+    const { data: abandonedSessions, error } = await supabase
+      .from('attendance')
+      .select('id, employee_id, last_heartbeat')
+      .is('check_out_time', null)
+      .not('last_heartbeat', 'is', null)
+      .lt('last_heartbeat', fifteenMinsAgo);
+
+    if (error) {
+      console.error('Auto-checkout fetch error:', error);
+      return;
+    }
+
+    if (abandonedSessions && abandonedSessions.length > 0) {
+      for (const session of abandonedSessions) {
+        // Update attendance
+        await supabase
+          .from('attendance')
+          .update({ 
+            check_out_time: session.last_heartbeat, 
+            is_auto_checkout: true 
+          })
+          .eq('id', session.id);
+
+        // Alert user
+        await supabase.from('notifications').insert([{
+          user_id: session.employee_id,
+          message: 'Your session was automatically checked out due to 15 minutes of app inactivity/shutdown.',
+          type: 'auto_checkout'
+        }]);
+
+        // Alert admins/managers for this employee's company
+        const { data: emp } = await supabase.from('users').select('name, company_id').eq('id', session.employee_id).single();
+        if (emp) {
+          const { data: admins } = await supabase.from('users').select('id').in('role', ['Manager', 'SuperAdmin']).eq('company_id', emp.company_id);
+          if (admins) {
+            for (let admin of admins) {
+              await supabase.from('notifications').insert([{
+                user_id: admin.id,
+                message: `${emp.name} was automatically checked out due to disconnection/shutdown.`,
+                type: 'auto_checkout_admin'
+              }]);
+            }
+          }
+        }
+      }
+      console.log(`Auto-checked out ${abandonedSessions.length} abandoned sessions.`);
+    }
+  } catch (err) {
+    console.error('Auto-checkout interval error:', err);
+  }
+}, 10 * 60 * 1000); // Run every 10 minutes
+
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, '0.0.0.0', () => {

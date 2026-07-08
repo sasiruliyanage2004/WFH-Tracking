@@ -22,6 +22,10 @@ contextBridge.exposeInMainWorld('api', {
       return 1.0;
     }
   },
+  onAutoCheckedOut: (callback) => {
+    ipcRenderer.removeAllListeners('shift-auto-checked-out');
+    ipcRenderer.on('shift-auto-checked-out', () => callback());
+  },
   onIdlePrompt: (callback) => {
     ipcRenderer.removeAllListeners('idle:prompt-break');
     ipcRenderer.on('idle:prompt-break', (event, data) => callback(data));

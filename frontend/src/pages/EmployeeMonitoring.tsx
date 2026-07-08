@@ -26,7 +26,9 @@ import {
   IconButton,
   Chip,
   Checkbox,
-  TextField
+  TextField,
+  Alert,
+  Tooltip
 } from '@mui/material';
 import {
   ArrowBack as BackIcon,
@@ -223,6 +225,12 @@ function EmployeeMonitoring() {
           />
         </Box>
       </Box>
+
+      {latestCheckin?.is_auto_checkout && (
+        <Alert severity="warning" variant="filled" sx={{ mb: 3, borderRadius: 2 }}>
+          <strong>Auto-Checkout:</strong> This employee's session was automatically checked out due to laptop sleep, shutdown, or extended disconnection.
+        </Alert>
+      )}
 
       <Grid container spacing={3}>
         {/* GPS Verification Map and webcam selfie validation */}
@@ -642,12 +650,14 @@ function EmployeeMonitoring() {
       {/* Image zoom modal Dialog */}
       <Dialog open={selectedImage !== null} onClose={() => setSelectedImage(null)} maxWidth="lg">
         <Box sx={{ position: 'relative', bgcolor: 'black' }}>
-          <IconButton
-            onClick={() => setSelectedImage(null)}
-            sx={{ position: 'absolute', top: 8, right: 8, color: 'white', bgcolor: 'rgba(0,0,0,0.5)', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' } }}
-          >
-            <CloseIcon />
-          </IconButton>
+          <Tooltip title="Close">
+            <IconButton
+              onClick={() => setSelectedImage(null)}
+              sx={{ position: 'absolute', top: 8, right: 8, color: 'white', bgcolor: 'rgba(0,0,0,0.5)', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' } }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Tooltip>
           <DialogContent sx={{ p: 0, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <Box
               component="img"

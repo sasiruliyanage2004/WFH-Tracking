@@ -109,25 +109,24 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isAuthenticated]);
 
-  // Default to Light Mode
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('wfh_dark_mode');
-    if (saved !== null) return JSON.parse(saved);
-    return false; // Default to Light Mode
+  // Multi-theme system: 'light' | 'dark' | 'cyberpunk' | 'ocean' | 'matrix' | 'amber'
+  const [appTheme, setAppTheme] = useState(() => {
+    return localStorage.getItem('wfh_app_theme') || 'dark';
   });
 
-  const toggleTheme = (val) => {
-    setIsDarkMode(val);
-    localStorage.setItem('wfh_dark_mode', JSON.stringify(val));
-    window.dispatchEvent(new Event('wfh_theme_changed'));
+  // Keep isDarkMode as a boolean alias for backward compat
+  const isDarkMode = appTheme !== 'light';
+
+  const toggleTheme = (val: string) => {
+    setAppTheme(val);
+    localStorage.setItem('wfh_app_theme', val);
+    window.dispatchEvent(new CustomEvent('wfh_theme_changed', { detail: val }));
   };
 
   useEffect(() => {
-    const handleThemeChange = () => {
-      const saved = localStorage.getItem('wfh_dark_mode');
-      if (saved !== null) {
-        setIsDarkMode(JSON.parse(saved));
-      }
+    const handleThemeChange = (e: any) => {
+      const saved = localStorage.getItem('wfh_app_theme');
+      if (saved) setAppTheme(saved);
     };
     window.addEventListener('wfh_theme_changed', handleThemeChange);
     return () => window.removeEventListener('wfh_theme_changed', handleThemeChange);
@@ -162,34 +161,72 @@ function App() {
     };
   }, [isAuthenticated]);
 
+  // ── THEME PALETTES ─────────────────────────────────────────────────
+  const THEMES: Record<string, any> = {
+    dark: {
+      mode: 'dark',
+      accent: '#10b981',
+      accentGlow: 'rgba(16,185,129,0.4)',
+      bg: '#060913',
+      paper: '#070b14',
+      sidebar: 'rgba(9,13,22,0.95)',
+      appbar: 'rgba(9,13,22,0.88)',
+      textPrimary: '#f8fafc',
+      textSecondary: 'rgba(148,163,184,0.7)',
+      divider: 'rgba(255,255,255,0.08)',
+      border: 'rgba(255,255,255,0.07)',
+      cardBg: 'rgba(7,11,20,0.92)',
+      gradient: 'linear-gradient(135deg,#10b981 0%,#059669 100%)',
+      gradientHover: 'linear-gradient(135deg,#059669 0%,#10b981 100%)',
+    },
+    light: {
+      mode: 'light',
+      accent: '#10b981',
+      accentGlow: 'rgba(16,185,129,0.3)',
+      bg: '#f8fafc',
+      paper: '#ffffff',
+      sidebar: 'rgba(255,255,255,0.92)',
+      appbar: 'rgba(255,255,255,0.88)',
+      textPrimary: '#0f172a',
+      textSecondary: '#475569',
+      divider: 'rgba(15,23,42,0.08)',
+      border: 'rgba(21,27,31,0.06)',
+      cardBg: 'rgba(255,255,255,0.90)',
+      gradient: 'linear-gradient(135deg,#059669 0%,#10b981 100%)',
+      gradientHover: 'linear-gradient(135deg,#047857 0%,#059669 100%)',
+    },
+  };
+
+  const t = THEMES[appTheme] || THEMES.dark;
+
   // ── PREMIUM THEME ─────────────────────────────────────────────────
   const theme = useMemo(() => createTheme({
     palette: {
-      mode: isDarkMode ? 'dark' : 'light',
+      mode: t.mode as 'dark' | 'light',
       primary: {
-        main:          '#10b981',
-        light:         isDarkMode ? '#34d399' : '#d1fae5',
-        dark:          '#059669',
-        contrastText:  '#ffffff',
+        main:         t.accent,
+        light:        t.accent,
+        dark:         t.accent,
+        contrastText: '#ffffff',
       },
       secondary: {
-        main:  isDarkMode ? '#090d16' : '#090d16',
-        light: isDarkMode ? '#0b1324' : '#1e293b',
-        dark:  isDarkMode ? '#060913' : '#020617',
+        main:  t.bg,
+        light: t.paper,
+        dark:  t.bg,
       },
       error:   { main: '#ef4444' },
       warning: { main: '#f59e0b' },
-      success: { main: '#10b981' },
+      success: { main: '#22c55e' },
       info:    { main: '#3b82f6' },
       background: {
-        default: isDarkMode ? '#060913' : '#f8fafc',
-        paper:   isDarkMode ? '#070b14' : '#ffffff',
+        default: t.bg,
+        paper:   t.paper,
       },
       text: {
-        primary:   isDarkMode ? '#f8fafc' : '#0f172a',
-        secondary: isDarkMode ? 'rgba(148, 163, 184, 0.7)' : '#475569',
+        primary:   t.textPrimary,
+        secondary: t.textSecondary,
       },
-      divider: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)',
+      divider: t.divider,
     },
 
     typography: {
@@ -212,18 +249,29 @@ function App() {
         styleOverrides: {
           root: {
             backgroundImage: 'none',
-            background: isDarkMode
-              ? 'rgba(7, 11, 20, 0.92)'
-              : 'rgba(255, 255, 255, 0.90)',
+            background: t.cardBg,
             backdropFilter: 'none',
             WebkitBackdropFilter: 'none',
-            border: isDarkMode
-              ? '1px solid rgba(255, 255, 255, 0.07)'
-              : '1px solid rgba(21, 27, 31, 0.06)',
+            border: `1px solid ${t.border}`,
             boxShadow: isDarkMode
-              ? '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
+              ? `0 8px 32px rgba(0,0,0,0.4), 0 0 0 0 ${t.accentGlow}`
               : '0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)',
             transition: 'transform 0.25s cubic-bezier(0.4,0,0.2,1), box-shadow 0.25s cubic-bezier(0.4,0,0.2,1)',
+          },
+        },
+      },
+
+      // ── Dialogs ────────────────────────────────────────────────────
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            backgroundImage: 'none',
+            background: isDarkMode ? 'rgba(7,11,20,0.95)' : 'rgba(255,255,255,0.95)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: `1px solid ${t.border}`,
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+            borderRadius: 16,
           },
         },
       },
@@ -239,19 +287,11 @@ function App() {
           },
           // @ts-ignore
           containedPrimary: {
-            background: isDarkMode
-              ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-              : 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-            boxShadow: isDarkMode
-              ? '0 4px 16px rgba(16, 185, 129, 0.4)'
-              : '0 4px 12px rgba(5, 150, 105, 0.3)',
+            background: t.gradient,
+            boxShadow: `0 4px 16px ${t.accentGlow}`,
             '&:hover': {
-              background: isDarkMode
-                ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
-                : 'linear-gradient(135deg, #047857 0%, #059669 100%)',
-              boxShadow: isDarkMode
-                ? '0 6px 24px rgba(16, 185, 129, 0.5)'
-                : '0 6px 20px rgba(5, 150, 105, 0.4)',
+              background: t.gradientHover,
+              boxShadow: `0 6px 24px ${t.accentGlow}`,
               transform: 'translateY(-1px)',
             },
           },
@@ -273,9 +313,7 @@ function App() {
             borderRadius: 12,
             transition: 'box-shadow 0.2s',
             '&.Mui-focused': {
-              boxShadow: isDarkMode
-                ? '0 0 0 3px rgba(16, 185, 129, 0.2)'
-                : '0 0 0 3px rgba(16, 185, 129, 0.15)',
+              boxShadow: `0 0 0 3px ${t.accentGlow}`,
             },
           },
         },
@@ -285,14 +323,10 @@ function App() {
       MuiDrawer: {
         styleOverrides: {
           paper: {
-            background: isDarkMode
-              ? 'rgba(9, 13, 22, 0.95)'
-              : 'rgba(255, 255, 255, 0.92)',
+            background: t.sidebar,
             backdropFilter: 'none',
             WebkitBackdropFilter: 'none',
-            borderRight: isDarkMode
-              ? '1px solid rgba(255, 255, 255, 0.07)'
-              : '1px solid rgba(0,0,0,0.08)',
+            borderRight: `1px solid ${t.border}`,
           },
         },
       },
@@ -301,14 +335,10 @@ function App() {
       MuiAppBar: {
         styleOverrides: {
           root: {
-            background: isDarkMode
-              ? 'rgba(9, 13, 22, 0.88)'
-              : 'rgba(255, 255, 255, 0.88)',
+            background: t.appbar,
             backdropFilter: 'none',
             WebkitBackdropFilter: 'none',
-            borderBottom: isDarkMode
-              ? '1px solid rgba(255, 255, 255, 0.07)'
-              : '1px solid rgba(0,0,0,0.08)',
+            borderBottom: `1px solid ${t.border}`,
             boxShadow: 'none',
           },
         },
@@ -319,14 +349,10 @@ function App() {
         styleOverrides: {
           root: {
             backgroundImage: 'none',
-            background: isDarkMode
-              ? 'rgba(7, 11, 20, 0.92)'
-              : 'rgba(255, 255, 255, 0.92)',
+            background: t.cardBg,
             backdropFilter: 'none',
             WebkitBackdropFilter: 'none',
-            border: isDarkMode
-              ? '1px solid rgba(255, 255, 255, 0.07)'
-              : undefined,
+            border: `1px solid ${t.border}`,
           },
         },
       },
@@ -355,9 +381,7 @@ function App() {
       MuiSkeleton: {
         styleOverrides: {
           root: {
-            backgroundColor: isDarkMode
-              ? 'rgba(255,255,255,0.06)'
-              : 'rgba(0,0,0,0.06)',
+            backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
             '&::after': {
               background: isDarkMode
                 ? 'linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)'
@@ -372,7 +396,7 @@ function App() {
         styleOverrides: {
           root: {
             fontWeight: 700,
-            background: 'linear-gradient(135deg, #10b981, #059669)',
+            background: t.gradient,
           },
         },
       },
@@ -389,7 +413,7 @@ function App() {
         },
       },
     },
-  }), [isDarkMode]);
+  }), [appTheme, t]);
 
   // Authorization Wrappers
   const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -429,7 +453,7 @@ function App() {
     }
 
     return (
-      <DashboardLayout isDarkMode={isDarkMode} setIsDarkMode={toggleTheme}>
+      <DashboardLayout isDarkMode={isDarkMode} setIsDarkMode={toggleTheme} appTheme={appTheme}>
         {children}
       </DashboardLayout>
     );

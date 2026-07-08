@@ -28,6 +28,7 @@ import {
   Paper,
   Snackbar
 } from '@mui/material';
+import { maskEmail } from '../utils/maskEmail';
 import {
   Search as SearchIcon,
   People as PeopleIcon,
@@ -41,7 +42,8 @@ import {
   Block as BlockIcon,
   CheckCircle as CheckCircleIcon,
   LockOpen as LockOpenIcon,
-  AccessTime as TimeIcon
+  AccessTime as TimeIcon,
+  PersonAddOutlined as AddUserIcon
 } from '@mui/icons-material';
 import CustomLoader from '../components/CustomLoader';
 
@@ -387,7 +389,7 @@ function EmployeeList() {
                           {emp.name}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
-                          {emp.email}
+                          {maskEmail(emp.email)}
                         </Typography>
                       </Box>
                     </Box>
@@ -506,7 +508,7 @@ function EmployeeList() {
 
               {/* Detail rows */}
               {[
-                { icon: <EmailIcon fontSize="small" />, label: 'Email', value: selectedEmp.email },
+                { icon: <EmailIcon fontSize="small" />, label: 'Email', value: maskEmail(selectedEmp.email) },
                 { icon: <DepartmentIcon fontSize="small" />, label: 'Department', value: selectedEmp.department || 'N/A' },
                 { icon: <JoinedIcon fontSize="small" />, label: 'Member Since', value: new Date(selectedEmp.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) },
                 { icon: <TimeIcon fontSize="small" />, label: 'Last Login', value: selectedEmp.last_login ? new Date(selectedEmp.last_login).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never Logged In' }
@@ -586,9 +588,8 @@ function EmployeeList() {
       </Dialog>
 
       {/* Unlock Confirm Dialog */}
-      <Dialog open={Boolean(unlockConfirm)} onClose={() => setUnlockConfirm(null)} // @ts-ignore
-PaperProps={{ sx: { borderRadius: 3, p: 1 } }} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800, color: 'success.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Dialog open={Boolean(unlockConfirm)} onClose={() => setUnlockConfirm(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
           <LockOpenIcon /> Unlock Account
         </DialogTitle>
         <DialogContent>
@@ -596,19 +597,18 @@ PaperProps={{ sx: { borderRadius: 3, p: 1 } }} maxWidth="xs" fullWidth>
             Are you sure you want to unlock the account for <strong>{unlockConfirm?.name}</strong>?
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setUnlockConfirm(null)} color="inherit">Cancel</Button>
-          <Button onClick={handleUnlockConfirm} variant="contained" color="success" sx={{ borderRadius: 2 }}>
-            Unlock
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button onClick={() => setUnlockConfirm(null)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
+          <Button onClick={handleUnlockConfirm} variant="contained" color="primary">
+            Unlock Account
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Add Employee Modal */}
-      <Dialog open={addModalOpen} onClose={() => setAddModalOpen(false)} // @ts-ignore
-PaperProps={{ sx: { borderRadius: 3, p: 1, minWidth: 400 } }}>
+      <Dialog open={addModalOpen} onClose={() => setAddModalOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <PeopleIcon /> Add New Employee
+          <AddUserIcon color="primary" /> Add New Employee
         </DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -639,9 +639,9 @@ PaperProps={{ sx: { borderRadius: 3, p: 1, minWidth: 400 } }}>
           </FormControl>
 
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddModalOpen(false)} color="inherit">Cancel</Button>
-          <Button onClick={handleAddEmployee} variant="contained" disabled={addingEmp} sx={{ borderRadius: 2 }}>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button onClick={() => setAddModalOpen(false)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
+          <Button onClick={handleAddEmployee} variant="contained" color="primary" disabled={addingEmp}>
             {addingEmp ? 'Adding...' : 'Add Employee'}
           </Button>
         </DialogActions>
@@ -658,9 +658,11 @@ PaperProps={{ sx: { borderRadius: 3, p: 1, minWidth: 400 } }}>
             This action cannot be undone. All associated data will remain in the system.
           </Typography>
         </DialogContent>
-        <DialogActions sx={{ p: 2, gap: 1 }}>
-          <Button onClick={() => setDeleteConfirm(null)} color="inherit">Cancel</Button>
-          <Button onClick={handleDeleteConfirm} variant="contained" color="error">Delete</Button>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button onClick={() => setDeleteConfirm(null)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
+          <Button onClick={handleDeleteConfirm} variant="contained" color="primary">
+            Yes, Delete
+          </Button>
         </DialogActions>
       </Dialog>
 

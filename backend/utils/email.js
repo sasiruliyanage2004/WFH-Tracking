@@ -1,12 +1,82 @@
 const nodemailer = require('nodemailer');
 const supabase = require('./supabase');
 
+const getSmtpConfig = async (companyId = null, recipientEmail = null) => {
+  let finalCompanyId = companyId;
+
+  // Attempt to find companyId by user email if not provided
+  if (!finalCompanyId && recipientEmail) {
+    try {
+      const { data: user } = await supabase
+        .from('users')
+        .select('company_id')
+        .eq('email', recipientEmail.toLowerCase())
+        .maybeSingle();
+      if (user && user.company_id) finalCompanyId = user.company_id;
+    } catch (err) {}
+  }
+
+  // Fallback to Platform Owner's default config if no user or no company_id yet
+  // If it's a new registration for a new company, it will use global.
+  if (!finalCompanyId && recipientEmail) {
+    try {
+      const { data: globalSetting } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'smtp_config')
+        .is('company_id', null)
+        .maybeSingle();
+      if (globalSetting && globalSetting.value && globalSetting.value.use_custom) {
+        return {
+          user: globalSetting.value.user,
+          pass: globalSetting.value.pass,
+          host: globalSetting.value.host,
+          port: globalSetting.value.port || 587,
+          sender: globalSetting.value.sender_email || globalSetting.value.user
+        };
+      }
+    } catch (err) {}
+  }
+
+  let config = {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT || 587,
+    sender: process.env.SENDER_EMAIL || process.env.EMAIL_USER
+  };
+
+  if (finalCompanyId) {
+    try {
+      const { data: setting } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'smtp_config')
+        .eq('company_id', finalCompanyId)
+        .maybeSingle();
+      
+      if (setting && setting.value && setting.value.use_custom) {
+        const custom = setting.value;
+        if (custom.host && custom.user && custom.pass) {
+          config = {
+            user: custom.user,
+            pass: custom.pass,
+            host: custom.host,
+            port: custom.port || 587,
+            sender: custom.sender_email || custom.user
+          };
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load custom SMTP config:', err.message);
+    }
+  }
+  
+  return config;
+};
 const sendWarningEmail = async (employee, productivity) => {
   try {
-    const user = process.env.EMAIL_USER;
-    const pass = process.env.EMAIL_PASS;
-    const host = process.env.SMTP_HOST;
-    const port = process.env.SMTP_PORT || 587;
+    const { user, pass, host, port, sender } = await getSmtpConfig(employee.company_id, employee.email);
 
     let recipientEmails = ['liyanagesasiru@gmail.com'];
     try {
@@ -46,7 +116,6 @@ const sendWarningEmail = async (employee, productivity) => {
       return true;
     }
 
-    const sender = process.env.SENDER_EMAIL || user;
     const mailOptions = {
       from: `"WFH Tracking System" <${sender}>`,
       to: recipientEmails.join(', '),
@@ -81,10 +150,7 @@ const sendWarningEmail = async (employee, productivity) => {
 
 const sendPasswordResetEmail = async (recipientEmail, otpCode) => {
   try {
-    const user = process.env.EMAIL_USER;
-    const pass = process.env.EMAIL_PASS;
-    const host = process.env.SMTP_HOST;
-    const port = process.env.SMTP_PORT || 587;
+    const { user, pass, host, port, sender } = await getSmtpConfig(null, recipientEmail);
 
     let transporter;
 
@@ -109,7 +175,6 @@ const sendPasswordResetEmail = async (recipientEmail, otpCode) => {
       return;
     }
 
-    const sender = process.env.SENDER_EMAIL || user;
     const mailOptions = {
       from: `"WFH Tracking System" <${sender}>`,
       to: recipientEmail,
@@ -139,10 +204,7 @@ const sendPasswordResetEmail = async (recipientEmail, otpCode) => {
 
 const sendRegistrationOTPEmail = async (recipientEmail, otpCode) => {
   try {
-    const user = process.env.EMAIL_USER;
-    const pass = process.env.EMAIL_PASS;
-    const host = process.env.SMTP_HOST;
-    const port = process.env.SMTP_PORT || 587;
+    const { user, pass, host, port, sender } = await getSmtpConfig(null, recipientEmail);
 
     let transporter;
 
@@ -167,7 +229,6 @@ const sendRegistrationOTPEmail = async (recipientEmail, otpCode) => {
       return;
     }
 
-    const sender = process.env.SENDER_EMAIL || user;
     const mailOptions = {
       from: `"WFH Tracking System" <${sender}>`,
       to: recipientEmail,

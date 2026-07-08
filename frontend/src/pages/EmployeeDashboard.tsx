@@ -198,6 +198,14 @@ function EmployeeDashboard() {
         setIdleDialogOpen(true);
       });
     }
+
+    if (window.api && typeof window.api.onAutoCheckedOut === 'function') {
+      window.api.onAutoCheckedOut(() => {
+        // Clear local state and refetch
+        setAttendance(null);
+        fetchData();
+      });
+    }
   }, []);
 
   // Auto-trigger Electron desktop active window tracking based on Check-In and Break states

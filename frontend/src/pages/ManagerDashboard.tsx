@@ -37,6 +37,7 @@ import {
   Snackbar,
   Alert
 } from '@mui/material';
+import { maskEmail } from '../utils/maskEmail';
 import {
   BarChart as RechartsBarChart,
   Bar,
@@ -830,7 +831,7 @@ function ManagerDashboard() {
                                     {rec.employee?.name}
                                   </Typography>
                                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                                    {rec.employee?.email}
+                                    {maskEmail(rec.employee?.email)}
                                   </Typography>
                                 </Box>
                               </Box>

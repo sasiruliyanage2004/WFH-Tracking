@@ -36,8 +36,6 @@ import {
   History as HistoryIcon,
   Monitor as MonitoringIcon,
   Notifications as NotificationIcon,
-  Brightness4 as DarkIcon,
-  Brightness7 as LightIcon,
   ExitToApp as LogoutIcon,
   AccountCircle as ProfileIcon,
   Group as EmployeeListIcon,
@@ -49,7 +47,8 @@ import {
   Timer as TimerIcon,
   BarChart as BarChartIcon,
   Domain as DomainIcon,
-  Campaign as CampaignIcon
+  Campaign as CampaignIcon,
+  Palette as PaletteIcon
 } from '@mui/icons-material';
 import { logout } from '../redux/store';
 import DeveloperSignature from './DeveloperSignature';
@@ -58,7 +57,12 @@ const drawerWidth = 260;
 const collapsedDrawerWidth = 64;
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
+const THEME_OPTIONS = [
+  { key: 'dark',  label: 'Dark',  color: '#10b981', bg: '#060913' },
+  { key: 'light', label: 'Light', color: '#10b981', bg: '#f8fafc' },
+];
+
+function DashboardLayout({ children, isDarkMode, setIsDarkMode, appTheme = 'dark' }) {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
@@ -67,6 +71,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarPinned, setSidebarPinned] = useState(false);
+  const [themeMenuAnchor, setThemeMenuAnchor] = useState<null | HTMLElement>(null);
 
   const isSidebarExpanded = sidebarOpen || sidebarPinned;
   const [anchorElProfile, setAnchorElProfile] = useState(null);
@@ -120,7 +125,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications((prev) =>
-        prev.map((n) => (n._id === notif._id || n.id === notif.id ? { ...n, isRead: true } : n))
+        prev.filter((n) => n._id !== notif._id && n.id !== notif.id)
       );
     } catch (err) {
       console.error(err.message);
@@ -135,7 +140,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
           headers: { Authorization: `Bearer ${token}` }
         });
       }
-      setNotifications((prev) => prev.map(n => ({ ...n, isRead: true })));
+      setNotifications([]);
     } catch (err) {
       console.error(err.message);
     }
@@ -664,33 +669,37 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
       >
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 2, display: { sm: 'none' } }}
-            >
-              <MenuIcon />
-            </IconButton>
-            <IconButton
-              onClick={() => navigate(-1)}
-              color="inherit"
-              sx={{ mr: 0.5 }}
-              size="small"
-              title="Go Back"
-            >
-              <BackIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              onClick={() => navigate(1)}
-              color="inherit"
-              sx={{ mr: 2 }}
-              size="small"
-              title="Go Forward"
-            >
-              <ForwardIcon fontSize="small" />
-            </IconButton>
+            <Tooltip title="Open Menu">
+              <IconButton
+                color="inherit"
+                aria-label="open drawer"
+                edge="start"
+                onClick={handleDrawerToggle}
+                sx={{ mr: 2, display: { sm: 'none' } }}
+              >
+                <MenuIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Go Back">
+              <IconButton
+                onClick={() => navigate(-1)}
+                color="inherit"
+                sx={{ mr: 0.5 }}
+                size="small"
+              >
+                <BackIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Go Forward">
+              <IconButton
+                onClick={() => navigate(1)}
+                color="inherit"
+                sx={{ mr: 2 }}
+                size="small"
+              >
+                <ForwardIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
             <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700 }}>
               {links.find((l) => l.path === location.pathname)?.text || 'WFH Tracking'}
             </Typography>
@@ -698,12 +707,172 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
 
-            {/* Dark Mode toggle */}
-            <Tooltip title="Toggle Theme">
-              <IconButton color="inherit" onClick={() => setIsDarkMode(!isDarkMode)}>
-                {isDarkMode ? <LightIcon /> : <DarkIcon />}
+            {/* Theme Selector */}
+            {/* Theme Selector Button */}
+            <Tooltip title={`Theme: ${THEME_OPTIONS.find(t => t.key === appTheme)?.label || 'Dark'}`}>
+              <IconButton
+                color="inherit"
+                onClick={(e) => setThemeMenuAnchor(e.currentTarget)}
+                sx={{
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  px: 1.2,
+                  gap: 0.8,
+                  '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Box sx={{
+                  width: 14, height: 14, borderRadius: '50%',
+                  background: `radial-gradient(circle at 35% 35%, ${THEME_OPTIONS.find(t => t.key === appTheme)?.color || '#10b981'}, ${THEME_OPTIONS.find(t => t.key === appTheme)?.bg || '#060913'})`,
+                  boxShadow: `0 0 6px ${THEME_OPTIONS.find(t => t.key === appTheme)?.color || '#10b981'}`,
+                  flexShrink: 0,
+                }} />
+                <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: '0.02em', display: { xs: 'none', sm: 'block' } }}>
+                  {THEME_OPTIONS.find(t => t.key === appTheme)?.label || 'Dark'}
+                </Typography>
               </IconButton>
             </Tooltip>
+
+            {/* Premium Theme Panel */}
+            <Popover
+              open={Boolean(themeMenuAnchor)}
+              anchorEl={themeMenuAnchor}
+              onClose={() => setThemeMenuAnchor(null)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              slotProps={{
+                paper: {
+                  sx: {
+                    mt: 1.5,
+                    borderRadius: 3,
+                    width: 300,
+                    overflow: 'hidden',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+                  }
+                }
+              }}
+            >
+              {/* Header */}
+              <Box sx={{
+                px: 2.5, pt: 2.5, pb: 1.5,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                background: 'linear-gradient(135deg, rgba(16,185,129,0.06) 0%, transparent 100%)'
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                  <Box sx={{
+                    width: 32, height: 32, borderRadius: 1.5,
+                    background: 'linear-gradient(135deg,#10b981,#059669)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <PaletteIcon sx={{ fontSize: 16, color: '#fff' }} />
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '-0.01em' }}>
+                      Appearance
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Choose your interface theme
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+
+              {/* Theme Grid */}
+              <Box sx={{ p: 2, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.2 }}>
+                {THEME_OPTIONS.map((opt) => {
+                  const isActive = appTheme === opt.key;
+                  return (
+                    <Box
+                      key={opt.key}
+                      onClick={() => { setIsDarkMode(opt.key); setThemeMenuAnchor(null); }}
+                      sx={{
+                        cursor: 'pointer',
+                        borderRadius: 2.5,
+                        overflow: 'hidden',
+                        border: '2px solid',
+                        borderColor: isActive ? opt.color : 'transparent',
+                        boxShadow: isActive ? `0 0 0 1px ${opt.color}40, 0 4px 20px ${opt.color}30` : 'none',
+                        transition: 'all 0.22s cubic-bezier(0.4,0,0.2,1)',
+                        '&:hover': {
+                          borderColor: opt.color,
+                          transform: 'translateY(-2px)',
+                          boxShadow: `0 0 0 1px ${opt.color}40, 0 8px 24px ${opt.color}25`,
+                        },
+                        position: 'relative',
+                      }}
+                    >
+                      {/* Mini preview */}
+                      <Box sx={{
+                        height: 56,
+                        background: opt.bg,
+                        position: 'relative',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'flex-end',
+                        p: 0.8,
+                        gap: 0.5,
+                      }}>
+                        {/* Mini sidebar strip */}
+                        <Box sx={{ width: 10, height: 38, borderRadius: 0.8, bgcolor: `${opt.color}30`, flexShrink: 0 }} />
+                        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.4 }}>
+                          <Box sx={{ height: 5, borderRadius: 0.5, bgcolor: opt.color, width: '60%' }} />
+                          <Box sx={{ height: 3, borderRadius: 0.5, bgcolor: `${opt.color}40`, width: '80%' }} />
+                          <Box sx={{ height: 3, borderRadius: 0.5, bgcolor: `${opt.color}25`, width: '50%' }} />
+                        </Box>
+                        {/* Glow effect */}
+                        <Box sx={{
+                          position: 'absolute', top: -10, right: -10,
+                          width: 50, height: 50, borderRadius: '50%',
+                          background: `radial-gradient(circle, ${opt.color}30, transparent 70%)`,
+                        }} />
+                        {/* Active checkmark */}
+                        {isActive && (
+                          <Box sx={{
+                            position: 'absolute', top: 6, right: 6,
+                            width: 16, height: 16, borderRadius: '50%',
+                            bgcolor: opt.color,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: `0 0 8px ${opt.color}`,
+                          }}>
+                            <Typography sx={{ fontSize: 9, color: '#fff', fontWeight: 900, lineHeight: 1 }}>✓</Typography>
+                          </Box>
+                        )}
+                      </Box>
+
+                      {/* Label row */}
+                      <Box sx={{
+                        px: 1.2, py: 0.8,
+                        background: `${opt.bg}ee`,
+                        borderTop: `1px solid ${opt.color}20`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                      }}>
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: isActive ? opt.color : 'text.primary', letterSpacing: '0.01em', fontSize: '0.7rem' }}>
+                          {opt.label}
+                        </Typography>
+                        <Box sx={{
+                          width: 8, height: 8, borderRadius: '50%',
+                          background: opt.color,
+                          boxShadow: `0 0 6px ${opt.color}`,
+                          opacity: isActive ? 1 : 0.4
+                        }} />
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+
+              {/* Footer */}
+              <Box sx={{ px: 2.5, pb: 2, pt: 0.5 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', opacity: 0.6 }}>
+                  Theme is saved automatically
+                </Typography>
+              </Box>
+            </Popover>
 
             {/* Notifications Popover Toggle */}
             <Tooltip title="Notifications">
@@ -715,7 +884,8 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
             </Tooltip>
 
             {/* Profile Avatar Click */}
-            <IconButton onClick={(e) => setAnchorElProfile(e.currentTarget)} sx={{ p: 0, ml: 1 }}>
+            <Tooltip title={`${user?.name || 'My Profile'} — View Profile`}>
+              <IconButton onClick={(e) => setAnchorElProfile(e.currentTarget)} sx={{ p: 0, ml: 1 }}>
               <Badge
                 overlap="circular"
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
@@ -757,6 +927,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode }) {
                 </Avatar>
               </Badge>
             </IconButton>
+            </Tooltip>
           </Box>
         </Toolbar>
       </AppBar>
