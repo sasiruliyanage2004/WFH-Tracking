@@ -7,12 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: windows-latest
 
     steps:
       - name: Check out Git repository
@@ -34,13 +29,6 @@ jobs:
           CI: false
 
       - name: Copy Frontend Build to Desktop Agent
-        if: runner.os != 'Windows'
-        run: |
-          mkdir -p desktop-agent/react-build
-          cp -r frontend/build/* desktop-agent/react-build/
-
-      - name: Copy Frontend Build to Desktop Agent (Windows)
-        if: runner.os == 'Windows'
         run: |
           New-Item -ItemType Directory -Force -Path desktop-agent/react-build
           Copy-Item -Path frontend/build/* -Destination desktop-agent/react-build/ -Recurse -Force
@@ -49,32 +37,14 @@ jobs:
         working-directory: desktop-agent
         run: npm ci
 
-      - name: Install libfuse2 (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libfuse2
-
-      - name: Build Electron App (Windows)
-        if: runner.os == 'Windows'
+      - name: Build Electron App
         working-directory: desktop-agent
         run: npx electron-builder --win
-
-      - name: Build Electron App (Mac)
-        if: runner.os == 'macOS'
-        working-directory: desktop-agent
-        run: npx electron-builder --mac
-
-      - name: Build Electron App (Linux)
-        if: runner.os == 'Linux'
-        working-directory: desktop-agent
-        run: npx electron-builder --linux
 
       - name: Upload Artifacts to Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: |
-            desktop-agent/dist/*.exe
-            desktop-agent/dist/*.dmg
-            desktop-agent/dist/*.AppImage
+          files: desktop-agent/dist/*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
