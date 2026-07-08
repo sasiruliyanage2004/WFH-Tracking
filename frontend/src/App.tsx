@@ -39,6 +39,7 @@ import EmployeeList from './pages/EmployeeList';
 import AdminList from './pages/AdminList';
 import SuperAdminList from './pages/SuperAdminList';
 import ManagerSettings from './pages/ManagerSettings';
+import Settings from './pages/Settings';
 
 function App() {
   const { isAuthenticated, user } = useSelector((state: any) => state.auth);
@@ -566,6 +567,11 @@ function App() {
           <Route path="/manager/settings" element={
             <ProtectedRoute allowedRoles={['SuperAdmin']}>
               <ManagerSettings />
+            </ProtectedRoute>
+          } />
+          <Route path="/company/settings" element={
+            <ProtectedRoute allowedRoles={['SuperAdmin', 'Manager']}>
+              <Settings />
             </ProtectedRoute>
           } />
 

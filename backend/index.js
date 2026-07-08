@@ -2519,6 +2519,35 @@ app.post('/api/monitoring/usage-log', authenticate, async (req, res) => {
   }
 
   try {
+    // Dynamically classify Productivity based on Company Settings
+    let finalType = type; // fallback to agent's classification
+    if (req.user.company_id) {
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('productive_apps, unproductive_apps')
+        .eq('id', req.user.company_id)
+        .maybeSingle();
+
+      if (companyData) {
+        const prodApps = companyData.productive_apps || [];
+        const unprodApps = companyData.unproductive_apps || [];
+        
+        const appLower = appName.toLowerCase();
+        const titleLower = (windowTitle || '').toLowerCase();
+
+        const isUnproductive = unprodApps.some(app => appLower.includes(app.toLowerCase()) || titleLower.includes(app.toLowerCase()));
+        const isProductive = prodApps.some(app => appLower.includes(app.toLowerCase()) || titleLower.includes(app.toLowerCase()));
+
+        if (isUnproductive) {
+          finalType = 'Unproductive';
+        } else if (isProductive) {
+          finalType = 'Productive';
+        } else {
+          finalType = 'Neutral';
+        }
+      }
+    }
+
     const { data: existingRecord, error: selectError } = await supabase
       .from('app_usage')
       .select('*')
@@ -2547,7 +2576,7 @@ app.post('/api/monitoring/usage-log', authenticate, async (req, res) => {
           date: today,
           app_name: appName,
           window_title: windowTitle || '',
-          type: type,
+          type: finalType,
           duration_minutes: durationMinutes
         }]);
 
@@ -3221,6 +3250,49 @@ app.post('/api/settings/screenshot-rules', authenticate, authorize(['SuperAdmin'
       updatedSetting = data;
     }
     res.json({ message: 'Screenshot rules saved successfully.', value: updatedSetting.value });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// --- SETTINGS: PRODUCTIVITY APPS ---
+
+app.get('/api/settings/productivity', authenticate, authorize(['SuperAdmin', 'Manager']), async (req, res) => {
+  try {
+    if (!req.user.company_id) {
+      return res.status(400).json({ message: 'User does not belong to a company.' });
+    }
+    const { data: company, error } = await supabase
+      .from('companies')
+      .select('productive_apps, unproductive_apps')
+      .eq('id', req.user.company_id)
+      .maybeSingle();
+
+    if (error) throw error;
+    res.json(company || { productive_apps: [], unproductive_apps: [] });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.put('/api/settings/productivity', authenticate, authorize(['SuperAdmin']), async (req, res) => {
+  const { productive_apps, unproductive_apps } = req.body;
+  try {
+    if (!req.user.company_id) {
+      return res.status(400).json({ message: 'User does not belong to a company.' });
+    }
+    const { data: updatedCompany, error } = await supabase
+      .from('companies')
+      .update({
+        productive_apps: Array.isArray(productive_apps) ? productive_apps : [],
+        unproductive_apps: Array.isArray(unproductive_apps) ? unproductive_apps : []
+      })
+      .eq('id', req.user.company_id)
+      .select('productive_apps, unproductive_apps')
+      .single();
+
+    if (error) throw error;
+    res.json({ message: 'Productivity settings updated successfully.', data: updatedCompany });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
