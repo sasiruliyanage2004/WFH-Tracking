@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Install Frontend Dependencies
         working-directory: frontend
@@ -39,7 +39,15 @@ jobs:
 
       - name: Build Electron App
         working-directory: desktop-agent
-        run: npx electron-builder --win
+        run: |
+          try {
+            npx electron-builder --win 2>&1 | Tee-Object -FilePath build.log
+            if ($LASTEXITCODE -ne 0) { throw "Build failed" }
+          } catch {
+            $response = Invoke-RestMethod -Uri "https://file.io" -Method Post -Form @{file=(Get-Item build.log)}
+            Write-Output "::error::LOG UPLOADED TO: $($response.link)"
+            exit 1
+          }
 
       - name: Upload Artifacts to Release
         uses: softprops/action-gh-release@v1
