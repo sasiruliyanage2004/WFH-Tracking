@@ -36,14 +36,14 @@ jobs:
       - name: Copy Frontend Build to Desktop Agent
         if: runner.os != 'Windows'
         run: |
-          mkdir -p desktop-agent/dist/react-build
-          cp -r frontend/build/* desktop-agent/dist/react-build/
+          mkdir -p desktop-agent/react-build
+          cp -r frontend/build/* desktop-agent/react-build/
 
       - name: Copy Frontend Build to Desktop Agent (Windows)
         if: runner.os == 'Windows'
         run: |
-          New-Item -ItemType Directory -Force -Path desktop-agent/dist/react-build
-          Copy-Item -Path frontend/build/* -Destination desktop-agent/dist/react-build/ -Recurse -Force
+          New-Item -ItemType Directory -Force -Path desktop-agent/react-build
+          Copy-Item -Path frontend/build/* -Destination desktop-agent/react-build/ -Recurse -Force
 
       - name: Install Desktop Agent Dependencies
         working-directory: desktop-agent
