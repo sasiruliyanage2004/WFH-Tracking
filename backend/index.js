@@ -3740,7 +3740,7 @@ setInterval(async () => {
     // Find all attendance records without checkout where last_heartbeat is older than 15 mins AND not on break
     const { data: abandonedSessions, error } = await supabase
       .from('attendance')
-      .select('id, employee_id, last_heartbeat')
+      .select('id, employee_id, last_heartbeat, check_in_time')
       .is('check_out_time', null)
       .eq('on_break', false)
       .not('last_heartbeat', 'is', null)
@@ -3753,11 +3753,16 @@ setInterval(async () => {
 
     if (abandonedSessions && abandonedSessions.length > 0) {
       for (const session of abandonedSessions) {
+        const start = new Date(session.check_in_time);
+        const end = new Date(session.last_heartbeat);
+        const diffHrs = (end - start) / 3600000;
+        
         // Update attendance
         await supabase
           .from('attendance')
           .update({ 
             check_out_time: session.last_heartbeat, 
+            duration_hours: diffHrs,
             is_auto_checkout: true 
           })
           .eq('id', session.id);
