@@ -24,6 +24,12 @@ function ScreenshotCapturer({ isCheckedIn }) {
   });
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const productivityRef = useRef(productivity);
+  const captureAndUploadRef = useRef();
+
+  useEffect(() => {
+    productivityRef.current = productivity;
+  }, [productivity]);
 
   const handleToggleBlur = (event) => {
     const val = event.target.checked;
@@ -233,6 +239,10 @@ function ScreenshotCapturer({ isCheckedIn }) {
     }
   }, [onBreak, privacyBlurEnabled, isCapturing, stream, token, user, fetchProductivity]);
 
+  useEffect(() => {
+    captureAndUploadRef.current = captureAndUpload;
+  }, [captureAndUpload]);
+
   // Wire video stream
   useEffect(() => {
     if (stream && videoRef.current) {
@@ -259,22 +269,22 @@ function ScreenshotCapturer({ isCheckedIn }) {
 
     // Calculate dynamic interval time based on settings and productivity
     const threshold = screenshotRules.threshold || 70;
-    const isHighProductivity = productivity >= threshold;
+    const isHighProductivity = productivityRef.current >= threshold;
     const intervalTime = isHighProductivity
       ? (screenshotRules.highProdInterval || 20) * 60 * 1000
       : (screenshotRules.standardInterval || 5) * 60 * 1000;
 
-    console.log(`Setting screenshot capture interval to ${intervalTime / 60000} minutes (Productivity: ${productivity}%)`);
+    console.log(`Setting screenshot capture interval to ${intervalTime / 60000} minutes`);
 
     const interval = setInterval(() => {
-      captureAndUpload();
+      captureAndUploadRef.current();
     }, intervalTime);
 
     return () => {
       clearTimeout(initialTimeout);
       clearInterval(interval);
     };
-  }, [isAuthenticated, token, user, isCheckedIn, onBreak, isCapturing, stream, captureAndUpload, productivity, screenshotRules]);
+  }, [isAuthenticated, token, user, isCheckedIn, onBreak, isCapturing, stream, screenshotRules]);
 
   if (!isAuthenticated) return null;
 
