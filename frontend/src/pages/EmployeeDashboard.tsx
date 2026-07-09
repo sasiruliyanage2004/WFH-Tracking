@@ -464,7 +464,7 @@ function EmployeeDashboard() {
           });
           setGpsError(''); // Clear error since we have exact GPS now
           setMobileVerifyOpen(false);
-          setSuccessSnackbar('Mobile GPS verification successful!');
+          setSuccessSnackbar(true);
         } else if (res.data.status === 'expired') {
           clearInterval(mobileVerifyInterval.current);
           setMobileVerifyOpen(false);
