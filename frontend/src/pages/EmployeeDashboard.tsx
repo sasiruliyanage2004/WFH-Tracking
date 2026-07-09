@@ -431,6 +431,8 @@ function EmployeeDashboard() {
       dispatch(setBreakEnd());
     } catch (err) {
       console.error(err.response?.data?.message || err.message);
+      alert(`Failed to resume shift: ${err.response?.data?.message || err.message}`);
+      window.location.reload();
     }
   };
 

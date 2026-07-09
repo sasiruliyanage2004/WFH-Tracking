@@ -3737,11 +3737,12 @@ setInterval(async () => {
   try {
     const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     
-    // Find all attendance records without checkout where last_heartbeat is older than 15 mins
+    // Find all attendance records without checkout where last_heartbeat is older than 15 mins AND not on break
     const { data: abandonedSessions, error } = await supabase
       .from('attendance')
       .select('id, employee_id, last_heartbeat')
       .is('check_out_time', null)
+      .eq('on_break', false)
       .not('last_heartbeat', 'is', null)
       .lt('last_heartbeat', fifteenMinsAgo);
 
