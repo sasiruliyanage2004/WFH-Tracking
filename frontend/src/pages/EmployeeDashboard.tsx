@@ -343,49 +343,6 @@ function EmployeeDashboard() {
     requestGPS();
     setWebcamOpen(true);
     setWebcamError('');
-  };
-
-  const startMobileVerification = () => {
-    const newToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    setMobileVerifyToken(newToken);
-    setMobileVerifyOpen(true);
-
-    if (mobileVerifyInterval.current) clearInterval(mobileVerifyInterval.current);
-    
-    // Poll for verification status every 3 seconds
-    mobileVerifyInterval.current = setInterval(async () => {
-      try {
-        const res = await axios.get(`${API_URL}/api/attendance/mobile-location-status?token=${newToken}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        if (res.data.status === 'success') {
-          clearInterval(mobileVerifyInterval.current);
-          setGpsData({
-            latitude: res.data.data.latitude,
-            longitude: res.data.data.longitude,
-            address: res.data.data.address
-          });
-          setGpsError(''); // Clear error since we have exact GPS now
-          setMobileVerifyOpen(false);
-          setSuccessSnackbar('Mobile GPS verification successful!');
-        } else if (res.data.status === 'expired') {
-          clearInterval(mobileVerifyInterval.current);
-          setMobileVerifyOpen(false);
-          setGpsError('Mobile verification expired. Please try again.');
-        }
-      } catch (err) {
-        console.warn('Mobile verify poll failed:', err.message);
-      }
-    }, 3000);
-  };
-
-  const handleCloseMobileVerify = () => {
-    if (mobileVerifyInterval.current) clearInterval(mobileVerifyInterval.current);
-    setMobileVerifyOpen(false);
-  };
-
-  const captureSelfie = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       setWebcamStream(stream);
@@ -482,6 +439,46 @@ function EmployeeDashboard() {
       alert(`Failed to resume shift: ${err.response?.data?.message || err.message}`);
       window.location.reload();
     }
+  };
+
+  const startMobileVerification = () => {
+    const newToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    setMobileVerifyToken(newToken);
+    setMobileVerifyOpen(true);
+
+    if (mobileVerifyInterval.current) clearInterval(mobileVerifyInterval.current);
+    
+    // Poll for verification status every 3 seconds
+    mobileVerifyInterval.current = setInterval(async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/attendance/mobile-location-status?token=${newToken}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (res.data.status === 'success') {
+          clearInterval(mobileVerifyInterval.current);
+          setGpsData({
+            latitude: res.data.data.latitude,
+            longitude: res.data.data.longitude,
+            address: res.data.data.address
+          });
+          setGpsError(''); // Clear error since we have exact GPS now
+          setMobileVerifyOpen(false);
+          setSuccessSnackbar('Mobile GPS verification successful!');
+        } else if (res.data.status === 'expired') {
+          clearInterval(mobileVerifyInterval.current);
+          setMobileVerifyOpen(false);
+          setGpsError('Mobile verification expired. Please try again.');
+        }
+      } catch (err) {
+        console.warn('Mobile verify poll failed:', err.message);
+      }
+    }, 3000);
+  };
+
+  const handleCloseMobileVerify = () => {
+    if (mobileVerifyInterval.current) clearInterval(mobileVerifyInterval.current);
+    setMobileVerifyOpen(false);
   };
 
   const captureSelfie = () => {
