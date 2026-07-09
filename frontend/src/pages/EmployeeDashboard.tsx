@@ -60,6 +60,7 @@ import {
 import ScreenshotCapturer from '../components/ScreenshotCapturer';
 import SkeletonCard from '../components/SkeletonCard';
 import AnimatedCounter from '../components/AnimatedCounter';
+import { QRCodeSVG } from 'qrcode.react';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -77,6 +78,11 @@ function EmployeeDashboard() {
   const [liveHours, setLiveHours] = useState('00:00:00');
   const [breakTimeStr, setBreakTimeStr] = useState('00:00');
   const [productivity, setProductivity] = useState(100);
+
+  // Mobile Verification States
+  const [mobileVerifyOpen, setMobileVerifyOpen] = useState(false);
+  const [mobileVerifyToken, setMobileVerifyToken] = useState('');
+  const mobileVerifyInterval = useRef(null);
 
   // Other Break Dialog
   const [otherBreakOpen, setOtherBreakOpen] = useState(false);
@@ -332,12 +338,54 @@ function EmployeeDashboard() {
     );
   };
 
-  // Webcam trigger setup
   const openWebcam = async () => {
     // Automatically trigger GPS trapping under the hood when camera is opened
     requestGPS();
     setWebcamOpen(true);
     setWebcamError('');
+  };
+
+  const startMobileVerification = () => {
+    const newToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    setMobileVerifyToken(newToken);
+    setMobileVerifyOpen(true);
+
+    if (mobileVerifyInterval.current) clearInterval(mobileVerifyInterval.current);
+    
+    // Poll for verification status every 3 seconds
+    mobileVerifyInterval.current = setInterval(async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/attendance/mobile-location-status?token=${newToken}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (res.data.status === 'success') {
+          clearInterval(mobileVerifyInterval.current);
+          setGpsData({
+            latitude: res.data.data.latitude,
+            longitude: res.data.data.longitude,
+            address: res.data.data.address
+          });
+          setGpsError(''); // Clear error since we have exact GPS now
+          setMobileVerifyOpen(false);
+          setSuccessSnackbar('Mobile GPS verification successful!');
+        } else if (res.data.status === 'expired') {
+          clearInterval(mobileVerifyInterval.current);
+          setMobileVerifyOpen(false);
+          setGpsError('Mobile verification expired. Please try again.');
+        }
+      } catch (err) {
+        console.warn('Mobile verify poll failed:', err.message);
+      }
+    }, 3000);
+  };
+
+  const handleCloseMobileVerify = () => {
+    if (mobileVerifyInterval.current) clearInterval(mobileVerifyInterval.current);
+    setMobileVerifyOpen(false);
+  };
+
+  const captureSelfie = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       setWebcamStream(stream);
@@ -844,9 +892,20 @@ function EmployeeDashboard() {
                     </Typography>
                   )}
                   {gpsError && (
-                    <Typography variant="caption" component="div" sx={{ mt: 1.5, color: 'warning.main', fontWeight: 500 }}>
-                      ⚠️ {gpsError}
-                    </Typography>
+                    <Box sx={{ mt: 1.5 }}>
+                      <Typography variant="caption" component="div" sx={{ color: 'warning.main', fontWeight: 500, mb: 1 }}>
+                        ⚠️ {gpsError}
+                      </Typography>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        color="warning"
+                        onClick={startMobileVerification}
+                        sx={{ textTransform: 'none', borderRadius: 2 }}
+                      >
+                        📱 Verify Exact Location via Mobile
+                      </Button>
+                    </Box>
                   )}
 
                   {capturedPhoto && (
@@ -1375,7 +1434,6 @@ function EmployeeDashboard() {
                         label="Total Hours Worked"
                         type="number"
                         // @ts-ignore
-                        // @ts-ignore
                         inputProps={{ min: 1, max: 24, step: 0.5 }}
                         fullWidth
                         value={workedHoursInput}
@@ -1485,31 +1543,79 @@ function EmployeeDashboard() {
         </Grid>
       </Grid>
 
-      {/* Dialog for webcam snap verification */}
-      <Dialog open={webcamOpen} onClose={closeWebcam} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Verification Selfie</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 3 }}>
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            style={{ width: '100%', height: 'auto', borderRadius: 8, transform: 'scaleX(-1)', backgroundColor: '#000' }}
-          />
-          {webcamError && (
-            <Typography variant="body2" color="error" sx={{ mt: 1.5, textAlign: 'center', fontWeight: 'bold' }}>
-              Camera Blocked/Error: {webcamError}
+      {/* Web Cam Dialog */}
+      <Dialog open={webcamOpen} onClose={() => setWebcamOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Capture Verification Selfie</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 2 }}>
+            <Box
+              sx={{
+                width: 320,
+                height: 240,
+                bgcolor: 'black',
+                borderRadius: 4,
+                overflow: 'hidden',
+                position: 'relative',
+                boxShadow: 3
+              }}
+            >
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            </Box>
+            {webcamError && (
+              <Alert severity="error" sx={{ mt: 2, width: '100%' }}>{webcamError}</Alert>
+            )}
+            <Typography variant="caption" sx={{ mt: 2, color: 'text.secondary' }}>
+              Ensure your face is clearly visible. This photo will be logged with your check-in.
             </Typography>
-          )}
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5 }}>
-            Look directly into the camera and click Capture to confirm identity.
-          </Typography>
+          </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={closeWebcam} color="inherit">Cancel</Button>
-          <Button onClick={captureSelfie} variant="contained" startIcon={<CameraIcon />}>Capture</Button>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setWebcamOpen(false)} sx={{ fontWeight: 600 }}>Cancel</Button>
+          <Button onClick={captureSelfie} variant="contained" color="primary" sx={{ px: 4 }}>Capture & Use Photo</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Mobile Verification Dialog */}
+      <Dialog open={mobileVerifyOpen} onClose={handleCloseMobileVerify} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, textAlign: 'center' }}>Mobile GPS Verification</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 2 }}>
+            <Typography variant="body2" sx={{ mb: 3, textAlign: 'center', color: 'text.secondary' }}>
+              Scan this QR code with your smartphone camera to securely verify your exact GPS location.
+            </Typography>
+            
+            <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 2, mb: 3 }}>
+              {mobileVerifyToken && (
+                <QRCodeSVG 
+                  value={`${window.location.origin}/#/mobile-verify?token=${mobileVerifyToken}`} 
+                  size={200} 
+                  level="H"
+                />
+              )}
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: 'primary.main' }}>
+              <CircularProgress size={20} color="inherit" />
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>Waiting for mobile scan...</Typography>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, justifyContent: 'center' }}>
+          <Button onClick={handleCloseMobileVerify} sx={{ fontWeight: 600 }}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={successSnackbar} autoHideDuration={4000} onClose={() => setSuccessSnackbar(false)}>
+        <Alert severity="success" sx={{ width: '100%' }}>
+          Action completed successfully!
+        </Alert>
+      </Snackbar>
 
       {/* Dialog for New Task Creation */}
       <Dialog open={taskDialogOpen} onClose={() => setTaskDialogOpen(false)} maxWidth="sm" fullWidth>

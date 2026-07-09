@@ -21,6 +21,7 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ForcePasswordReset from './pages/ForcePasswordReset';
 import Profile from './pages/Profile';
+import MobileVerify from './pages/MobileVerify';
 
 // Employee Pages
 import EmployeeDashboard from './pages/EmployeeDashboard';
@@ -500,6 +501,9 @@ function App() {
               <Profile />
             </ProtectedRoute>
           } />
+
+          {/* Public or Standalone Routes */}
+          <Route path="/mobile-verify" element={<MobileVerify />} />
 
           {/* Employee Routes */}
           <Route path="/dashboard" element={

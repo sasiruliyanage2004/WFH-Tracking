@@ -204,6 +204,7 @@ const io = socketIo(server, {
 });
 
 const userSockets = new Map(); // map userId -> socketId
+const mobileLocationStore = new Map(); // map verificationToken -> { lat, lng, address, timestamp }
 
 io.on('connection', (socket) => {
   console.log('New client connected:', socket.id);
