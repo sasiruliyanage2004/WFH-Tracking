@@ -30,17 +30,10 @@ import {
 import {
   Business as BusinessIcon,
   People as PeopleIcon,
-  AdminPanelSettings as AdminIcon,
-  Refresh as RefreshIcon,
-  Add as AddIcon,
   ContentCopy as CopyIcon,
   Campaign as CampaignIcon,
-  BarChart as BarChartIcon,
-  Domain as DomainIcon,
-  Settings as SettingsIcon,
   TrendingUp as TrendingUpIcon,
   SecurityUpdateGood as SecurityIcon,
-  ShowChart as ShowChartIcon,
   InfoOutlined as InfoIcon,
   KeyboardArrowRight as ArrowRightIcon
 } from '@mui/icons-material';

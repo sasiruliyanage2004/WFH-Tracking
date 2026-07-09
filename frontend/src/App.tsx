@@ -415,18 +415,19 @@ function App() {
         },
       },
     },
-  }), [appTheme, t]);
+  }), [t, isDarkMode]);
 
   // Authorization Wrappers
-  const ProtectedRoute = ({ children, allowedRoles = [] }) => {
+  const ProtectedRoute = ({ children, allowedRoles = [] }: any) => {
     const dispatch = useDispatch();
-    const isDesktop = !!window.api;
+    const isDesktop = !!(window as any).api;
 
     useEffect(() => {
       if (isAuthenticated && user?.role === 'Employee' && !isDesktop) {
         dispatch(authFail('Access denied. Employees can only log in through the Desktop Agent.'));
       }
-    }, [isAuthenticated, user, isDesktop, dispatch]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isDesktop, dispatch]);
 
     if (!isAuthenticated || (user?.role === 'Employee' && !isDesktop)) {
       return <Navigate to="/login" replace />;

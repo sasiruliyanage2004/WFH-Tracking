@@ -22,7 +22,6 @@ import { Security as SecurityIcon, Visibility, VisibilityOff } from '@mui/icons-
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function ForcePasswordReset() {
-  const isElectron = window.api !== undefined;
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { token, user } = useSelector((state: any) => state.auth);

@@ -25,7 +25,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const productivityRef = useRef(productivity);
-  const captureAndUploadRef = useRef();
+  const captureAndUploadRef = useRef<any>(null);
 
   useEffect(() => {
     productivityRef.current = productivity;
@@ -284,6 +284,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
       clearTimeout(initialTimeout);
       clearInterval(interval);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, token, user, isCheckedIn, onBreak, isCapturing, stream, screenshotRules]);
 
   if (!isAuthenticated) return null;

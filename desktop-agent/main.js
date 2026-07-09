@@ -172,7 +172,7 @@ async function flushOfflineCache() {
 }
 
 const BACKEND_URL = process.env.REACT_APP_API_URL || 'https://wfh-tracking.onrender.com';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://wfh-tracking-k5ap.vercel.app';
+const FRONTEND_URL = process.env.FRONTEND_URL || `file://${path.join(__dirname, '../frontend/build/index.html')}`;
 
 let mainWindow = null;
 let sessionToken = null;

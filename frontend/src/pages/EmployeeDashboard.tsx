@@ -212,6 +212,7 @@ function EmployeeDashboard() {
         fetchData();
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-trigger Electron desktop active window tracking based on Check-In and Break states

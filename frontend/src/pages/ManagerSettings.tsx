@@ -24,7 +24,6 @@ import {
   Save as SaveIcon,
   Monitor as MonitorIcon,
   CloudUpload as CloudUploadIcon,
-  CheckCircle as CheckCircleIcon,
   SettingsInputComponent as SmtpIcon
 } from '@mui/icons-material';
 
