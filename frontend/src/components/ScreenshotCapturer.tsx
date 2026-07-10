@@ -250,6 +250,10 @@ function ScreenshotCapturer({ isCheckedIn }) {
     }
   }, [stream]);
 
+  const ruleThreshold = screenshotRules?.threshold || 70;
+  const ruleHighProd = screenshotRules?.highProdInterval || 20;
+  const ruleStandard = screenshotRules?.standardInterval || 5;
+
   // Periodic capture loop
   useEffect(() => {
     if (!isAuthenticated || !token || user?.role !== 'Employee' || !isCheckedIn || onBreak) {
@@ -268,11 +272,10 @@ function ScreenshotCapturer({ isCheckedIn }) {
     }, 5000);
 
     // Calculate dynamic interval time based on settings and productivity
-    const threshold = screenshotRules.threshold || 70;
-    const isHighProductivity = productivityRef.current >= threshold;
+    const isHighProductivity = productivityRef.current >= ruleThreshold;
     const intervalTime = isHighProductivity
-      ? (screenshotRules.highProdInterval || 20) * 60 * 1000
-      : (screenshotRules.standardInterval || 5) * 60 * 1000;
+      ? ruleHighProd * 60 * 1000
+      : ruleStandard * 60 * 1000;
 
     console.log(`Setting screenshot capture interval to ${intervalTime / 60000} minutes`);
 
@@ -285,7 +288,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
       clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, token, user, isCheckedIn, onBreak, isCapturing, stream, screenshotRules]);
+  }, [isAuthenticated, token, user, isCheckedIn, onBreak, isCapturing, stream, ruleThreshold, ruleHighProd, ruleStandard]);
 
   if (!isAuthenticated) return null;
 
