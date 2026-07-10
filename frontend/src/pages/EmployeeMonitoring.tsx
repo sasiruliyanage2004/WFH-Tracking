@@ -35,7 +35,8 @@ import {
   MyLocation as MapIcon,
   Schedule as TimeIcon,
   Close as CloseIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import CustomLoader from '../components/CustomLoader';
 
@@ -97,10 +98,9 @@ function EmployeeMonitoring() {
     }
   };
 
-  useEffect(() => {
-    const fetchEmployeeDetails = async () => {
-      try {
-        setLoading(true);
+  const fetchEmployeeDetails = async (isManualRefresh = false) => {
+    try {
+      if (!isManualRefresh) setLoading(true);
         const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
         // 1. Get attendance history for the selected date
@@ -129,13 +129,14 @@ function EmployeeMonitoring() {
         const usageRes = await axios.get(`${API_URL}/api/monitoring/usage/${employeeId}?date=${selectedDate}`, authHeader);
         setAppUsage(usageRes.data);
 
-      } catch (err) {
-        console.error('Failed to load employee details:', err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+    } catch (err) {
+      console.error('Failed to load employee details:', err.message);
+    } finally {
+      if (!isManualRefresh) setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchEmployeeDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [employeeId, token, selectedDate]);
@@ -195,6 +196,15 @@ function EmployeeMonitoring() {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Button 
+            variant="outlined" 
+            size="small" 
+            startIcon={<RefreshIcon />}
+            onClick={() => fetchEmployeeDetails(true)}
+            sx={{ mr: 2 }}
+          >
+            Refresh Data
+          </Button>
           <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary' }}>
             Select Date:
           </Typography>
