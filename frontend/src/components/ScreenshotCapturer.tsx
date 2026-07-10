@@ -288,7 +288,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
       clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, token, user, isCheckedIn, onBreak, isCapturing, stream, ruleThreshold, ruleHighProd, ruleStandard]);
+  }, [isAuthenticated, token, isCheckedIn, onBreak]);
 
   if (!isAuthenticated) return null;
 
