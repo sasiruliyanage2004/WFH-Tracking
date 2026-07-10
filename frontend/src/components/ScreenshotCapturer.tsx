@@ -96,7 +96,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
   };
 
   // Helper to apply Gaussian blur to base64 image data URL
-  const applyBlur = (base64Data, blurLevel = 15) => {
+  const applyBlur = (base64Data: string, blurLevel = 15): Promise<string> => {
     return new Promise((resolve) => {
       const img = new Image();
       img.src = base64Data;
