@@ -1241,6 +1241,51 @@ app.post('/api/auth/reset-password', async (req, res) => {
 });
 
 // 2. ATTENDANCE ROUTES
+
+// Mobile Verification Store (In-Memory)
+const mobileVerificationStore = new Map();
+
+// Cleanup old tokens every minute
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of mobileVerificationStore.entries()) {
+    if (now - value.timestamp > 5 * 60 * 1000) {
+      mobileVerificationStore.delete(key);
+    }
+  }
+}, 60 * 1000);
+
+app.post('/api/attendance/mobile-location', async (req, res) => {
+  const { token, latitude, longitude, address } = req.body;
+  if (!token) return res.status(400).json({ message: 'Token required' });
+  
+  mobileVerificationStore.set(token, {
+    latitude,
+    longitude,
+    address,
+    timestamp: Date.now()
+  });
+  
+  res.json({ success: true });
+});
+
+app.get('/api/attendance/mobile-location-status', authenticate, async (req, res) => {
+  const { token } = req.query;
+  if (!token) return res.status(400).json({ message: 'Token required' });
+  
+  const data = mobileVerificationStore.get(token);
+  if (data) {
+    if (Date.now() - data.timestamp > 5 * 60 * 1000) {
+      mobileVerificationStore.delete(token);
+      return res.json({ status: 'expired' });
+    }
+    mobileVerificationStore.delete(token);
+    return res.json({ status: 'success', data });
+  }
+  
+  return res.json({ status: 'pending' });
+});
+
 app.post('/api/attendance/checkin', authenticate, async (req, res) => {
   const { latitude, longitude, address, webcamImage } = req.body;
   const today = new Date().toISOString().split('T')[0];
