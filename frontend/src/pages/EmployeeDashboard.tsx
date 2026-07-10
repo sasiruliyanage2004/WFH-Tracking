@@ -332,7 +332,7 @@ function EmployeeDashboard() {
           console.warn('IP Geolocation fallback failed:', ipErr.message);
           setGpsData({ latitude: 40.7128, longitude: -74.0060, address: 'Remote Workplace / IP Address' });
         }
-        setGpsError(`GPS retrieval blocked: ${err.message}. Checked in using IP location instead.`);
+        setGpsError(`GPS retrieval blocked: ${err.message}. Please complete mobile verification to continue.`);
         setGpsLoading(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -489,7 +489,11 @@ function EmployeeDashboard() {
       canvas.width = video.videoWidth || 640;
       canvas.height = video.videoHeight || 480;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      if (ctx) {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      }
       setCapturedPhoto(canvas.toDataURL('image/jpeg'));
       closeWebcam();
     }
@@ -927,7 +931,7 @@ function EmployeeDashboard() {
                     color="primary"
                     size="large"
                     fullWidth
-                    disabled={!capturedPhoto || gpsLoading}
+                    disabled={!capturedPhoto || gpsLoading || !!gpsError}
                     startIcon={<CheckInIcon />}
                     onClick={handleCheckIn}
                     sx={{ py: 1.8, borderRadius: 3, fontWeight: 700, fontSize: '1rem', bgcolor: '#0038a8' }}
