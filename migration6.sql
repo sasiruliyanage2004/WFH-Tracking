@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS public.devices (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     machine_id TEXT NOT NULL,
-    employee_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+    employee_id TEXT REFERENCES public.users(id) ON DELETE CASCADE,
     company_id UUID REFERENCES public.companies(id) ON DELETE CASCADE,
     hostname TEXT,
     last_active TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
