@@ -99,34 +99,37 @@ function EmployeeMonitoring() {
   };
 
   const fetchEmployeeDetails = async (isManualRefresh = false) => {
+    const cacheBuster = isManualRefresh ? `&_t=${Date.now()}` : '';
+    const cacheBusterFirst = isManualRefresh ? `?_t=${Date.now()}` : '';
+
     try {
       if (!isManualRefresh) setLoading(true);
         const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
         // 1. Get attendance history for the selected date
-        const attRes = await axios.get(`${API_URL}/api/attendance/all?employeeId=${employeeId}&date=${selectedDate}`, authHeader);
+        const attRes = await axios.get(`${API_URL}/api/attendance/all?employeeId=${employeeId}&date=${selectedDate}${cacheBuster}`, authHeader);
         setAttendance(attRes.data);
 
         // 2. Set employee info (fetch from general history if selected date is empty)
         if (attRes.data.length > 0) {
           setEmployeeInfo(attRes.data[0].employee);
         } else if (!employeeInfo) {
-          const allAttRes = await axios.get(`${API_URL}/api/attendance/all?employeeId=${employeeId}`, authHeader);
+          const allAttRes = await axios.get(`${API_URL}/api/attendance/all?employeeId=${employeeId}${cacheBuster}`, authHeader);
           if (allAttRes.data.length > 0) {
             setEmployeeInfo(allAttRes.data[0].employee);
           }
         }
 
         // 3. Get screenshots for the selected date
-        const ssRes = await axios.get(`${API_URL}/api/monitoring/screenshots/${employeeId}?date=${selectedDate}`, authHeader);
+        const ssRes = await axios.get(`${API_URL}/api/monitoring/screenshots/${employeeId}?date=${selectedDate}${cacheBuster}`, authHeader);
         setScreenshots(ssRes.data);
 
         // 4. Get activity logs
-        const actRes = await axios.get(`${API_URL}/api/monitoring/activity/${employeeId}`, authHeader);
+        const actRes = await axios.get(`${API_URL}/api/monitoring/activity/${employeeId}${cacheBusterFirst}`, authHeader);
         setActivity(actRes.data);
 
         // 5. Get app usage logs for the selected date
-        const usageRes = await axios.get(`${API_URL}/api/monitoring/usage/${employeeId}?date=${selectedDate}`, authHeader);
+        const usageRes = await axios.get(`${API_URL}/api/monitoring/usage/${employeeId}?date=${selectedDate}${cacheBuster}`, authHeader);
         setAppUsage(usageRes.data);
 
     } catch (err) {
