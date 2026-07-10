@@ -1,1 +1,0 @@
-require('dotenv').config(); const { createClient } = require('@supabase/supabase-js'); const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY); async function check() { const { data, error } = await supabase.from('users').select('*').eq('email', 'owner@workforceos.com'); console.log(data); } check();  
