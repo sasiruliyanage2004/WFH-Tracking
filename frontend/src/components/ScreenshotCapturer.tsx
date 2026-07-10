@@ -250,9 +250,11 @@ function ScreenshotCapturer({ isCheckedIn }) {
     }
   }, [stream]);
 
-  const ruleThreshold = screenshotRules?.threshold || 70;
+  const ruleThreshold = screenshotRules?.threshold || 50;
   const ruleHighProd = screenshotRules?.highProdInterval || 20;
   const ruleStandard = screenshotRules?.standardInterval || 5;
+
+  const hasTakenInitialScreenshot = useRef(false);
 
   // Periodic capture loop
   useEffect(() => {
@@ -266,10 +268,15 @@ function ScreenshotCapturer({ isCheckedIn }) {
       return;
     }
 
-    // Auto-capture screenshot immediately upon checking in
-    const initialTimeout = setTimeout(() => {
-      captureAndUpload();
-    }, 5000);
+    let initialTimeout: any;
+
+    // Auto-capture screenshot immediately upon checking in (only once)
+    if (!hasTakenInitialScreenshot.current) {
+      initialTimeout = setTimeout(() => {
+        captureAndUploadRef.current();
+        hasTakenInitialScreenshot.current = true;
+      }, 5000);
+    }
 
     // Calculate dynamic interval time based on settings and productivity
     const isHighProductivity = productivityRef.current >= ruleThreshold;
@@ -284,7 +291,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
     }, intervalTime);
 
     return () => {
-      clearTimeout(initialTimeout);
+      if (initialTimeout) clearTimeout(initialTimeout);
       clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -292,7 +299,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
 
   if (!isAuthenticated) return null;
 
-  const currentIntervalMin = productivity >= (screenshotRules.threshold || 70)
+  const currentIntervalMin = productivity >= (screenshotRules.threshold || 50)
     ? (screenshotRules.highProdInterval || 20)
     : (screenshotRules.standardInterval || 5);
 
@@ -304,13 +311,13 @@ function ScreenshotCapturer({ isCheckedIn }) {
       
       {isCheckedIn && (
         <Box sx={{ mb: 2 }}>
-          {productivity >= (screenshotRules.threshold || 70) ? (
+          {productivity >= (screenshotRules.threshold || 50) ? (
             <Alert icon={false} severity="success" sx={{ py: 0.5, borderRadius: 2, mb: 1 }}>
-              🛡️ <strong>Privacy Protection Active</strong>: Screenshots older than 1 hour are auto-deleted because your productivity is <strong>{productivity}%</strong> (Target &gt;= {screenshotRules.threshold || 70}%).
+              🛡️ <strong>Privacy Protection Active</strong>: Screenshots older than 1 hour are auto-deleted because your productivity is <strong>{productivity}%</strong> (Target &gt;= {screenshotRules.threshold || 50}%).
             </Alert>
           ) : (
             <Alert icon={false} severity="warning" sx={{ py: 0.5, borderRadius: 2, mb: 1 }}>
-              ⚠️ <strong>Full Audit Active</strong>: Screenshots are retained due to low/idle productivity (<strong>{productivity}%</strong>). Maintain active work to enable {screenshotRules.threshold || 70}% privacy auto-deletion.
+              ⚠️ <strong>Full Audit Active</strong>: Screenshots are retained due to low/idle productivity (<strong>{productivity}%</strong>). Maintain active work to enable {screenshotRules.threshold || 50}% privacy auto-deletion.
             </Alert>
           )}
         </Box>

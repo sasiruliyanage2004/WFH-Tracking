@@ -2276,7 +2276,7 @@ app.post('/api/monitoring/screenshot', authenticate, async (req, res) => {
     let deletedCount = 0;
     let autoDeleted = false;
 
-    if (log && log.productivity_percentage >= 70) {
+    if (log && log.productivity_percentage >= 50) {
       autoDeleted = true;
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
