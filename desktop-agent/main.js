@@ -419,8 +419,8 @@ ipcMain.handle('screen:capture', async () => {
       thumbnailSize: { width: 1280, height: 720 }
     });
     if (sources.length > 0) {
-      // Return the base64 data URL representing the primary screen thumbnail
-      return sources[0].thumbnail.toDataURL();
+      // Return an array of base64 data URLs for all screens
+      return sources.map(source => source.thumbnail.toDataURL());
     }
   } catch (err) {
     console.error('Native screen capture failed:', err.message);

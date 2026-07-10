@@ -115,6 +115,46 @@ function ScreenshotCapturer({ isCheckedIn }) {
     });
   };
 
+  const stitchImages = async (base64Images: string[]): Promise<string> => {
+    return new Promise((resolve) => {
+      const images: HTMLImageElement[] = [];
+      let loaded = 0;
+      let totalWidth = 0;
+      let maxHeight = 0;
+
+      base64Images.forEach((base64, index) => {
+        const img = new Image();
+        img.src = base64;
+        img.onload = () => {
+          images[index] = img;
+          totalWidth += img.width;
+          if (img.height > maxHeight) maxHeight = img.height;
+          loaded++;
+          if (loaded === base64Images.length) {
+            const canvas = document.createElement('canvas');
+            canvas.width = totalWidth;
+            canvas.height = maxHeight;
+            const ctx = canvas.getContext('2d');
+            let currentX = 0;
+            images.forEach((i) => {
+              if (i) {
+                ctx?.drawImage(i, currentX, 0);
+                currentX += i.width;
+              }
+            });
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+          }
+        };
+        img.onerror = () => {
+          loaded++;
+          if (loaded === base64Images.length) {
+            resolve(base64Images[0] || ''); // fallback to first image if stitching fails partially
+          }
+        };
+      });
+    });
+  };
+
   // Perform actual screenshot capture and upload
   const captureAndUpload = useCallback(async () => {
     if (onBreak) return;
@@ -125,9 +165,19 @@ function ScreenshotCapturer({ isCheckedIn }) {
       if (window.api && window.api.captureScreen) {
         try {
           // Native Electron screen capture (silent, no browser prompts!)
-          const nativeImg = await window.api.captureScreen();
-          if (nativeImg && nativeImg.length > 200) {
-            imageData = privacyBlurEnabled ? await applyBlur(nativeImg, 15) : nativeImg; // Apply privacy blur conditionally
+          const nativeImgData = await window.api.captureScreen();
+          
+          if (Array.isArray(nativeImgData) && nativeImgData.length > 0) {
+            let finalImage = '';
+            if (nativeImgData.length === 1) {
+              finalImage = nativeImgData[0];
+            } else {
+              finalImage = await stitchImages(nativeImgData);
+            }
+            imageData = privacyBlurEnabled ? await applyBlur(finalImage, 15) : finalImage;
+            captureSuccess = true;
+          } else if (typeof nativeImgData === 'string' && nativeImgData.length > 200) {
+            imageData = privacyBlurEnabled ? await applyBlur(nativeImgData, 15) : nativeImgData; // Apply privacy blur conditionally
             captureSuccess = true;
           } else {
             console.warn("Native screenshot captured empty or invalid image, falling back to simulator");
