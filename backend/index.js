@@ -2555,6 +2555,43 @@ app.get('/api/monitoring/activity/:employeeId', authenticate, authorize(['Manage
   }
 });
 
+// Hardware Device Registration
+app.post('/api/devices/register', authenticate, async (req, res) => {
+  const { machine_id, hostname } = req.body;
+  if (!machine_id) return res.status(400).json({ message: 'Machine ID is required' });
+
+  try {
+    const { error } = await supabase
+      .from('devices')
+      .upsert({
+        machine_id,
+        employee_id: req.user.id,
+        company_id: req.user.company_id,
+        hostname,
+        last_active: new Date().toISOString()
+      }, { onConflict: 'machine_id' });
+
+    if (error) throw error;
+    res.json({ message: 'Device registered successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/devices/count', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
+  try {
+    const { count, error } = await supabase
+      .from('devices')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', req.user.company_id);
+
+    if (error) throw error;
+    res.json({ count: count || 0 });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // App & Website Usage Tracking - log application usage from agent
 app.post('/api/monitoring/usage-log', authenticate, async (req, res) => {
   const { appName, windowTitle, type, durationMinutes, date } = req.body;

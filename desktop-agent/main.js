@@ -5,6 +5,8 @@ const url = require('url');
 const { exec, spawn } = require('child_process');
 const axios = require('axios');
 const fs = require('fs');
+const os = require('os');
+const crypto = require('crypto');
 
 // Local persistent cache configuration
 const getOfflineCacheDir = () => path.join(app.getPath('userData'), 'offline-cache');
@@ -409,6 +411,17 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+// Device Info IPC Handler
+ipcMain.handle('device:info', () => {
+  const hostname = os.hostname();
+  const username = os.userInfo().username;
+  const hash = crypto.createHash('sha256').update(`${hostname}-${username}`).digest('hex');
+  return {
+    machineId: hash,
+    hostname
+  };
 });
 
 // Native Screenshot Capture IPC Handler

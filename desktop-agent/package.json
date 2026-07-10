@@ -7,10 +7,13 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win"
+    "build": "electron-builder --win",
+    "release": "npm run build"
   },
   "dependencies": {
-    "axios": "^1.6.8"
+    "@supabase/supabase-js": "^2.110.2",
+    "axios": "^1.6.8",
+    "dotenv": "^17.4.2"
   },
   "devDependencies": {
     "electron": "^30.0.1",
@@ -27,12 +30,16 @@
       "artifactName": "WorkforceOS-Agent-Setup.${ext}"
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "category": "public.app-category.business",
       "artifactName": "WorkforceOS-Agent-Mac.${ext}"
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "category": "Business",
       "artifactName": "WorkforceOS-Agent.${ext}"
     },

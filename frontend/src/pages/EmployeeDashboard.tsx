@@ -55,7 +55,8 @@ import {
   Delete as DeleteIcon,
   Comment as CommentIcon,
   OpenInNew as OpenInNewIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  GetApp as GetAppIcon
 } from '@mui/icons-material';
 import ScreenshotCapturer from '../components/ScreenshotCapturer';
 import SkeletonCard from '../components/SkeletonCard';
@@ -211,6 +212,15 @@ function EmployeeDashboard() {
         setAttendance(null);
         fetchData();
       });
+    }
+
+    // Register Desktop Device
+    if (window.api && typeof window.api.getDeviceInfo === 'function') {
+      window.api.getDeviceInfo().then(info => {
+        const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+        axios.post(`${API_URL}/api/devices/register`, info, authHeader)
+          .catch(err => console.warn('Failed to register device:', err));
+      }).catch(err => console.warn('Failed to get device info:', err));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -801,6 +811,17 @@ function EmployeeDashboard() {
               sx={{ borderRadius: 2, fontWeight: 700, px: 3, boxShadow: '0 4px 12px rgba(0,225,171,0.1)' }}
             >
               Open Web Dashboard
+            </Button>
+          )}
+          {!window.api && (
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<GetAppIcon />}
+              onClick={() => alert("Please request the latest WorkforceOS-Agent Setup file from your manager via Google Drive.")}
+              sx={{ borderRadius: 2, fontWeight: 700, px: 3, boxShadow: '0 4px 12px rgba(167, 139, 250, 0.4)' }}
+            >
+              Download Desktop App
             </Button>
           )}
         </Box>
