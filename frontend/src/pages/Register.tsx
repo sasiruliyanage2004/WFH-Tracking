@@ -27,7 +27,6 @@ import { authSuccess } from '../redux/store';
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function Register() {
-  const isElectron = window.api !== undefined;
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

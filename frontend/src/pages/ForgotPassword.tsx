@@ -21,7 +21,6 @@ import { Monitor as MonitoringIcon, Visibility, VisibilityOff } from '@mui/icons
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function ForgotPassword() {
-  const isElectron = window.api !== undefined;
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
