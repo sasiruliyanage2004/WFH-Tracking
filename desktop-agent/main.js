@@ -415,13 +415,22 @@ app.on('window-all-closed', () => {
 
 // Device Info IPC Handler
 ipcMain.handle('device:info', () => {
-  const hostname = os.hostname();
-  const username = os.userInfo().username;
-  const hash = crypto.createHash('sha256').update(`${hostname}-${username}`).digest('hex');
-  return {
-    machineId: hash,
-    hostname
-  };
+  try {
+    const hostname = (os.hostname && os.hostname()) || process.env.COMPUTERNAME || 'unknown-host';
+    const userInfo = os.userInfo ? os.userInfo() : {};
+    const username = (userInfo && userInfo.username) || process.env.USERNAME || process.env.USER || 'unknown-user';
+    const hash = crypto.createHash('sha256').update(`${hostname}-${username}`).digest('hex');
+    return {
+      machineId: hash,
+      hostname
+    };
+  } catch (e) {
+    console.error('Error getting device info:', e);
+    return {
+      machineId: 'unknown-' + Date.now(),
+      hostname: 'unknown'
+    };
+  }
 });
 
 // Native Screenshot Capture IPC Handler
