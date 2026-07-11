@@ -471,17 +471,15 @@ function ManagerDashboard() {
               Open Web Dashboard
             </Button>
           )}
-          {!window.api && (
-            <Button
-              variant="contained"
-              color="secondary"
-              startIcon={<GetAppIcon />}
-              onClick={() => window.open('https://mega.nz/folder/aFBhgKzI#73kGkaGoDiOR66TDw0JX8Q', '_blank')}
-              sx={{ borderRadius: 2, fontWeight: 700, px: 3, boxShadow: '0 4px 12px rgba(167, 139, 250, 0.4)' }}
-            >
-              Download Desktop App
-            </Button>
-          )}
+          <Button
+            variant="contained"
+            color="secondary"
+            startIcon={<GetAppIcon />}
+            onClick={() => window.open('https://mega.nz/folder/aFBhgKzI#73kGkaGoDiOR66TDw0JX8Q', '_blank')}
+            sx={{ borderRadius: 2, fontWeight: 700, px: 3, boxShadow: '0 4px 12px rgba(167, 139, 250, 0.4)' }}
+          >
+            Download Desktop App
+          </Button>
         </Box>
       </Box>
 
