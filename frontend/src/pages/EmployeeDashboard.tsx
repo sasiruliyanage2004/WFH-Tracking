@@ -214,14 +214,6 @@ function EmployeeDashboard() {
       });
     }
 
-    // Register Desktop Device
-    if (window.api && typeof window.api.getDeviceInfo === 'function') {
-      window.api.getDeviceInfo().then(info => {
-        const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-        axios.post(`${API_URL}/api/devices/register`, info, authHeader)
-          .catch(err => console.warn('Failed to register device:', err));
-      }).catch(err => console.warn('Failed to get device info:', err));
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

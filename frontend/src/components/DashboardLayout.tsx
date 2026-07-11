@@ -674,14 +674,14 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode, appTheme = 'dark
         sx={{
           width: { sm: `calc(100% - ${isSidebarExpanded ? drawerWidth : collapsedDrawerWidth}px)` },
           ml: { sm: `${isSidebarExpanded ? drawerWidth : collapsedDrawerWidth}px` },
-          top: 0,
+          top: 'var(--banner-height, 0px)',
           borderBottom: 1,
           borderColor: 'divider',
           bgcolor: isDarkMode ? 'rgba(21, 27, 31, 0.88)' : 'rgba(255, 255, 255, 0.88)',
           backdropFilter: 'none',
           WebkitBackdropFilter: 'none',
           color: 'text.primary',
-          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), top 0.3s'
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between' }}>
@@ -1106,8 +1106,8 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode, appTheme = 'dark
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: drawerWidth,
-              top: 0,
-              height: '100%',
+              top: 'var(--banner-height, 0px)',
+              height: 'calc(100% - var(--banner-height, 0px))',
               background: isDarkMode
                 ? 'rgba(21, 27, 31, 0.92) !important'
                 : 'rgba(255, 255, 255, 0.92) !important',
@@ -1132,8 +1132,8 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode, appTheme = 'dark
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: isSidebarExpanded ? drawerWidth : collapsedDrawerWidth,
-              top: 0,
-              height: '100%',
+              top: 'var(--banner-height, 0px)',
+              height: 'calc(100% - var(--banner-height, 0px))',
               background: isDarkMode
                 ? 'rgba(21, 27, 31, 0.92) !important'
                 : 'rgba(255, 255, 255, 0.92) !important',
@@ -1143,7 +1143,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode, appTheme = 'dark
                 ? '1px solid rgba(255, 255, 255, 0.08) !important'
                 : '1px solid rgba(16, 185, 129, 0.12) !important',
               overflowX: 'hidden',
-              transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important',
+              transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), top 0.3s, height 0.3s !important',
               boxShadow: isSidebarExpanded
                 ? isDarkMode
                   ? '4px 0 24px rgba(0,0,0,0.4)'
@@ -1163,12 +1163,13 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode, appTheme = 'dark
         sx={{
           flexGrow: 1,
           p: 3,
+          mt: 'var(--banner-height, 0px)',
           width: { sm: `calc(100% - ${isSidebarExpanded ? drawerWidth : collapsedDrawerWidth}px)` },
           minHeight: '100vh',
           bgcolor: 'transparent',
           position: 'relative',
           zIndex: 1,
-          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-top 0.3s'
         }}
       >
         <Toolbar />

@@ -134,6 +134,36 @@ function App() {
     return () => window.removeEventListener('wfh_theme_changed', handleThemeChange);
   }, []);
 
+  // Device Registration for Desktop Agent
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    
+    // Only register if we're in the desktop app
+    // @ts-ignore
+    if (window.api && typeof window.api.getDeviceInfo === 'function') {
+      // @ts-ignore
+      window.api.getDeviceInfo().then(info => {
+        if (info && info.machineId) {
+          const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+          if (token) {
+            fetch(`${API_URL}/api/devices/register`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                machine_id: info.machineId,
+                hostname: info.hostname
+              })
+            }).catch(err => console.error('Failed to register device:', err));
+          }
+        }
+      }).catch((err: any) => console.error('Error fetching device info:', err));
+    }
+  }, [isAuthenticated, user]);
+
   // Update session last-seen timestamp periodically & on user activity
   useEffect(() => {
     if (!isAuthenticated) return;

@@ -174,7 +174,8 @@ async function flushOfflineCache() {
 }
 
 const BACKEND_URL = process.env.REACT_APP_API_URL || 'https://wfh-tracking.onrender.com';
-const FRONTEND_URL = process.env.FRONTEND_URL || `file://${path.join(__dirname, '../frontend/build/index.html')}`;
+const isDev = !app.isPackaged;
+const FRONTEND_URL = process.env.FRONTEND_URL || (isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, 'react-build/index.html')}`);
 
 let mainWindow = null;
 let sessionToken = null;
@@ -413,25 +414,6 @@ app.on('window-all-closed', () => {
   }
 });
 
-// Device Info IPC Handler
-ipcMain.handle('device:info', () => {
-  try {
-    const hostname = (os.hostname && os.hostname()) || process.env.COMPUTERNAME || 'unknown-host';
-    const userInfo = os.userInfo ? os.userInfo() : {};
-    const username = (userInfo && userInfo.username) || process.env.USERNAME || process.env.USER || 'unknown-user';
-    const hash = crypto.createHash('sha256').update(`${hostname}-${username}`).digest('hex');
-    return {
-      machineId: hash,
-      hostname
-    };
-  } catch (e) {
-    console.error('Error getting device info:', e);
-    return {
-      machineId: 'unknown-' + Date.now(),
-      hostname: 'unknown'
-    };
-  }
-});
 
 // Native Screenshot Capture IPC Handler
 ipcMain.handle('screen:capture', async () => {
@@ -448,6 +430,25 @@ ipcMain.handle('screen:capture', async () => {
     console.error('Native screen capture failed:', err.message);
   }
   return null;
+});
+
+// Device Info Handler
+const { machineIdSync } = require('node-machine-id');
+const os = require('os');
+ipcMain.handle('device:info', async () => {
+  try {
+    const id = machineIdSync();
+    const hostname = os.hostname();
+    const platform = os.platform();
+    return {
+      machineId: id,
+      hostname: hostname,
+      os: platform
+    };
+  } catch (err) {
+    console.error('Failed to get device info:', err);
+    return null;
+  }
 });
 
 // Native Screenshot Cache Handler

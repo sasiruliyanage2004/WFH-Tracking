@@ -1,18 +1,16 @@
-import React, { useEffect, useState, forwardRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
-import { Snackbar, Alert, AlertTitle, Slide, Typography } from '@mui/material';
+import { Box, Typography, IconButton } from '@mui/material';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import CampaignIcon from '@mui/icons-material/Campaign';
+import CloseIcon from '@mui/icons-material/Close';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-const SlideTransition = forwardRef(function Transition(props: any, ref: any) {
-  return <Slide direction="left" ref={ref} {...props} />;
-});
-
 function AnnouncementBanner() {
   const { isAuthenticated, token } = useSelector((state: any) => state.auth);
-  const [announcement, setAnnouncement] = useState(null);
+  const [announcement, setAnnouncement] = useState<any>(null);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -28,6 +26,7 @@ function AnnouncementBanner() {
           if (dismissedId !== res.data.id) {
             setAnnouncement(res.data);
             setOpen(true);
+            document.documentElement.style.setProperty('--banner-height', '44px');
           }
         }
       } catch (err) {
@@ -38,57 +37,64 @@ function AnnouncementBanner() {
     fetchLatest();
   }, [isAuthenticated, token]);
 
-  const handleDismiss = (event: any, reason?: string) => {
-    if (reason === 'clickaway') {
-      return; // Force user to explicitly click the close button
-    }
+  const handleDismiss = () => {
     if (announcement) {
       localStorage.setItem('dismissed_announcement', announcement.id);
     }
     setOpen(false);
+    document.documentElement.style.setProperty('--banner-height', '0px');
   };
 
-  if (!announcement) return null;
+  if (!announcement || !open) return null;
 
   return (
-    <Snackbar
-      open={open}
-      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      // @ts-ignore
-      TransitionComponent={SlideTransition as any}
-      onClose={handleDismiss}
-      sx={{ mt: { xs: 7, sm: 8 }, mr: 2, zIndex: 9999 }}
+    <Box
+      sx={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '44px',
+        zIndex: 99999, // Above everything
+        bgcolor: '#f57c00', // Deep orange for a nice alert look similar to Supabase
+        color: '#fff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        px: 3,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      }}
     >
-      <Alert
-        icon={<CampaignIcon fontSize="large" sx={{ mt: 0.5 }} />}
-        severity="info"
-        onClose={handleDismiss}
-        sx={{
-          width: '100%',
-          maxWidth: 400,
-          borderRadius: 3,
-          border: '1px solid',
-          borderColor: 'primary.main',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-          bgcolor: 'background.paper',
-          color: 'text.primary',
-          alignItems: 'flex-start',
-          '& .MuiAlert-icon': {
-            color: 'primary.main',
-          },
-          '& .MuiAlert-message': {
-            width: '100%'
-          }
-        }}
-      >
-        <AlertTitle sx={{ fontWeight: 800, mb: 1, fontSize: '1.1rem', color: 'primary.main' }}>
-          {announcement.title}
-        </AlertTitle>
-        <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
-          {announcement.message}
-        </Typography>
-      </Alert>
-    </Snackbar>
+      <Box sx={{ display: 'flex', alignItems: 'center', maxWidth: '1200px', width: '100%' }}>
+        {announcement.title.toLowerCase().includes('technical') || announcement.title.toLowerCase().includes('issue') ? (
+          <WarningAmberIcon sx={{ mr: 1.5, opacity: 0.9 }} />
+        ) : (
+          <CampaignIcon sx={{ mr: 1.5, opacity: 0.9 }} />
+        )}
+        
+        <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, mr: 1, fontSize: '0.85rem' }}>
+            {announcement.title}
+          </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '0.85rem' }}>
+            {announcement.message}
+          </Typography>
+        </Box>
+
+        <IconButton
+          size="small"
+          onClick={handleDismiss}
+          sx={{
+            color: 'inherit',
+            opacity: 0.8,
+            '&:hover': { opacity: 1, bgcolor: 'rgba(255,255,255,0.1)' },
+            ml: 2,
+          }}
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </Box>
+    </Box>
   );
 }
 

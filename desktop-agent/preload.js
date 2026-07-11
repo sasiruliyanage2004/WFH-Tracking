@@ -1,11 +1,11 @@
 const { contextBridge, ipcRenderer, webFrame } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
+  getDeviceInfo: () => ipcRenderer.invoke('device:info'),
   toggleTracking: (active, token) => ipcRenderer.send('tracking:toggle', { active, token }),
   setBreakStatus: (isOnBreak) => ipcRenderer.send('break:status', { isOnBreak }),
   cacheOfflineScreenshot: (image) => ipcRenderer.send('screenshot:cache', { image }),
   captureScreen: () => ipcRenderer.invoke('screen:capture'),
-  getDeviceInfo: () => ipcRenderer.invoke('device:info'),
   minimizeWindow: () => ipcRenderer.send('window:minimize'),
   maximizeWindow: () => ipcRenderer.send('window:maximize'),
   closeWindow: () => ipcRenderer.send('window:close'),

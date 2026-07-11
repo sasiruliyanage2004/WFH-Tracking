@@ -13,7 +13,8 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.110.2",
     "axios": "^1.6.8",
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "node-machine-id": "^1.1.12"
   },
   "devDependencies": {
     "electron": "^30.0.1",
