@@ -382,7 +382,7 @@ function OSCard({ icon, os, ext, desc, steps, href }: { icon: any, os: any, ext:
         ))}
       </div>
 
-      <a href={href} download style={{ textDecoration: 'none' }}>
+      <a href={href} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
         <div style={{
           padding: '13px 0',
           borderRadius: 12,
@@ -747,9 +747,9 @@ function DownloadTab() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 24 }}>
         <OSCard
           icon="🪟" os="Windows" ext="NSIS Installer (.exe)"
-          href={`${API_URL}/uploads/WorkforceOS-Agent-Setup.exe`}
+          href="https://mega.nz/folder/aFBhgKzI#73kGkaGoDiOR66TDw0JX8Q"
           steps={[
-            'Run the downloaded Setup.exe installer.',
+            'Download the Setup.exe installer from Mega.',
             'Follow installation wizard — click Next.',
             'Launch WorkforceOS from the Start Menu or Taskbar.',
             'Sign in with your employee credentials and punch in!',
