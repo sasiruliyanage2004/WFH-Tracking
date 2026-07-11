@@ -38,6 +38,7 @@ import {
   Alert
 } from '@mui/material';
 import { maskEmail } from '../utils/maskEmail';
+import GetAppIcon from '@mui/icons-material/GetApp';
 import {
   BarChart as RechartsBarChart,
   Bar,
