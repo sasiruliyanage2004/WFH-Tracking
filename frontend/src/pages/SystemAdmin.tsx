@@ -35,7 +35,8 @@ import {
   TrendingUp as TrendingUpIcon,
   SecurityUpdateGood as SecurityIcon,
   InfoOutlined as InfoIcon,
-  KeyboardArrowRight as ArrowRightIcon
+  KeyboardArrowRight as ArrowRightIcon,
+  GetApp as GetAppIcon
 } from '@mui/icons-material';
 import CustomLoader from '../components/CustomLoader';
 
@@ -294,11 +295,20 @@ function SystemAdmin({ activeTab = 0 }) {
               variant="outlined"
               color="primary"
               onClick={() => window.open('https://wfh-tracking-k5ap.vercel.app', '_blank')}
-              sx={{ borderRadius: 2, fontWeight: 700, px: 3 }}
+              sx={{ borderRadius: 2, fontWeight: 700, px: 3, boxShadow: '0 4px 12px rgba(0,225,171,0.1)', mr: 2 }}
             >
               Open Web Dashboard
             </Button>
           )}
+          <Button
+            variant="contained"
+            color="secondary"
+            startIcon={<GetAppIcon />}
+            onClick={() => window.open('https://mega.nz/folder/aFBhgKzI#73kGkaGoDiOR66TDw0JX8Q', '_blank')}
+            sx={{ borderRadius: 2, fontWeight: 700, px: 3, boxShadow: '0 4px 12px rgba(167, 139, 250, 0.4)', mr: 2 }}
+          >
+            Download Desktop App
+          </Button>
           <Button
             variant="contained"
             startIcon={<BusinessIcon />}
