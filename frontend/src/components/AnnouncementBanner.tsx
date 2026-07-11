@@ -56,13 +56,13 @@ function AnnouncementBanner() {
         right: 0,
         height: '44px',
         zIndex: 99999, // Above everything
-        bgcolor: announcement.color || '#f57c00',
+        background: announcement.color || 'linear-gradient(90deg, #7c3aed, #2563eb)',
         color: '#fff',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         px: 3,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', maxWidth: '1200px', width: '100%' }}>

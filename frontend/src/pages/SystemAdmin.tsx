@@ -53,17 +53,19 @@ function SystemAdmin({ activeTab = 0 }) {
   const [announcements, setAnnouncements] = useState([]);
   const [announcementTitle, setAnnouncementTitle] = useState('');
   const [announcementMessage, setAnnouncementMessage] = useState('');
-  const [announcementColor, setAnnouncementColor] = useState('#f57c00');
+  const [announcementColor, setAnnouncementColor] = useState('linear-gradient(90deg, #7c3aed, #2563eb)');
   const [announcementLoading, setAnnouncementLoading] = useState(false);
 
   const bannerColorPresets = [
-    { label: 'Orange', value: '#f57c00' },
-    { label: 'Red', value: '#d32f2f' },
-    { label: 'Green', value: '#2e7d32' },
-    { label: 'Blue', value: '#1565c0' },
-    { label: 'Purple', value: '#6a1b9a' },
-    { label: 'Teal', value: '#00695c' },
-    { label: 'Dark', value: '#212121' },
+    { label: 'Cosmic Violet', value: 'linear-gradient(90deg, #7c3aed, #2563eb)' },
+    { label: 'Neon Sunrise', value: 'linear-gradient(90deg, #f97316, #ec4899)' },
+    { label: 'Cyber Green', value: 'linear-gradient(90deg, #10b981, #06b6d4)' },
+    { label: 'Danger Red', value: 'linear-gradient(90deg, #dc2626, #9f1239)' },
+    { label: 'Aurora', value: 'linear-gradient(90deg, #0ea5e9, #8b5cf6)' },
+    { label: 'Gold Rush', value: 'linear-gradient(90deg, #d97706, #b45309)' },
+    { label: 'Midnight', value: 'linear-gradient(90deg, #1e293b, #334155)' },
+    { label: 'Rose Gold', value: 'linear-gradient(90deg, #be185d, #9f1239)' },
+    { label: 'Matrix', value: 'linear-gradient(90deg, #15803d, #166534)' },
   ];
   
   const [openCreateModal, setOpenCreateModal] = useState(false);
@@ -161,7 +163,7 @@ function SystemAdmin({ activeTab = 0 }) {
       );
       setAnnouncementTitle('');
       setAnnouncementMessage('');
-      setAnnouncementColor('#f57c00');
+      setAnnouncementColor('linear-gradient(90deg, #7c3aed, #2563eb)');
       fetchAnnouncements();
       alert('Announcement broadcasted successfully!');
     } catch (err) {
@@ -605,47 +607,36 @@ function SystemAdmin({ activeTab = 0 }) {
 
               {/* Banner Color Picker */}
               <Box sx={{ mt: 2 }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, fontWeight: 600 }}>Banner Color</Typography>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5, fontWeight: 600 }}>Banner Color</Typography>
+                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
                   {bannerColorPresets.map(preset => (
                     <Box
                       key={preset.value}
                       onClick={() => setAnnouncementColor(preset.value)}
                       title={preset.label}
                       sx={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        bgcolor: preset.value,
+                        width: 36,
+                        height: 36,
+                        borderRadius: '10px',
+                        background: preset.value,
                         cursor: 'pointer',
-                        border: announcementColor === preset.value ? '3px solid white' : '3px solid transparent',
-                        outline: announcementColor === preset.value ? `3px solid ${preset.value}` : 'none',
-                        transition: 'transform 0.15s ease',
-                        '&:hover': { transform: 'scale(1.2)' },
+                        border: announcementColor === preset.value ? '2px solid white' : '2px solid transparent',
+                        boxShadow: announcementColor === preset.value ? `0 0 0 2px #7c3aed` : '0 2px 6px rgba(0,0,0,0.3)',
+                        transition: 'all 0.15s ease',
+                        '&:hover': { transform: 'scale(1.18)', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' },
                       }}
                     />
                   ))}
-                  {/* Custom color input */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', ml: 1, gap: 1 }}>
-                    <input
-                      type="color"
-                      value={announcementColor}
-                      onChange={e => setAnnouncementColor(e.target.value)}
-                      style={{ width: 32, height: 32, border: 'none', borderRadius: '50%', cursor: 'pointer', padding: 0, background: 'none' }}
-                      title="Custom color"
-                    />
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>Custom</Typography>
-                  </Box>
                 </Box>
                 {/* Live Preview */}
                 <Box sx={{ mt: 2, borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
-                  <Box sx={{ bgcolor: announcementColor, color: '#fff', px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ background: announcementColor, color: '#fff', px: 2, py: 1.2, display: 'flex', alignItems: 'center', gap: 1 }}>
                     <CampaignIcon fontSize="small" />
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
                       {announcementTitle || 'Your announcement title'}
                     </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                      {announcementMessage || 'Message body will appear here.'}
+                    <Typography variant="body2" sx={{ opacity: 0.85 }}>
+                      — {announcementMessage || 'Message body will appear here.'}
                     </Typography>
                   </Box>
                 </Box>
@@ -672,11 +663,11 @@ function SystemAdmin({ activeTab = 0 }) {
                 <Grid key={ann.id} size={{ xs: 12 }}>
                   <Paper sx={{ p: 0, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
                     {/* Color accent strip */}
-                    <Box sx={{ bgcolor: ann.color || '#f57c00', height: 6 }} />
+                    <Box sx={{ background: ann.color || 'linear-gradient(90deg, #7c3aed, #2563eb)', height: 6 }} />
                     <Box sx={{ p: 3 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: ann.color || '#f57c00', flexShrink: 0 }} />
+                          <Box sx={{ width: 12, height: 12, borderRadius: '4px', background: ann.color || 'linear-gradient(90deg, #7c3aed, #2563eb)', flexShrink: 0 }} />
                           <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>{ann.title}</Typography>
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
