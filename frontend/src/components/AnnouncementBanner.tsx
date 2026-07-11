@@ -56,7 +56,7 @@ function AnnouncementBanner() {
         right: 0,
         height: '44px',
         zIndex: 99999, // Above everything
-        bgcolor: '#f57c00', // Deep orange for a nice alert look similar to Supabase
+        bgcolor: announcement.color || '#f57c00',
         color: '#fff',
         display: 'flex',
         alignItems: 'center',

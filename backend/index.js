@@ -3728,13 +3728,13 @@ app.get('/api/system/analytics', authenticate, authorize(['SystemAdmin']), async
 
 // --- Announcements Endpoints ---
 app.post('/api/system/announcements', authenticate, authorize(['SystemAdmin']), async (req, res) => {
-  const { title, message, target_role } = req.body;
+  const { title, message, target_role, color } = req.body;
   if (!title || !message) return res.status(400).json({ message: 'Title and message are required' });
   
   try {
     const { data, error } = await supabase
       .from('system_announcements')
-      .insert([{ title, message, target_role: target_role || 'all', created_by: req.user.id }])
+      .insert([{ title, message, target_role: target_role || 'all', created_by: req.user.id, color: color || '#f57c00' }])
       .select()
       .single();
     if (error) throw error;

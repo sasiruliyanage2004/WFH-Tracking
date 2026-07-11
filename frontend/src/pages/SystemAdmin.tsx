@@ -53,7 +53,18 @@ function SystemAdmin({ activeTab = 0 }) {
   const [announcements, setAnnouncements] = useState([]);
   const [announcementTitle, setAnnouncementTitle] = useState('');
   const [announcementMessage, setAnnouncementMessage] = useState('');
+  const [announcementColor, setAnnouncementColor] = useState('#f57c00');
   const [announcementLoading, setAnnouncementLoading] = useState(false);
+
+  const bannerColorPresets = [
+    { label: 'Orange', value: '#f57c00' },
+    { label: 'Red', value: '#d32f2f' },
+    { label: 'Green', value: '#2e7d32' },
+    { label: 'Blue', value: '#1565c0' },
+    { label: 'Purple', value: '#6a1b9a' },
+    { label: 'Teal', value: '#00695c' },
+    { label: 'Dark', value: '#212121' },
+  ];
   
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
@@ -145,11 +156,12 @@ function SystemAdmin({ activeTab = 0 }) {
     setAnnouncementLoading(true);
     try {
       await axios.post(`${API_URL}/api/system/announcements`, 
-        { title: announcementTitle, message: announcementMessage },
+        { title: announcementTitle, message: announcementMessage, color: announcementColor },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setAnnouncementTitle('');
       setAnnouncementMessage('');
+      setAnnouncementColor('#f57c00');
       fetchAnnouncements();
       alert('Announcement broadcasted successfully!');
     } catch (err) {
@@ -590,6 +602,55 @@ function SystemAdmin({ activeTab = 0 }) {
                 required
                 sx={{ textarea: { color: 'text.primary' }, label: { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'divider' } } }}
               />
+
+              {/* Banner Color Picker */}
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, fontWeight: 600 }}>Banner Color</Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {bannerColorPresets.map(preset => (
+                    <Box
+                      key={preset.value}
+                      onClick={() => setAnnouncementColor(preset.value)}
+                      title={preset.label}
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        bgcolor: preset.value,
+                        cursor: 'pointer',
+                        border: announcementColor === preset.value ? '3px solid white' : '3px solid transparent',
+                        outline: announcementColor === preset.value ? `3px solid ${preset.value}` : 'none',
+                        transition: 'transform 0.15s ease',
+                        '&:hover': { transform: 'scale(1.2)' },
+                      }}
+                    />
+                  ))}
+                  {/* Custom color input */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', ml: 1, gap: 1 }}>
+                    <input
+                      type="color"
+                      value={announcementColor}
+                      onChange={e => setAnnouncementColor(e.target.value)}
+                      style={{ width: 32, height: 32, border: 'none', borderRadius: '50%', cursor: 'pointer', padding: 0, background: 'none' }}
+                      title="Custom color"
+                    />
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>Custom</Typography>
+                  </Box>
+                </Box>
+                {/* Live Preview */}
+                <Box sx={{ mt: 2, borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+                  <Box sx={{ bgcolor: announcementColor, color: '#fff', px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CampaignIcon fontSize="small" />
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {announcementTitle || 'Your announcement title'}
+                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      {announcementMessage || 'Message body will appear here.'}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+
               <Button
                 type="submit"
                 variant="contained"
@@ -609,14 +670,26 @@ function SystemAdmin({ activeTab = 0 }) {
             <Grid container spacing={2}>
               {announcements.map(ann => (
                 <Grid key={ann.id} size={{ xs: 12 }}>
-                  <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid divider' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>{ann.title}</Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {new Date(ann.created_at).toLocaleString()}
-                      </Typography>
+                  <Paper sx={{ p: 0, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+                    {/* Color accent strip */}
+                    <Box sx={{ bgcolor: ann.color || '#f57c00', height: 6 }} />
+                    <Box sx={{ p: 3 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: ann.color || '#f57c00', flexShrink: 0 }} />
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>{ann.title}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            {new Date(ann.created_at).toLocaleString()}
+                          </Typography>
+                          <IconButton size="small" onClick={() => handleDeleteAnnouncement(ann.id)} sx={{ color: 'error.main', ml: 1 }}>
+                            <span style={{ fontSize: 16 }}>✕</span>
+                          </IconButton>
+                        </Box>
+                      </Box>
+                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>{ann.message}</Typography>
                     </Box>
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>{ann.message}</Typography>
                   </Paper>
                 </Grid>
               ))}
