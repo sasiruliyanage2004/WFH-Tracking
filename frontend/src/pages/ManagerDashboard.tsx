@@ -620,39 +620,9 @@ function ManagerDashboard() {
             </CardContent>
           </Card>
         </Grid>
-
-        {/* Installed Laptops */}
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card 
-            sx={{ 
-              borderRadius: 4, 
-              borderLeft: '6px solid', 
-              borderLeftColor: 'info.main',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 12px 30px rgba(0, 0, 0, 0.4)',
-                borderColor: 'info.main'
-              }
-            }}
-          >
-            <CardContent sx={{ p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                  Total Installed Laptops
-                </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: 'info.main' }}>
-                  <AnimatedCounter value={deviceCount} />
-                </Typography>
-              </Box>
-              <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: 'rgba(59, 130, 246, 0.15)', color: 'info.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <TeamIcon sx={{ fontSize: 24 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
       </Grid>
+
+
 
       {/* Row 2: Analytics Charts */}
       <Grid container spacing={3} sx={{ mb: 4 }} className="no-print">

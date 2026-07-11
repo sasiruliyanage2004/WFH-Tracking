@@ -36,7 +36,8 @@ import {
   SecurityUpdateGood as SecurityIcon,
   InfoOutlined as InfoIcon,
   KeyboardArrowRight as ArrowRightIcon,
-  GetApp as GetAppIcon
+  GetApp as GetAppIcon,
+  LaptopMac as LaptopMacIcon
 } from '@mui/icons-material';
 import CustomLoader from '../components/CustomLoader';
 
@@ -105,7 +106,7 @@ function SystemAdmin({ activeTab = 0 }) {
             axios.get(`${API_URL}/api/system/announcements`, { headers: { Authorization: `Bearer ${token}` } })
           ]);
           
-          setAnalytics(results[0].status === 'fulfilled' ? results[0].value.data : { totalCompanies: 0, activeCompanies: 0, totalUsers: 0, dailyActiveUsers: 0 });
+          setAnalytics(results[0].status === 'fulfilled' ? results[0].value.data : { totalCompanies: 0, activeCompanies: 0, totalUsers: 0, dailyActiveUsers: 0, deviceCount: 0 });
           setCompanies(results[1].status === 'fulfilled' ? results[1].value.data : []);
           setAnnouncements(results[2].status === 'fulfilled' ? results[2].value.data : []);
         } else if (activeTab === 1) {
@@ -378,6 +379,20 @@ function SystemAdmin({ activeTab = 0 }) {
                   </Box>
                   <Typography sx={{ color: 'text.secondary', fontWeight: 600, mb: 1 }}>Daily Active Users</Typography>
                   <Typography variant="h3" sx={{ fontWeight: 800, color: 'text.primary' }}>{analytics.dailyActiveUsers}</Typography>
+                </Paper>
+              </Grid>
+
+              {/* Card 5: Total Installed Laptops */}
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid divider', height: '100%' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+                    <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(59, 130, 246, 0.1)' }}>
+                      <LaptopMacIcon sx={{ color: 'info.main' }} />
+                    </Box>
+                    <Chip label="All Regions" size="small" sx={{ bgcolor: 'rgba(59, 130, 246, 0.1)', color: 'info.main', fontWeight: 600 }} />
+                  </Box>
+                  <Typography sx={{ color: 'text.secondary', fontWeight: 600, mb: 1 }}>Total Installed Laptops</Typography>
+                  <Typography variant="h3" sx={{ fontWeight: 800, color: 'text.primary' }}>{analytics.deviceCount || 0}</Typography>
                 </Paper>
               </Grid>
             </Grid>

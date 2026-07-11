@@ -3713,13 +3713,17 @@ app.get('/api/system/analytics', authenticate, authorize(['SystemAdmin']), async
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { count: activeUsersToday, error: auErr } = await supabase.from('users').select('*', { count: 'exact', head: true }).gte('last_login', oneDayAgo);
 
-    if (cErr || acErr || uErr || auErr) throw new Error('Failed to compute analytics');
+    // total devices across all companies
+    const { count: totalDevices, error: dErr } = await supabase.from('devices').select('*', { count: 'exact', head: true });
+
+    if (cErr || acErr || uErr || auErr || dErr) throw new Error('Failed to compute analytics');
 
     res.json({
       totalCompanies: totalCompanies || 0,
       activeCompanies: activeCompanies || 0,
       totalUsers: totalUsers || 0,
-      dailyActiveUsers: activeUsersToday || 0
+      dailyActiveUsers: activeUsersToday || 0,
+      deviceCount: totalDevices || 0
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
