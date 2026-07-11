@@ -144,7 +144,8 @@ function ManagerDashboard() {
 
   // Filters for Export
   const [filterEmployee, setFilterEmployee] = useState('');
-  const [filterDate, setFilterDate] = useState('');
+  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
 
   // Dialog States
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
@@ -279,13 +280,38 @@ function ManagerDashboard() {
       // Get list of employees from database
       const employeesRes = await axios.get(`${API_URL}/api/users/employees`, authHeader);
       setEmployees(employeesRes.data);
+      
+      fetchAttendance();
 
     } catch (err) {
-      console.error('Fetch manager details error:', err.message);
+      console.error(err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        localStorage.removeItem('token');
+        navigate('/login');
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const fetchAttendance = async () => {
+    if (!token) return;
+    try {
+      const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+      let url = `${API_URL}/api/attendance/all?`;
+      if (filterDate) url += `date=${filterDate}&`;
+      if (filterEmployee) url += `employeeId=${filterEmployee}&`;
+      const res = await axios.get(url, authHeader);
+      setAttendanceRecords(res.data);
+    } catch (err) {
+      console.warn('Could not fetch attendance records', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchAttendance();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterDate, filterEmployee, token]);
 
   useEffect(() => {
     fetchData();
@@ -347,18 +373,10 @@ function ManagerDashboard() {
     }
   };
 
-  // CSV Report Generator Export
+  // CSV Report Generator
   const exportToCSV = () => {
     const today = new Date().toISOString().split('T')[0];
-    let records = summary?.liveCheckins || [];
-    
-    // Apply filters
-    if (filterEmployee) {
-      records = records.filter(r => r.employee?._id === filterEmployee || r.employee?.id === filterEmployee);
-    }
-    if (filterDate) {
-      records = records.filter(r => r.date === filterDate);
-    }
+    let records = attendanceRecords || [];
 
     let csvContent = "data:text/csv;charset=utf-8,";
     csvContent += "Employee,Department,Check-In Time,Check-Out Time,Hours Worked,GPS Location\n";
@@ -810,9 +828,9 @@ function ManagerDashboard() {
                 </Box>
               </Box>
 
-              {summary.liveCheckins.length === 0 ? (
+              {attendanceRecords.length === 0 ? (
                 <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 5 }}>
-                  No employees checked in today.
+                  No attendance records found for the selected filters.
                 </Typography>
               ) : (
                 <TableContainer sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
@@ -829,7 +847,7 @@ function ManagerDashboard() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {summary.liveCheckins.map((rec) => {
+                      {attendanceRecords.map((rec) => {
                         const initials = getInitials(rec.employee?.name);
                         return (
                           <TableRow 
