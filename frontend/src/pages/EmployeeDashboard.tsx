@@ -55,8 +55,7 @@ import {
   Delete as DeleteIcon,
   Comment as CommentIcon,
   OpenInNew as OpenInNewIcon,
-  Close as CloseIcon,
-  GetApp as GetAppIcon
+  Close as CloseIcon
 } from '@mui/icons-material';
 import ScreenshotCapturer from '../components/ScreenshotCapturer';
 import SkeletonCard from '../components/SkeletonCard';

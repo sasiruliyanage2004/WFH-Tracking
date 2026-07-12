@@ -36,7 +36,6 @@ import {
   SecurityUpdateGood as SecurityIcon,
   InfoOutlined as InfoIcon,
   KeyboardArrowRight as ArrowRightIcon,
-  GetApp as GetAppIcon,
   LaptopMac as LaptopMacIcon
 } from '@mui/icons-material';
 import CustomLoader from '../components/CustomLoader';

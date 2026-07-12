@@ -38,7 +38,6 @@ import {
   Alert
 } from '@mui/material';
 import { maskEmail } from '../utils/maskEmail';
-import GetAppIcon from '@mui/icons-material/GetApp';
 import {
   BarChart as RechartsBarChart,
   Bar,
@@ -130,7 +129,7 @@ function ManagerDashboard() {
   const [reports, setReports] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [deviceCount, setDeviceCount] = useState(0);
+  // unused variable removed
 
 
   const calculateTotalHours = (rec) => {
@@ -269,8 +268,8 @@ function ManagerDashboard() {
       setTasks(tasksRes.data);
 
       try {
-        const devRes = await axios.get(`${API_URL}/api/devices/count`, authHeader);
-        setDeviceCount(devRes.data.count);
+        await axios.get(`${API_URL}/api/devices/count`, authHeader);
+        // setDeviceCount removed
       } catch (err) {
         console.warn('Could not fetch device count', err);
       }
