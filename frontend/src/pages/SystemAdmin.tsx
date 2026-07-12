@@ -409,7 +409,7 @@ function SystemAdmin({ activeTab = 0 }) {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                   <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>Active Managed Tenants</Typography>
                   <Button 
-                    onClick={() => setActiveTab(1)}
+                    onClick={() => navigate('/admin/companies')}
                     endIcon={<ArrowRightIcon />} 
                     sx={{ color: 'primary.main', textTransform: 'none', fontWeight: 600 }}
                   >
