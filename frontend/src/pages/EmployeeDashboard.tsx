@@ -1244,7 +1244,7 @@ function EmployeeDashboard() {
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
                     Tasks Completed
                   </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: 'secondary.main', display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
+                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: '#a78bfa', display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
                     <AnimatedCounter value={completedTasksCount} />
                     <Typography component="span" variant="h5" color="text.secondary" sx={{ fontWeight: 600 }}>
                       / {totalTasksCount}
@@ -1259,8 +1259,7 @@ function EmployeeDashboard() {
                 <LinearProgress 
                   variant="determinate" 
                   value={taskProgressPercent} 
-                  color="secondary"
-                  sx={{ height: 6, borderRadius: 3, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { borderRadius: 3 } }}
+                  sx={{ height: 6, borderRadius: 3, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { bgcolor: '#a78bfa', borderRadius: 3 } }}
                 />
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontWeight: 600 }}>
                   {totalTasksCount > 0 ? `${taskProgressPercent}% of assigned tasks completed` : 'No tasks assigned'}
