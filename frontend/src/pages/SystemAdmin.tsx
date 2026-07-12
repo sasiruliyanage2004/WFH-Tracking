@@ -408,7 +408,11 @@ function SystemAdmin({ activeTab = 0 }) {
               <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid divider', mb: 4 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                   <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>Active Managed Tenants</Typography>
-                  <Button endIcon={<ArrowRightIcon />} sx={{ color: 'primary.main', textTransform: 'none', fontWeight: 600 }}>
+                  <Button 
+                    onClick={() => setActiveTab(1)}
+                    endIcon={<ArrowRightIcon />} 
+                    sx={{ color: 'primary.main', textTransform: 'none', fontWeight: 600 }}
+                  >
                     View Full Directory
                   </Button>
                 </Box>
@@ -442,7 +446,7 @@ function SystemAdmin({ activeTab = 0 }) {
                           </TableCell>
                           <TableCell sx={{ borderBottom: '1px solid divider' }}>
                             <Chip 
-                              label={comp.status === 'active' ? 'ENTERPRISE' : 'SUSPENDED'} 
+                              label={comp.status === 'active' ? 'ACTIVE' : 'SUSPENDED'} 
                               size="small" 
                               sx={{ 
                                 bgcolor: comp.status === 'active' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(248, 113, 113, 0.1)', 
