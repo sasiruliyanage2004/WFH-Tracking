@@ -14,6 +14,7 @@
     "@supabase/supabase-js": "^2.110.2",
     "axios": "^1.6.8",
     "dotenv": "^17.4.2",
+    "electron-updater": "^6.8.9",
     "node-machine-id": "^1.1.12"
   },
   "devDependencies": {
@@ -23,6 +24,13 @@
   "build": {
     "appId": "com.wfh.desktopagent",
     "productName": "WorkforceOS-Agent",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "sasiruliyanage2004",
+        "repo": "WFH-Tracking"
+      }
+    ],
     "win": {
       "target": [
         "nsis"

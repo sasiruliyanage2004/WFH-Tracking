@@ -1,6 +1,7 @@
 process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true';
 const { app, BrowserWindow, ipcMain, desktopCapturer, Menu, session, powerMonitor, Notification, Tray } = require('electron');
 const path = require('path');
+const { autoUpdater } = require('electron-updater');
 const url = require('url');
 const { exec, spawn } = require('child_process');
 const axios = require('axios');
@@ -363,6 +364,23 @@ function startIdleDetection() {
 }
 
 app.whenReady().then(() => {
+  // --- AUTO UPDATER LOGIC ---
+  autoUpdater.checkForUpdatesAndNotify();
+  
+  autoUpdater.on('update-available', () => {
+    console.log('Update available.');
+  });
+  
+  autoUpdater.on('update-downloaded', () => {
+    console.log('Update downloaded. Quitting and installing...');
+    autoUpdater.quitAndInstall();
+  });
+  
+  autoUpdater.on('error', (err) => {
+    console.error('Auto-updater error:', err);
+  });
+  // --------------------------
+
   // Automatically approve geolocation and media (webcam/mic) permission requests
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
     console.log(`[DEBUG] Permission request: ${permission}`);
@@ -434,7 +452,6 @@ ipcMain.handle('screen:capture', async () => {
 
 // Device Info Handler
 const { machineIdSync } = require('node-machine-id');
-const os = require('os');
 ipcMain.handle('device:info', async () => {
   try {
     const id = machineIdSync();
