@@ -1598,7 +1598,7 @@ function EmployeeDashboard() {
             <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 2, mb: 3 }}>
               {mobileVerifyToken && (
                 <QRCodeSVG 
-                  value={`${window.location.protocol === 'file:' ? 'https://wfh-tracking-k5ap-i6syb5ync-liyanagesasiru-7605s-projects.vercel.app' : window.location.origin}/#/mobile-verify?token=${mobileVerifyToken}`} 
+                  value={`${window.location.protocol === 'file:' ? 'https://wfh-tracking-k5ap.vercel.app' : window.location.origin}/#/mobile-verify?token=${mobileVerifyToken}`} 
                   size={200} 
                   level="H"
                 />
