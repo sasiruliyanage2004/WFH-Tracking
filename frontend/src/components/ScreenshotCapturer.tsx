@@ -25,11 +25,16 @@ function ScreenshotCapturer({ isCheckedIn }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const productivityRef = useRef(productivity);
+  const screenshotRulesRef = useRef(screenshotRules);
   const captureAndUploadRef = useRef<any>(null);
 
   useEffect(() => {
     productivityRef.current = productivity;
   }, [productivity]);
+
+  useEffect(() => {
+    screenshotRulesRef.current = screenshotRules;
+  }, [screenshotRules]);
 
   const handleToggleBlur = (event) => {
     const val = event.target.checked;
@@ -300,10 +305,6 @@ function ScreenshotCapturer({ isCheckedIn }) {
     }
   }, [stream]);
 
-  const ruleThreshold = screenshotRules?.threshold || 50;
-  const ruleHighProd = screenshotRules?.highProdInterval || 20;
-  const ruleStandard = screenshotRules?.standardInterval || 5;
-
   const hasTakenInitialScreenshot = useRef(false);
 
   // Periodic capture loop
@@ -319,26 +320,33 @@ function ScreenshotCapturer({ isCheckedIn }) {
     }
 
     let initialTimeout: any;
+    let lastCaptureTime = Date.now();
 
     // Auto-capture screenshot immediately upon checking in (only once)
     if (!hasTakenInitialScreenshot.current) {
       initialTimeout = setTimeout(() => {
         captureAndUploadRef.current();
+        lastCaptureTime = Date.now();
         hasTakenInitialScreenshot.current = true;
       }, 5000);
     }
 
-    // Calculate dynamic interval time based on settings and productivity
-    const isHighProductivity = productivityRef.current >= ruleThreshold;
-    const intervalTime = isHighProductivity
-      ? ruleHighProd * 60 * 1000
-      : ruleStandard * 60 * 1000;
-
-    console.log(`Setting screenshot capture interval to ${intervalTime / 60000} minutes`);
-
+    // Check every 1 minute if a capture is due based on CURRENT productivity
     const interval = setInterval(() => {
-      captureAndUploadRef.current();
-    }, intervalTime);
+      const elapsedMinutes = (Date.now() - lastCaptureTime) / 60000;
+      
+      const threshold = screenshotRulesRef.current?.threshold || 50;
+      const highProdInt = screenshotRulesRef.current?.highProdInterval || 20;
+      const stdInt = screenshotRulesRef.current?.standardInterval || 5;
+      
+      const isHighProductivity = productivityRef.current >= threshold;
+      const requiredInterval = isHighProductivity ? highProdInt : stdInt;
+      
+      if (elapsedMinutes >= requiredInterval) {
+        captureAndUploadRef.current();
+        lastCaptureTime = Date.now();
+      }
+    }, 60000);
 
     return () => {
       if (initialTimeout) clearTimeout(initialTimeout);
