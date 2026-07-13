@@ -135,16 +135,17 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode, appTheme = 'dark
   };
 
   const handleMarkAllRead = async () => {
+    // Optimistic update — clear immediately so UI feels instant
+    const snapshot = notifications;
+    setNotifications([]);
     try {
-      const unread = notifications.filter(n => !n.isRead);
-      for (let notif of unread) {
-        await axios.put(`${API_URL}/api/notifications/${notif.id || notif._id}/read`, {}, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      }
-      setNotifications([]);
+      await axios.delete(`${API_URL}/api/notifications/all`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
     } catch (err) {
-      console.error(err.message);
+      // Restore if API call fails
+      setNotifications(snapshot);
+      console.error('Failed to clear notifications:', err.message);
     }
   };
 

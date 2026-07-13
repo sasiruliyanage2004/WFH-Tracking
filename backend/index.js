@@ -3133,6 +3133,21 @@ app.put('/api/notifications/:id/read', authenticate, async (req, res) => {
   }
 });
 
+// Bulk delete all notifications for the current user
+app.delete('/api/notifications/all', authenticate, async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('recipient_id', req.user.id);
+
+    if (error) throw error;
+    res.json({ message: 'All notifications cleared' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 app.get('/api/settings/warning-emails', authenticate, authorize(['SuperAdmin']), async (req, res) => {
   try {
     let { data: setting } = await supabase
