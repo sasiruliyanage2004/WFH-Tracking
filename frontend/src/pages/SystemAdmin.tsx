@@ -36,7 +36,8 @@ import {
   SecurityUpdateGood as SecurityIcon,
   InfoOutlined as InfoIcon,
   KeyboardArrowRight as ArrowRightIcon,
-  LaptopMac as LaptopMacIcon
+  LaptopMac as LaptopMacIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import CustomLoader from '../components/CustomLoader';
 
@@ -78,12 +79,15 @@ function SystemAdmin({ activeTab = 0 }) {
   const [newWebsite, setNewWebsite] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState(null);
 
   const [openSuccessModal, setOpenSuccessModal] = useState(false);
   const [successData, setSuccessData] = useState(null);
 
   const [openDetailsModal, setOpenDetailsModal] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState(null);
 
   const handleViewDetails = (company) => {
     setSelectedCompany(company);
@@ -199,6 +203,21 @@ function SystemAdmin({ activeTab = 0 }) {
       ));
     } catch (err) {
       console.error('Failed to update status', err);
+    }
+  };
+
+  const handleDeleteCompany = async () => {
+    if (!companyToDelete) return;
+    try {
+      await axios.delete(`${API_URL}/api/system/companies/${companyToDelete.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCompanies(prev => prev.filter(c => c.id !== companyToDelete.id));
+      setDeleteDialogOpen(false);
+      setCompanyToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete company:', err);
+      alert('Error deleting company: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -575,12 +594,17 @@ function SystemAdmin({ activeTab = 0 }) {
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                       Status: {company.status === 'active' ? 'Active' : 'Disabled'}
                     </Typography>
-                    <Switch 
-                      checked={company.status === 'active'}
-                      onChange={() => toggleCompanyStatus(company.id, company.status)}
-                      color="primary"
-                      sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: 'primary.main' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: 'primary.main' } }}
-                    />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Switch 
+                        checked={company.status === 'active'}
+                        onChange={() => toggleCompanyStatus(company.id, company.status)}
+                        color="primary"
+                        sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: 'primary.main' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: 'primary.main' } }}
+                      />
+                      <IconButton size="small" color="error" onClick={() => { setCompanyToDelete(company); setDeleteDialogOpen(true); }}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
                   </Box>
                 </Paper>
               </Grid>
@@ -806,6 +830,21 @@ PaperProps={{ sx: { borderRadius: 3, bgcolor: 'background.paper', color: 'text.p
             </Box>
           )}
         </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle sx={{ fontWeight: 700, color: 'error.main' }}>Delete Company?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to permanently delete <strong>{companyToDelete?.name}</strong>?
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ color: 'text.secondary', fontWeight: 600 }}>Cancel</Button>
+          <Button onClick={handleDeleteCompany} variant="contained" color="error" sx={{ fontWeight: 600 }}>Delete Permanently</Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

@@ -3728,6 +3728,20 @@ app.put('/api/system/companies/:id/status', authenticate, authorize(['SystemAdmi
   }
 });
 
+app.delete('/api/system/companies/:id', authenticate, authorize(['SystemAdmin']), async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('companies')
+      .delete()
+      .eq('id', req.params.id);
+
+    if (error) throw error;
+    res.json({ message: 'Company deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 
 // --- Analytics Endpoint ---
 app.get('/api/system/analytics', authenticate, authorize(['SystemAdmin']), async (req, res) => {
