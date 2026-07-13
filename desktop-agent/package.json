@@ -1,6 +1,6 @@
 {
   "name": "wfh-desktop-agent",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Work From Home tracking desktop agent",
   "author": "Sasiru Liyanage",
   "homepage": "https://github.com/sasiruliyanage2004/WFH-Tracking",
@@ -36,7 +36,7 @@
         "nsis"
       ],
       "icon": "win-icon.ico",
-      "artifactName": "WorkforceOS-Agent-Setup.${ext}"
+      "artifactName": "WFH-Agent.${ext}"
     },
     "mac": {
       "target": [
