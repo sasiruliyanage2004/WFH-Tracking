@@ -508,7 +508,7 @@ function EmployeeDashboard() {
         {
           latitude: gpsData.latitude || 0,
           longitude: gpsData.longitude || 0,
-          address: gpsData.address || 'Standard WFH Location',
+          address: gpsData.address || (isRecentCheckout ? '' : 'Standard WFH Location'),
           webcamImage: capturedPhoto
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -763,6 +763,9 @@ function EmployeeDashboard() {
     return 'Good Evening';
   };
 
+  const isRecentCheckout = attendance?.checkOutTime && 
+    (Date.now() - new Date(attendance.checkOutTime).getTime() < 30 * 60 * 1000);
+
   const breakOptions = [
     { name: 'Breakfast', label: 'Breakfast', icon: '☕', action: () => handleStartBreak('Breakfast') },
     { name: 'Tea', label: 'Tea / Coffee Break', icon: '🍵', action: () => handleStartBreak('Tea / Coffee Break') },
@@ -875,7 +878,7 @@ function EmployeeDashboard() {
               </Box>
 
               {/* GPS & Webcam configuration options with auto-GPS capture */}
-              {!isCheckedIn && (
+              {(!isCheckedIn && !isRecentCheckout) && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>Verification Step:</Typography>
                   <Button
@@ -933,7 +936,7 @@ function EmployeeDashboard() {
                     color="primary"
                     size="large"
                     fullWidth
-                    disabled={!capturedPhoto || gpsLoading || !!gpsError}
+                    disabled={(!isRecentCheckout && !capturedPhoto) || gpsLoading || !!gpsError}
                     startIcon={<CheckInIcon />}
                     onClick={handleCheckIn}
                     sx={{ py: 1.8, borderRadius: 3, fontWeight: 700, fontSize: '1rem', bgcolor: '#0038a8' }}

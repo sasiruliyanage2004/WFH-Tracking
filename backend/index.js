@@ -1319,9 +1319,9 @@ app.post('/api/attendance/checkin', authenticate, async (req, res) => {
         .update({
           check_in_time: new Date(),
           check_out_time: null,
-          latitude,
-          longitude,
-          address: address || '',
+          latitude: latitude || existing.latitude,
+          longitude: longitude || existing.longitude,
+          address: address || existing.address || '',
           webcam_image: webcamUrl || existing.webcam_image,
           status: 'Present'
         })
