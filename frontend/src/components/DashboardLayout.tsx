@@ -202,9 +202,10 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode, appTheme = 'dark
       links = managerLinks.filter(link => {
         if (link.text === 'My Tracker' || link.text === 'My Tasks' || link.text === 'My Attendance' || link.isDivider) return false;
         if (link.text === 'Admin List') return user?.role === 'SuperAdmin';
+        if (link.text === 'Super Admin List') return user?.role === 'SuperAdmin';
         if (link.text === 'System Settings') return user?.role === 'SuperAdmin';
         if (link.text === 'Settings') return user?.role === 'SuperAdmin';
-        if (link.text === 'Company Settings') return user?.role === 'SuperAdmin' || user?.role === 'Manager';
+        if (link.text === 'Company Settings') return user?.role === 'SuperAdmin';
         return true;
       });
     } else {
