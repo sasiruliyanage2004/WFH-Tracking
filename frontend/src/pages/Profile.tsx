@@ -19,10 +19,11 @@ import {
   IconButton,
   InputAdornment,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  CircularProgress
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Save as SaveIcon, Visibility, VisibilityOff } from '@mui/icons-material';
+import { Save as SaveIcon, Visibility, VisibilityOff, PhotoCamera as PhotoCameraIcon } from '@mui/icons-material';
 import { updateProfileSuccess } from '../redux/store';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -40,6 +41,29 @@ function Profile() {
   const [profilePic, setProfilePic] = useState(user?.profilePic || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
+
+  const handleProfilePicUpload = async (e: any) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setUploadingProfilePic(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await axios.post(`${API_URL}/api/auth/profile/upload`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      setProfilePic(res.data.url);
+      setToast({ open: true, message: 'Profile picture uploaded! Click Save Changes to apply.', severity: 'info' });
+    } catch (err) {
+      setToast({ open: true, message: 'Failed to upload image.', severity: 'error' });
+    } finally {
+      setUploadingProfilePic(false);
+    }
+  };
   
   // Display Zoom Settings State
   const [zoomSetting, setZoomSetting] = useState(() => {
@@ -101,13 +125,39 @@ function Profile() {
     <Box sx={{ maxWidth: 600, mx: 'auto', mt: 4 }}>
       <Paper sx={{ p: 4, borderRadius: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <Avatar
-            src={profilePic || ''}
-            alt={name}
-            sx={{ width: 80, height: 80, bgcolor: 'primary.main', fontSize: 32 }}
-          >
-            {name.charAt(0)}
-          </Avatar>
+          <Box sx={{ position: 'relative' }}>
+            <Avatar
+              src={profilePic || ''}
+              alt={name}
+              sx={{ width: 80, height: 80, bgcolor: 'primary.main', fontSize: 32 }}
+            >
+              {name.charAt(0)}
+            </Avatar>
+            <input
+              type="file"
+              accept="image/*"
+              id="profile-pic-upload"
+              style={{ display: 'none' }}
+              onChange={handleProfilePicUpload}
+            />
+            <label htmlFor="profile-pic-upload">
+              <IconButton
+                component="span"
+                size="small"
+                disabled={uploadingProfilePic}
+                sx={{
+                  position: 'absolute',
+                  bottom: -5,
+                  right: -5,
+                  bgcolor: 'background.paper',
+                  boxShadow: 1,
+                  '&:hover': { bgcolor: 'background.default' }
+                }}
+              >
+                {uploadingProfilePic ? <CircularProgress size={16} /> : <PhotoCameraIcon fontSize="small" color="primary" />}
+              </IconButton>
+            </label>
+          </Box>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 700 }}>
               Profile Management
@@ -154,13 +204,7 @@ function Profile() {
             </FormControl>
           )}
 
-          <TextField
-            label="Profile Picture URL"
-            value={profilePic}
-            onChange={(e) => setProfilePic(e.target.value)}
-            placeholder="https://example.com/avatar.jpg"
-            fullWidth
-          />
+          {/* Profile Picture TextField removed in favor of file upload */}
 
           <TextField
             label="Update Password"

@@ -1143,6 +1143,35 @@ app.put('/api/auth/profile', authenticate, async (req, res) => {
   }
 });
 
+app.post('/api/auth/profile/upload', authenticate, uploadAttachment.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ message: 'No file uploaded' });
+
+    const filename = `${Date.now()}_${file.originalname}`;
+    const fileBuffer = fs.readFileSync(file.path);
+
+    const { data, error: uploadErr } = await supabase.storage
+      .from('wfh-tracking')
+      .upload(`profiles/${filename}`, fileBuffer, {
+        contentType: file.mimetype,
+        upsert: true
+      });
+
+    if (uploadErr) throw uploadErr;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('wfh-tracking')
+      .getPublicUrl(`profiles/${filename}`);
+
+    fs.unlink(file.path, () => {});
+
+    res.json({ url: publicUrl });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Database-backed OTP store for password reset verification
 app.post('/api/auth/forgot-password', async (req, res) => {
   const { email } = req.body;
