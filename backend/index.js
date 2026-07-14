@@ -3606,13 +3606,13 @@ function saveCompanyDetailsMap(map) {
 }
 
 app.post('/api/system/companies', authenticate, authorize(['SystemAdmin']), async (req, res) => {
-  const { companyName, email, registrationNumber, industry, location, website } = req.body;
+  const { companyName, email, registrationNumber, location, website } = req.body;
   try {
     if (!companyName || !email) {
       return res.status(400).json({ message: 'Company Name and Admin Email are required.' });
     }
-    if (!registrationNumber || !industry || !location) {
-      return res.status(400).json({ message: 'Registration Number, Industry Vertical, and Headquarters Location are required.' });
+    if (!registrationNumber || !location) {
+      return res.status(400).json({ message: 'Registration Number and Headquarters Location are required.' });
     }
 
     const { data: existingCompany } = await supabase
@@ -3673,7 +3673,6 @@ app.post('/api/system/companies', authenticate, authorize(['SystemAdmin']), asyn
     const detailsMap = getCompanyDetailsMap();
     detailsMap[company.id] = {
       registrationNumber,
-      industry,
       location,
       website: website || ''
     };
@@ -3684,7 +3683,6 @@ app.post('/api/system/companies', authenticate, authorize(['SystemAdmin']), asyn
       company: {
         ...company,
         registrationNumber,
-        industry,
         location,
         website: website || ''
       },
@@ -3715,7 +3713,6 @@ app.get('/api/system/companies', authenticate, authorize(['SystemAdmin']), async
     const enriched = companies.map(c => ({
       ...c,
       registrationNumber: detailsMap[c.id]?.registrationNumber || '',
-      industry: detailsMap[c.id]?.industry || '',
       location: detailsMap[c.id]?.location || '',
       website: detailsMap[c.id]?.website || ''
     }));

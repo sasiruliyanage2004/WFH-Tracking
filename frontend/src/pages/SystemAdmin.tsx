@@ -37,7 +37,8 @@ import {
   InfoOutlined as InfoIcon,
   KeyboardArrowRight as ArrowRightIcon,
   LaptopMac as LaptopMacIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  Language as LanguageIcon
 } from '@mui/icons-material';
 import CustomLoader from '../components/CustomLoader';
 
@@ -74,7 +75,6 @@ function SystemAdmin({ activeTab = 0 }) {
   const [newCompanyName, setNewCompanyName] = useState('');
   const [newCompanyEmail, setNewCompanyEmail] = useState('');
   const [newRegistrationNumber, setNewRegistrationNumber] = useState('');
-  const [newIndustry, setNewIndustry] = useState('');
   const [newLocation, setNewLocation] = useState('');
   const [newWebsite, setNewWebsite] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
@@ -224,7 +224,7 @@ function SystemAdmin({ activeTab = 0 }) {
   const handleCreateCompany = async (e) => {
     e.preventDefault();
     setCreateError('');
-    if (!newCompanyName || !newCompanyEmail || !newRegistrationNumber || !newIndustry || !newLocation) {
+    if (!newCompanyName || !newCompanyEmail || !newRegistrationNumber || !newLocation) {
       setCreateError('Please fill in all required fields.');
       return;
     }
@@ -234,7 +234,6 @@ function SystemAdmin({ activeTab = 0 }) {
         companyName: newCompanyName,
         email: newCompanyEmail,
         registrationNumber: newRegistrationNumber,
-        industry: newIndustry,
         location: newLocation,
         website: newWebsite
       };
@@ -250,7 +249,6 @@ function SystemAdmin({ activeTab = 0 }) {
       setNewCompanyName('');
       setNewCompanyEmail('');
       setNewRegistrationNumber('');
-      setNewIndustry('');
       setNewLocation('');
       setNewWebsite('');
       setOpenSuccessModal(true);
@@ -583,9 +581,23 @@ function SystemAdmin({ activeTab = 0 }) {
                         Users: {company.users ? company.users[0]?.count : 0}
                       </Typography>
                     </Box>
-                    <Button size="small" variant="outlined" onClick={() => handleViewDetails(company)} sx={{ textTransform: 'none', borderRadius: 2 }}>
-                      View Details
-                    </Button>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      {company.website && (
+                        <Button 
+                          size="small" 
+                          variant="outlined" 
+                          color="info"
+                          startIcon={<LanguageIcon />}
+                          onClick={() => window.open(company.website.startsWith('http') ? company.website : `https://${company.website}`, '_blank')}
+                          sx={{ textTransform: 'none', borderRadius: 2 }}
+                        >
+                          Website
+                        </Button>
+                      )}
+                      <Button size="small" variant="outlined" onClick={() => handleViewDetails(company)} sx={{ textTransform: 'none', borderRadius: 2 }}>
+                        View Details
+                      </Button>
+                    </Box>
                   </Box>
 
                   <Divider sx={{ my: 2, borderColor: 'divider' }} />
@@ -748,9 +760,6 @@ function SystemAdmin({ activeTab = 0 }) {
               <TextField fullWidth label="Registration Number" value={newRegistrationNumber} onChange={e => setNewRegistrationNumber(e.target.value)} required sx={{ input: { color: 'text.primary' }, label: { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'divider' } } }} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField fullWidth label="Industry" value={newIndustry} onChange={e => setNewIndustry(e.target.value)} required sx={{ input: { color: 'text.primary' }, label: { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'divider' } } }} />
-            </Grid>
-            <Grid size={{ xs: 12 }}>
               <TextField fullWidth label="Headquarters Location" value={newLocation} onChange={e => setNewLocation(e.target.value)} required sx={{ input: { color: 'text.primary' }, label: { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'divider' } } }} />
             </Grid>
             <Grid size={{ xs: 12 }}>
