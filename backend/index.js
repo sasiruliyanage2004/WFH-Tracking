@@ -3745,10 +3745,43 @@ app.put('/api/system/companies/:id/status', authenticate, authorize(['SystemAdmi
 
 app.delete('/api/system/companies/:id', authenticate, authorize(['SystemAdmin']), async (req, res) => {
   try {
+    const companyId = req.params.id;
+
+    // 1. Fetch all users belonging to this company
+    const { data: users } = await supabase.from('users').select('id').eq('company_id', companyId);
+    
+    if (users && users.length > 0) {
+      // Chunk user IDs in case there are many (Supabase usually handles large IN clauses, but good for safety)
+      const userIds = users.map(u => u.id);
+      
+      // 2. Delete all related records for these users
+      await Promise.all([
+        supabase.from('attendance').delete().in('employee_id', userIds),
+        supabase.from('usage_logs').delete().in('employee_id', userIds),
+        supabase.from('activity_logs').delete().in('employee_id', userIds),
+        supabase.from('offline_sync_logs').delete().in('employee_id', userIds),
+        supabase.from('screenshots').delete().in('employee_id', userIds),
+        supabase.from('notifications').delete().in('user_id', userIds),
+        supabase.from('password_resets').delete().in('user_id', userIds)
+      ]);
+    }
+
+    // 3. Delete the users themselves
+    await supabase.from('users').delete().eq('company_id', companyId);
+
+    // 4. Delete company-level settings and metadata
+    await supabase.from('settings').delete().eq('company_id', companyId);
+    
+    try {
+      // The table might be named company_storage_metadata depending on schema, ignore error if missing
+      await supabase.from('company_storage_metadata').delete().eq('company_id', companyId);
+    } catch (e) {}
+
+    // 5. Finally, delete the company
     const { error } = await supabase
       .from('companies')
       .delete()
-      .eq('id', req.params.id);
+      .eq('id', companyId);
 
     if (error) throw error;
     res.json({ message: 'Company deleted successfully' });
