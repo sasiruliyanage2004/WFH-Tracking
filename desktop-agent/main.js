@@ -1,5 +1,5 @@
 process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true';
-const { app, BrowserWindow, ipcMain, desktopCapturer, Menu, session, powerMonitor, Notification, Tray } = require('electron');
+const { app, BrowserWindow, ipcMain, desktopCapturer, Menu, session, powerMonitor, Notification, Tray, powerSaveBlocker } = require('electron');
 const path = require('path');
 const { autoUpdater } = require('electron-updater');
 const url = require('url');
@@ -184,6 +184,7 @@ let tray = null;
 
 let trackingInterval = null;
 let trackingActive = false;
+let sleepBlockerId = null;
 let totalTrackedSeconds = 0;
 let usageBuffer = {};
 let tickCount = 0;
@@ -576,6 +577,11 @@ function startTracking() {
   } catch (e) {}
 
   console.log('Desktop Agent: Active window tracking started.');
+  
+  if (sleepBlockerId === null) {
+    sleepBlockerId = powerSaveBlocker.start('prevent-display-sleep');
+    console.log(`Desktop Agent: System sleep blocked (ID: ${sleepBlockerId}).`);
+  }
 
   // Spawn the PowerShell activity monitor script (Windows only)
   if (process.platform === 'win32') {
@@ -753,6 +759,14 @@ function stopTracking() {
   }
 
   console.log('Desktop Agent: Active window tracking stopped.');
+
+  if (sleepBlockerId !== null) {
+    if (powerSaveBlocker.isStarted(sleepBlockerId)) {
+      powerSaveBlocker.stop(sleepBlockerId);
+      console.log('Desktop Agent: System sleep unblocked.');
+    }
+    sleepBlockerId = null;
+  }
 
   // Flush remaining buffer data before stopping
   flushUsageBuffer();
