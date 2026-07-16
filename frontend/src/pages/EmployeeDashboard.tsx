@@ -947,7 +947,7 @@ function EmployeeDashboard() {
 
               {/* Action Buttons */}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {!isCheckedIn && (
+                {!isCheckedIn && !isRecentCheckout && (
                   <Button
                     variant="contained"
                     color="primary"
@@ -958,8 +958,44 @@ function EmployeeDashboard() {
                     onClick={handleCheckIn}
                     sx={{ py: 1.8, borderRadius: 3, fontWeight: 700, fontSize: '1rem', bgcolor: '#0038a8' }}
                   >
-                    {attendance ? 'Re-Start Work Shift (Check-In)' : 'Start Work Shift (Check-In)'}
+                    Start Work Shift (Check-In)
                   </Button>
+                )}
+
+                {!isCheckedIn && isRecentCheckout && (
+                  <Box
+                    sx={{
+                      p: 3,
+                      borderRadius: 4,
+                      bgcolor: 'rgba(16, 185, 129, 0.05)',
+                      border: '2px solid rgba(16, 185, 129, 0.3)',
+                      textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 1.5,
+                      boxShadow: '0 4px 15px rgba(16,185,129,0.05)',
+                    }}
+                  >
+                    <Box sx={{ width: 64, height: 64, borderRadius: '50%', bgcolor: 'success.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 8px 16px rgba(16, 185, 129, 0.3)' }}>
+                      <CheckIcon sx={{ fontSize: 36 }} />
+                    </Box>
+                    <Typography variant="h6" sx={{ color: 'success.light', fontWeight: 800 }}>
+                      Shift Completed! 🎉
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, px: 2, lineHeight: 1.6 }}>
+                      Great job today. Your work hours and activities have been securely logged. See you tomorrow!
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      color="success"
+                      size="small"
+                      onClick={handleCheckIn}
+                      sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+                    >
+                      Wait, I need to re-start work
+                    </Button>
+                  </Box>
                 )}
 
                 {isCheckedIn && (
