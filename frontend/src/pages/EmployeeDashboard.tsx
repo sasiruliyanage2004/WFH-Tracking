@@ -71,6 +71,7 @@ function EmployeeDashboard() {
   // States
   const [attendance, setAttendance] = useState(null);
   const [successSnackbar, setSuccessSnackbar] = useState(false);
+  const [autoCheckinSnackbar, setAutoCheckinSnackbar] = useState(false);
   const [loading, setLoading] = useState(true);
   const [gpsData, setGpsData] = useState({ latitude: null, longitude: null, address: '' });
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -146,11 +147,27 @@ function EmployeeDashboard() {
       
       const attendanceRes = await axios.get(`${API_URL}/api/attendance/status`, authHeader);
       const att = attendanceRes.data.attendance;
-      setAttendance(att);
-      if (att && att.onBreak) {
-        dispatch(setBreakStart(att.currentBreakType));
+      
+      if (!att || att.checkOutTime) {
+        try {
+          const checkInRes = await axios.post(
+            `${API_URL}/api/attendance/checkin`,
+            { latitude: 0, longitude: 0, address: 'Auto Check-in on Startup', webcamImage: '' },
+            authHeader
+          );
+          setAttendance(checkInRes.data.attendance);
+          setAutoCheckinSnackbar(true);
+        } catch (err) {
+          console.error('Auto checkin failed:', err.message);
+          setAttendance(att);
+        }
       } else {
-        dispatch(setBreakEnd());
+        setAttendance(att);
+        if (att && att.onBreak) {
+          dispatch(setBreakStart(att.currentBreakType));
+        } else {
+          dispatch(setBreakEnd());
+        }
       }
 
       const tasksRes = await axios.get(`${API_URL}/api/tasks?myTasksOnly=true`, authHeader);
@@ -2181,6 +2198,17 @@ function EmployeeDashboard() {
       >
         <Alert onClose={() => setSuccessSnackbar(false)} severity="success" sx={{ width: '100%', borderRadius: 2 }}>
           Registration successful! Welcome to your WorkforceOS WFH dashboard.
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={autoCheckinSnackbar}
+        autoHideDuration={6000}
+        onClose={() => setAutoCheckinSnackbar(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setAutoCheckinSnackbar(false)} severity="success" sx={{ width: '100%', borderRadius: 2 }}>
+          Welcome! You have been automatically checked in. Have a great day! 🚀
         </Alert>
       </Snackbar>
     </Box>

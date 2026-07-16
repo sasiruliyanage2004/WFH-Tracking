@@ -365,6 +365,12 @@ function startIdleDetection() {
 }
 
 app.whenReady().then(() => {
+  // Auto Start on OS Boot
+  app.setLoginItemSettings({
+    openAtLogin: true,
+    openAsHidden: false
+  });
+
   // --- AUTO UPDATER LOGIC ---
   autoUpdater.checkForUpdatesAndNotify();
   
