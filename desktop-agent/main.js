@@ -439,6 +439,26 @@ app.on('window-all-closed', () => {
   }
 });
 
+let isCheckingOut = false;
+app.on('before-quit', (event) => {
+  if (sessionToken && !isCheckingOut) {
+    event.preventDefault();
+    isCheckingOut = true;
+    console.log('App quitting/OS Shutdown detected. Attempting auto check-out...');
+    axios.post(`${BACKEND_URL}/api/attendance/checkout`, {}, {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      timeout: 3000
+    }).then(() => {
+      console.log('Auto check-out on shutdown successful.');
+    }).catch(err => {
+      console.error('Auto check-out failed on shutdown:', err.message);
+    }).finally(() => {
+      app.isQuitting = true;
+      app.quit();
+    });
+  }
+});
+
 
 // Native Screenshot Capture IPC Handler
 ipcMain.handle('screen:capture', async () => {
