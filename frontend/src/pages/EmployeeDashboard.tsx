@@ -148,7 +148,7 @@ function EmployeeDashboard() {
       const attendanceRes = await axios.get(`${API_URL}/api/attendance/status`, authHeader);
       const att = attendanceRes.data.attendance;
       
-      if (!att || att.checkOutTime) {
+      if (!att) {
         try {
           const checkInRes = await axios.post(
             `${API_URL}/api/attendance/checkin`,
