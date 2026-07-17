@@ -1,6 +1,6 @@
 // backend/middleware/auth.js
 const jwt = require('jsonwebtoken');
-const supabase = require('../utils/supabase');
+const supabase = require('../../infrastructure/database/supabase');
 
 const authenticate = async (req, res, next) => {
   try {

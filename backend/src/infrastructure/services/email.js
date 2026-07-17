@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-const supabase = require('./supabase');
+const supabase = require('../database/supabase');
 
 const getSmtpConfig = async (companyId = null, recipientEmail = null) => {
   let finalCompanyId = companyId;
