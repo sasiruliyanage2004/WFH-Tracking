@@ -1,14 +1,17 @@
-const express = require('express');
+// @ts-nocheck
+import { saveBase64Image, toMongo, generateId } from '../../utils/helpers';
+import { sendNotification } from '../../infrastructure/services/notification';
+import express, { Request, Response } from 'express';
 const router = express.Router();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
-const supabase = require('../../infrastructure/database/supabase');
-const { sendPasswordResetEmail, sendRegistrationOTPEmail } = require('../../infrastructure/services/email');
-const { authenticate } = require('../middlewares/auth');
-const multer = require('multer');
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import supabase from '../../infrastructure/database/supabase';
+import { sendPasswordResetEmail, sendRegistrationOTPEmail } from '../../infrastructure/services/email';
+import { authenticate } from '../middlewares/auth';
+import multer from 'multer';
 
 // Setup multer for uploads (needed for profile upload)
 const storage = multer.diskStorage({
@@ -26,29 +29,11 @@ const storage = multer.diskStorage({
 });
 const uploadAttachment = multer({ storage: storage });
 
-const generateId = () => {
-  return crypto.randomBytes(12).toString('hex');
-};
 
-const toMongo = (user) => {
-  if (!user) return null;
-  return {
-    _id: user.id,
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    department: user.department,
-    profilePic: user.profile_pic,
-    managerId: user.manager_id,
-    forcePasswordReset: user.force_password_reset,
-    companyId: user.company_id
-  };
-};
 
 // 1. AUTH ROUTES
 // Request verification OTP for registration
-router.post('/register-otp', async (req, res) => {
+router.post('/register-otp', async (req: Request, res: Response) => {
   const { email } = req.body;
   try {
     if (!email) return res.status(400).json({ message: 'Email address is required.' });
@@ -87,12 +72,12 @@ router.post('/register-otp', async (req, res) => {
     await sendRegistrationOTPEmail(email.toLowerCase(), otp);
 
     res.json({ message: 'Verification code sent to your email.' });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.post('/register', async (req, res) => {
+router.post('/register', async (req: Request, res: Response) => {
   const { name, email, password, role, department, managerKey, superAdminKey, otp } = req.body;
   try {
     if (!otp) return res.status(400).json({ message: 'Verification code is required.' });
@@ -180,11 +165,11 @@ router.post('/register', async (req, res) => {
       token,
       user: toMongo(newUser)
     });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: Request, res: Response) => {
   const { email, password } = req.body;
   try {
     const { data: user, error } = await supabase
@@ -247,13 +232,13 @@ router.post('/login', async (req, res) => {
         companyId: user.company_id
       }
     });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // Force reset password (used when force_password_reset flag is true)
-router.put('/force-reset-password', authenticate, async (req, res) => {
+router.put('/force-reset-password', authenticate, async (req: Request, res: Response) => {
   try {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) {
@@ -263,7 +248,7 @@ router.put('/force-reset-password', authenticate, async (req, res) => {
     const { data: user, error: fetchErr } = await supabase
       .from('users')
       .select('*')
-      .eq('id', req.user.id)
+      .eq('id', req.user!.id)
       .maybeSingle();
     
     if (fetchErr || !user) return res.status(404).json({ message: 'User not found.' });
@@ -278,26 +263,26 @@ router.put('/force-reset-password', authenticate, async (req, res) => {
         password: hashedNewPassword,
         force_password_reset: false
       })
-      .eq('id', req.user.id);
+      .eq('id', req.user!.id);
     
     if (updateErr) throw updateErr;
 
     res.json({ message: 'Password reset successfully.' });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.get('/profile', authenticate, async (req, res) => {
+router.get('/profile', authenticate, async (req: Request, res: Response) => {
   res.json(toMongo(req.user));
 });
 
-router.put('/profile', authenticate, async (req, res) => {
+router.put('/profile', authenticate, async (req: Request, res: Response) => {
   try {
     const { data: user, error: fetchErr } = await supabase
       .from('users')
       .select('*')
-      .eq('id', req.user.id)
+      .eq('id', req.user!.id)
       .maybeSingle();
 
     if (fetchErr || !user) return res.status(404).json({ message: 'User not found' });
@@ -315,7 +300,7 @@ router.put('/profile', authenticate, async (req, res) => {
     const { data: updatedUser, error: updateErr } = await supabase
       .from('users')
       .update(updates)
-      .eq('id', req.user.id)
+      .eq('id', req.user!.id)
       .select('*')
       .single();
 
@@ -330,12 +315,12 @@ router.put('/profile', authenticate, async (req, res) => {
       department: updatedUser.department,
       profilePic: updatedUser.profile_pic
     });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.post('/profile/upload', authenticate, uploadAttachment.single('file'), async (req, res) => {
+router.post('/profile/upload', authenticate, uploadAttachment.single('file'), async (req: Request, res: Response) => {
   try {
     const file = req.file;
     if (!file) return res.status(400).json({ message: 'No file uploaded' });
@@ -359,13 +344,13 @@ router.post('/profile/upload', authenticate, uploadAttachment.single('file'), as
     fs.unlink(file.path, () => {});
 
     res.json({ url: publicUrl });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // Database-backed OTP store for password reset verification
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', async (req: Request, res: Response) => {
   const { email } = req.body;
   try {
     const { data: user } = await supabase
@@ -401,12 +386,12 @@ router.post('/forgot-password', async (req, res) => {
     await sendPasswordResetEmail(email.toLowerCase(), otp);
 
     res.json({ message: 'Verification code sent to your registered email address.' });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', async (req: Request, res: Response) => {
   const { email, code, newPassword } = req.body;
   try {
     const { data: user } = await supabase
@@ -456,10 +441,11 @@ router.post('/reset-password', async (req, res) => {
 
     if (error) throw error;
     res.json({ message: 'Password has been successfully updated.' });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 
-module.exports = router;
+export default router;
+

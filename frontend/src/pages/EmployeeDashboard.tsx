@@ -57,7 +57,14 @@ import {
   OpenInNew as OpenInNewIcon,
   Close as CloseIcon
 } from '@mui/icons-material';
+import DashboardLayout from '../components/DashboardLayout';
+import ActivityTracker from '../components/ActivityTracker';
+import AnnouncementBanner from '../components/AnnouncementBanner';
+import CustomLoader from '../components/CustomLoader';
+import DeveloperSignature from '../components/DeveloperSignature';
 import ScreenshotCapturer from '../components/ScreenshotCapturer';
+import CheckoutSuccessModal from '../components/CheckoutSuccessModal';
+import { maskEmail } from '../utils/maskEmail';
 import SkeletonCard from '../components/SkeletonCard';
 import AnimatedCounter from '../components/AnimatedCounter';
 import { QRCodeSVG } from 'qrcode.react';
@@ -120,6 +127,8 @@ function EmployeeDashboard() {
   const [taskDesc, setTaskDesc] = useState('');
   const [taskPriority, setTaskPriority] = useState('Medium');
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [showCheckoutSuccess, setShowCheckoutSuccess] = useState(false);
+  const [checkoutData, setCheckoutData] = useState<any>(null);
 
   // Proof of Work & Comments States
   const [selectedTask, setSelectedTask] = useState(null);
@@ -547,6 +556,8 @@ function EmployeeDashboard() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setAttendance(res.data.attendance);
+      setCheckoutData(res.data.attendance);
+      setShowCheckoutSuccess(true);
       fetchData();
     } catch (err) {
       console.error(err.response?.data?.message || err.message);
@@ -2247,6 +2258,13 @@ function EmployeeDashboard() {
           Welcome! You have been automatically checked in. Have a great day! 🚀
         </Alert>
       </Snackbar>
+
+      <CheckoutSuccessModal 
+        open={showCheckoutSuccess} 
+        onClose={() => setShowCheckoutSuccess(false)} 
+        attendanceData={checkoutData} 
+        userName={user?.name || ''} 
+      />
     </Box>
   );
 }

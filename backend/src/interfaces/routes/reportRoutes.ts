@@ -1,13 +1,15 @@
-const express = require('express');
+import { saveBase64Image, toMongo, formatAttendance, formatActivityLog, formatTask, formatScreenshot, formatWorkReport, formatNotification, generateId } from '../../utils/helpers';
+import { sendNotification } from '../../infrastructure/services/notification';
+import express, { Request, Response } from 'express';
 const router = express.Router();
-const supabase = require('../../infrastructure/database/supabase');
-const { authenticate, authorize } = require('../middlewares/auth');
-const crypto = require('crypto');
+import supabase from '../../infrastructure/database/supabase';
+import { authenticate, authorize } from '../middlewares/auth';
+import crypto from 'crypto';
 
-const generateId = () => crypto.randomBytes(12).toString('hex');
+
 
 // 4. DAILY WORK REPORT ROUTES
-router.post('', authenticate, async (req, res) => {
+router.post('', authenticate, async (req: Request, res: Response) => {
   const { tasksCompleted, tasksInProgress, challengesFaced, tomorrowPlan, totalHoursWorked } = req.body;
   const today = new Date().toISOString().split('T')[0];
 
@@ -15,7 +17,7 @@ router.post('', authenticate, async (req, res) => {
     const { data: existing } = await supabase
       .from('work_reports')
       .select('*')
-      .eq('employee_id', req.user.id)
+      .eq('employee_id', req.user!.id)
       .eq('date', today)
       .maybeSingle();
 
@@ -26,7 +28,7 @@ router.post('', authenticate, async (req, res) => {
     const { data: report, error } = await supabase
       .from('work_reports')
       .insert([{
-        employee_id: req.user.id,
+        employee_id: req.user!.id,
         date: today,
         tasks_completed: tasksCompleted || [],
         tasks_in_progress: tasksInProgress || [],
@@ -43,27 +45,27 @@ router.post('', authenticate, async (req, res) => {
     const { data: managers } = await supabase.from('users').select('id').eq('role', 'Manager');
     if (managers) {
       for (let mgr of managers) {
-        await sendNotification(mgr.id, `New daily report submitted by ${req.user.name}`, 'report');
+        await sendNotification(mgr.id, `New daily report submitted by ${req.user!.name}`, 'report');
       }
     }
 
     res.status(201).json({ message: 'Report submitted successfully.', report: formatWorkReport(report) });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.get('', authenticate, async (req, res) => {
+router.get('', authenticate, async (req: Request, res: Response) => {
   try {
-    let builder = supabase.from('work_reports').select('*').eq('company_id', req.user.company_id);
+    let builder = supabase.from('work_reports').select('*').eq('company_id', req.user!.companyId);
     
-    if (req.query.myReportsOnly === 'true' || req.user.role === 'Employee') {
-      builder = builder.eq('employee_id', req.user.id);
-    } else if (req.user.role === 'Manager') {
+    if (req.query.myReportsOnly === 'true' || req.user!.role === 'Employee') {
+      builder = builder.eq('employee_id', req.user!.id);
+    } else if (req.user!.role === 'Manager') {
       const { data: deptEmps } = await supabase
         .from('users')
         .select('id')
-        .eq('department', req.user.department)
+        .eq('department', req.user!.department)
         .eq('role', 'Employee');
       const employeeIds = deptEmps ? deptEmps.map(u => u.id) : [];
       if (employeeIds.length === 0) {
@@ -88,12 +90,12 @@ router.get('', authenticate, async (req, res) => {
     }
 
     res.json([]);
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.put('/api/reports/:id/approve', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
+router.put('/api/reports/:id/approve', authenticate, authorize(['Manager', 'SuperAdmin']), async (req: Request, res: Response) => {
   const { status, managerFeedback } = req.body;
   try {
     const { data: report, error: fetchErr } = await supabase
@@ -105,14 +107,14 @@ router.put('/api/reports/:id/approve', authenticate, authorize(['Manager', 'Supe
     if (fetchErr || !report) return res.status(404).json({ message: 'Report not found' });
 
     // Department isolation check for Manager
-    if (req.user.role === 'Manager') {
+    if (req.user!.role === 'Manager') {
       const { data: employeeUser } = await supabase
         .from('users')
         .select('department')
         .eq('id', report.employee_id)
         .single();
       
-      if (employeeUser && employeeUser.department !== req.user.department) {
+      if (employeeUser && employeeUser.department !== req.user!.department) {
         return res.status(403).json({ message: 'Access denied. You can only review reports for employees in your department.' });
       }
     }
@@ -136,10 +138,11 @@ router.put('/api/reports/:id/approve', authenticate, authorize(['Manager', 'Supe
     );
 
     res.json({ message: `Report successfully ${status.toLowerCase()}.`, report: formatWorkReport(updatedReport) });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 
-module.exports = router;
+export default router;
+

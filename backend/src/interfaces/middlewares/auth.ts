@@ -1,8 +1,8 @@
-// backend/middleware/auth.js
-const jwt = require('jsonwebtoken');
-const supabase = require('../../infrastructure/database/supabase');
+import jwt from 'jsonwebtoken';
+import supabase from '../../infrastructure/database/supabase';
+import { Request, Response, NextFunction } from 'express';
 
-const authenticate = async (req, res, next) => {
+export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void | Response> => {
   try {
     const authHeader = req.header('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -10,7 +10,7 @@ const authenticate = async (req, res, next) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretkey123');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretkey123') as any;
     
     // Query Supabase users table
     const { data: user, error } = await supabase
@@ -23,7 +23,6 @@ const authenticate = async (req, res, next) => {
       return res.status(401).json({ message: 'User not found, authorization denied.' });
     }
 
-    // Map db field profile_pic to camelCase profilePic for app compatibility
     req.user = {
       id: user.id,
       name: user.name,
@@ -32,26 +31,24 @@ const authenticate = async (req, res, next) => {
       department: user.department,
       profilePic: user.profile_pic,
       createdAt: user.created_at,
-      company_id: user.company_id
-    };
+      companyId: user.company_id
+    } as any;
     
     next();
-  } catch (err) {
+  } catch (err: any) {
     console.error('Authentication Error:', err.message);
     res.status(401).json({ message: 'Token invalid or expired.' });
   }
 };
 
-const authorize = (roles = []) => {
+export const authorize = (roles: string[] | string = []) => {
   if (typeof roles === 'string') {
     roles = [roles];
   }
-  return (req, res, next) => {
+  return (req: Request, res: Response, next: NextFunction): void | Response => {
     if (!req.user || (roles.length && !roles.includes(req.user.role))) {
       return res.status(403).json({ message: 'Forbidden: You do not have permission for this resource.' });
     }
     next();
   };
 };
-
-module.exports = { authenticate, authorize };

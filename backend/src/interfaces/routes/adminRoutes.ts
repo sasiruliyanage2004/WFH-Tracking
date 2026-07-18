@@ -1,13 +1,15 @@
-const express = require('express');
+import { saveBase64Image, toMongo, generateId } from '../../utils/helpers';
+import { sendNotification } from '../../infrastructure/services/notification';
+import express, { Request, Response } from 'express';
 const router = express.Router();
-const supabase = require('../../infrastructure/database/supabase');
-const { authenticate, authorize } = require('../middlewares/auth');
-const crypto = require('crypto');
-const bcrypt = require('bcryptjs');
-const fs = require('fs');
-const path = require('path');
+import supabase from '../../infrastructure/database/supabase';
+import { authenticate, authorize } from '../middlewares/auth';
+import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
+import fs from 'fs';
+import path from 'path';
 
-const generateId = () => crypto.randomBytes(12).toString('hex');
+
 
 const formatNotification = (data) => {
   if (!data) return null;
@@ -23,27 +25,12 @@ const formatNotification = (data) => {
   };
 };
 
-const toMongo = (user) => {
-  if (!user) return null;
-  return {
-    _id: user.id,
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    department: user.department,
-    profilePic: user.profile_pic,
-    managerId: user.manager_id,
-    forcePasswordReset: user.force_password_reset,
-    companyId: user.company_id
-  };
-};
 
 // --- API ROUTES ---
 
 // 0. EMPLOYEE LIST ROUTES (SuperAdmin and Manager)
 
-router.post('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Manager']), async (req, res) => {
+router.post('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Manager']), async (req: Request, res: Response) => {
   const { name, email, role, department } = req.body;
   try {
     if (!name || !email) return res.status(400).json({ message: 'Name and email are required.' });
@@ -71,7 +58,7 @@ router.post('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Mana
         password: hashedPassword,
         role: 'Employee',
         department: department || 'Engineering',
-        company_id: req.user.company_id,
+        company_id: req.user!.companyId,
         force_password_reset: true
       }])
       .select('id, name, email, role, department, force_password_reset, created_at')
@@ -83,22 +70,22 @@ router.post('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Mana
       message: 'Employee created successfully. Temporary password is: password1234',
       user: newUser
     });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.get('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Manager']), async (req, res) => {
+router.get('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Manager']), async (req: Request, res: Response) => {
   try {
     let query = supabase
       .from('users')
       .select('id, name, email, department, role, profile_pic, created_at, is_active, last_login, is_locked, force_password_reset, failed_login_attempts')
       .eq('role', 'Employee')
-      .eq('company_id', req.user.company_id);
+      .eq('company_id', req.user!.companyId);
 
-    if (req.user.role === 'Manager') {
-      if (req.user.department) {
-        query = query.eq('department', req.user.department);
+    if (req.user!.role === 'Manager') {
+      if (req.user!.department) {
+        query = query.eq('department', req.user!.department);
       } else {
         return res.json([]);
       }
@@ -141,13 +128,13 @@ router.get('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Manag
     });
 
     res.json(enriched);
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // Toggle Employee Active Status
-router.put('/api/users/employees/:id/status', authenticate, authorize(['SuperAdmin', 'Manager']), async (req, res) => {
+router.put('/api/users/employees/:id/status', authenticate, authorize(['SuperAdmin', 'Manager']), async (req: Request, res: Response) => {
   try {
     const { isActive } = req.body;
     if (typeof isActive !== 'boolean') return res.status(400).json({ message: 'isActive boolean is required' });
@@ -161,7 +148,7 @@ router.put('/api/users/employees/:id/status', authenticate, authorize(['SuperAdm
     if (fetchErr || !emp) return res.status(404).json({ message: 'Employee not found.' });
     if (emp.role === 'Manager' || emp.role === 'SuperAdmin') return res.status(403).json({ message: 'Cannot modify a Manager or SuperAdmin account here.' });
 
-    if (req.user.role === 'Manager' && emp.department !== req.user.department) {
+    if (req.user!.role === 'Manager' && emp.department !== req.user!.department) {
       return res.status(403).json({ message: 'You are only authorized to modify employees in your own department.' });
     }
 
@@ -173,12 +160,12 @@ router.put('/api/users/employees/:id/status', authenticate, authorize(['SuperAdm
     if (updateErr) throw updateErr;
 
     res.json({ message: `Employee successfully ${isActive ? 'activated' : 'deactivated'}` });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.delete('/api/users/employees/:id', authenticate, authorize(['SuperAdmin', 'Manager']), async (req, res) => {
+router.delete('/api/users/employees/:id', authenticate, authorize(['SuperAdmin', 'Manager']), async (req: Request, res: Response) => {
   try {
     const { data: emp, error: fetchErr } = await supabase
       .from('users')
@@ -190,7 +177,7 @@ router.delete('/api/users/employees/:id', authenticate, authorize(['SuperAdmin',
     if (emp.role === 'Manager' || emp.role === 'SuperAdmin') return res.status(403).json({ message: 'Cannot delete a Manager or SuperAdmin account.' });
 
     // If Manager, check if the employee belongs to the same department
-    if (req.user.role === 'Manager' && emp.department !== req.user.department) {
+    if (req.user!.role === 'Manager' && emp.department !== req.user!.department) {
       return res.status(403).json({ message: 'You are only authorized to delete employees in your own department.' });
     }
 
@@ -202,13 +189,13 @@ router.delete('/api/users/employees/:id', authenticate, authorize(['SuperAdmin',
     if (deleteErr) throw deleteErr;
 
     res.json({ message: 'Employee deleted successfully.' });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // Create Admin/Manager (SuperAdmin only)
-router.post('/api/users/admins', authenticate, authorize('SuperAdmin'), async (req, res) => {
+router.post('/api/users/admins', authenticate, authorize('SuperAdmin'), async (req: Request, res: Response) => {
   const { name, email, department } = req.body;
   try {
     if (!name || !email) return res.status(400).json({ message: 'Name and email are required.' });
@@ -235,7 +222,7 @@ router.post('/api/users/admins', authenticate, authorize('SuperAdmin'), async (r
         password: hashedPassword,
         role: 'Manager',
         department: department || 'Engineering',
-        company_id: req.user.company_id,
+        company_id: req.user!.companyId,
         force_password_reset: true
       }])
       .select('id, name, email, role, department, created_at, is_active')
@@ -258,17 +245,17 @@ router.post('/api/users/admins', authenticate, authorize('SuperAdmin'), async (r
       message: 'Manager created successfully. Temporary password is: password1234',
       user: mappedUser
     });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.get('/api/users/admins', authenticate, authorize('SuperAdmin'), async (req, res) => {
+router.get('/api/users/admins', authenticate, authorize('SuperAdmin'), async (req: Request, res: Response) => {
   try {
     const { data: admins, error } = await supabase
       .from('users')
       .select('id, name, email, department, role, profile_pic, created_at, is_active')
-      .eq('company_id', req.user.company_id)
+      .eq('company_id', req.user!.companyId)
       .eq('role', 'Manager')
       .order('created_at', { ascending: false });
 
@@ -287,14 +274,14 @@ router.get('/api/users/admins', authenticate, authorize('SuperAdmin'), async (re
     }));
 
     res.json(mapped);
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.delete('/api/users/admins/:id', authenticate, authorize('SuperAdmin'), async (req, res) => {
+router.delete('/api/users/admins/:id', authenticate, authorize('SuperAdmin'), async (req: Request, res: Response) => {
   try {
-    if (req.params.id.toString() === req.user.id.toString()) {
+    if (req.params.id.toString() === req.user!.id.toString()) {
       return res.status(400).json({ message: 'You cannot delete your own HR Head account.' });
     }
 
@@ -314,18 +301,18 @@ router.delete('/api/users/admins/:id', authenticate, authorize('SuperAdmin'), as
     if (deleteErr) throw deleteErr;
 
     res.json({ message: 'Admin account deleted successfully.' });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // Toggle Admin Status
-router.put('/api/users/admins/:id/status', authenticate, authorize('SuperAdmin'), async (req, res) => {
+router.put('/api/users/admins/:id/status', authenticate, authorize('SuperAdmin'), async (req: Request, res: Response) => {
   try {
     const { isActive } = req.body;
     if (typeof isActive !== 'boolean') return res.status(400).json({ message: 'isActive boolean is required' });
 
-    if (req.params.id.toString() === req.user.id.toString()) {
+    if (req.params.id.toString() === req.user!.id.toString()) {
       return res.status(400).json({ message: 'You cannot deactivate your own account.' });
     }
 
@@ -345,18 +332,18 @@ router.put('/api/users/admins/:id/status', authenticate, authorize('SuperAdmin')
     if (updateErr) throw updateErr;
 
     res.json({ message: `Account successfully ${isActive ? 'activated' : 'deactivated'}` });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // GET SuperAdmins
-router.get('/api/users/superadmins', authenticate, authorize('SuperAdmin'), async (req, res) => {
+router.get('/api/users/superadmins', authenticate, authorize('SuperAdmin'), async (req: Request, res: Response) => {
   try {
     const { data: admins, error } = await supabase
       .from('users')
       .select('id, name, email, department, role, profile_pic, created_at, is_active')
-      .eq('company_id', req.user.company_id)
+      .eq('company_id', req.user!.companyId)
       .eq('role', 'SuperAdmin')
       .order('created_at', { ascending: false });
 
@@ -375,13 +362,13 @@ router.get('/api/users/superadmins', authenticate, authorize('SuperAdmin'), asyn
     }));
 
     res.json(mapped);
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // Create SuperAdmin
-router.post('/api/users/superadmins', authenticate, authorize('SuperAdmin'), async (req, res) => {
+router.post('/api/users/superadmins', authenticate, authorize('SuperAdmin'), async (req: Request, res: Response) => {
   try {
     const { name, email, department } = req.body;
 
@@ -405,7 +392,7 @@ router.post('/api/users/superadmins', authenticate, authorize('SuperAdmin'), asy
         password: hashedPassword,
         role: 'SuperAdmin',
         department: department || 'Management',
-        company_id: req.user.company_id,
+        company_id: req.user!.companyId,
         force_password_reset: true
       }])
       .select()
@@ -424,15 +411,15 @@ router.post('/api/users/superadmins', authenticate, authorize('SuperAdmin'), asy
     };
 
     res.status(201).json({ message: 'SuperAdmin created successfully', user: returnUser });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // Delete SuperAdmin
-router.delete('/api/users/superadmins/:id', authenticate, authorize('SuperAdmin'), async (req, res) => {
+router.delete('/api/users/superadmins/:id', authenticate, authorize('SuperAdmin'), async (req: Request, res: Response) => {
   try {
-    if (req.params.id.toString() === req.user.id.toString()) {
+    if (req.params.id.toString() === req.user!.id.toString()) {
       return res.status(400).json({ message: 'You cannot delete your own account.' });
     }
 
@@ -452,29 +439,29 @@ router.delete('/api/users/superadmins/:id', authenticate, authorize('SuperAdmin'
     if (deleteErr) throw deleteErr;
 
     res.json({ message: 'SuperAdmin account deleted successfully.' });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // 6. NOTIFICATION ROUTING
-router.get('/api/notifications', authenticate, async (req, res) => {
+router.get('/api/notifications', authenticate, async (req: Request, res: Response) => {
   try {
     const { data: notifications, error } = await supabase
       .from('notifications')
       .select('*')
-      .eq('recipient_id', req.user.id)
+      .eq('recipient_id', req.user!.id)
       .order('timestamp', { ascending: false })
       .limit(50);
 
     if (error) throw error;
     res.json(formatNotification(notifications || []));
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.put('/api/notifications/:id/read', authenticate, async (req, res) => {
+router.put('/api/notifications/:id/read', authenticate, async (req: Request, res: Response) => {
   try {
     const { data: notification, error: fetchErr } = await supabase
       .from('notifications')
@@ -483,7 +470,7 @@ router.put('/api/notifications/:id/read', authenticate, async (req, res) => {
       .maybeSingle();
 
     if (fetchErr || !notification) return res.status(404).json({ message: 'Notification not found' });
-    if (notification.recipient_id.toString() !== req.user.id.toString()) {
+    if (notification.recipient_id.toString() !== req.user!.id.toString()) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
@@ -494,32 +481,32 @@ router.put('/api/notifications/:id/read', authenticate, async (req, res) => {
 
     if (updateErr) throw updateErr;
     res.json({ message: 'Notification deleted' });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // Bulk delete all notifications for the current user
-router.delete('/api/notifications/all', authenticate, async (req, res) => {
+router.delete('/api/notifications/all', authenticate, async (req: Request, res: Response) => {
   try {
     const { error } = await supabase
       .from('notifications')
       .delete()
-      .eq('recipient_id', req.user.id);
+      .eq('recipient_id', req.user!.id);
 
     if (error) throw error;
     res.json({ message: 'All notifications cleared' });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.get('/api/settings/warning-emails', authenticate, authorize(['SuperAdmin']), async (req, res) => {
+router.get('/api/settings/warning-emails', authenticate, authorize(['SuperAdmin']), async (req: Request, res: Response) => {
   try {
     let { data: setting } = await supabase
       .from('settings')
       .select('*')
-      .eq('company_id', req.user.company_id)
+      .eq('company_id', req.user!.companyId)
       .eq('key', 'warning_emails')
       .maybeSingle();
 
@@ -529,27 +516,27 @@ router.get('/api/settings/warning-emails', authenticate, authorize(['SuperAdmin'
         .insert([{
           key: 'warning_emails',
           value: ['liyanagesasiru@gmail.com'],
-          company_id: req.user.company_id
+          company_id: req.user!.companyId
         }])
         .select('*')
         .single();
       setting = newSetting;
     }
     res.json(setting.value);
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.post('/api/settings/warning-emails', authenticate, authorize(['SuperAdmin']), async (req, res) => {
+router.post('/api/settings/warning-emails', authenticate, authorize(['SuperAdmin']), async (req: Request, res: Response) => {
   const { emails } = req.body;
   if (!emails || !Array.isArray(emails)) {
     return res.status(400).json({ message: 'Invalid email list format.' });
   }
   try {
     let query = supabase.from('settings').select('*').eq('key', 'warning_emails');
-    if (req.user.company_id) {
-      query = query.eq('company_id', req.user.company_id);
+    if (req.user!.companyId) {
+      query = query.eq('company_id', req.user!.companyId);
     }
     const { data: setting } = await query.maybeSingle();
 
@@ -557,7 +544,7 @@ router.post('/api/settings/warning-emails', authenticate, authorize(['SuperAdmin
     if (!setting) {
       const { data } = await supabase
         .from('settings')
-        .insert([{ key: 'warning_emails', value: emails, company_id: req.user.company_id }])
+        .insert([{ key: 'warning_emails', value: emails, company_id: req.user!.companyId }])
         .select('*')
         .single();
       updatedSetting = data;
@@ -571,17 +558,17 @@ router.post('/api/settings/warning-emails', authenticate, authorize(['SuperAdmin
       updatedSetting = data;
     }
     res.json({ message: 'Settings saved successfully.', value: updatedSetting.value });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // --- Custom SMTP Settings ---
-router.get('/api/settings/smtp', authenticate, authorize(['SuperAdmin']), async (req, res) => {
+router.get('/api/settings/smtp', authenticate, authorize(['SuperAdmin']), async (req: Request, res: Response) => {
   try {
     let query = supabase.from('settings').select('value').eq('key', 'smtp_config');
-    if (req.user.company_id) {
-      query = query.eq('company_id', req.user.company_id);
+    if (req.user!.companyId) {
+      query = query.eq('company_id', req.user!.companyId);
     } else {
       query = query.is('company_id', null);
     }
@@ -595,17 +582,17 @@ router.get('/api/settings/smtp', authenticate, authorize(['SuperAdmin']), async 
     } else {
       res.json(null);
     }
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.post('/api/settings/smtp', authenticate, authorize(['SuperAdmin']), async (req, res) => {
+router.post('/api/settings/smtp', authenticate, authorize(['SuperAdmin']), async (req: Request, res: Response) => {
   const { host, port, user, pass, sender_email, use_custom } = req.body;
   try {
     let query = supabase.from('settings').select('*').eq('key', 'smtp_config');
-    if (req.user.company_id) {
-      query = query.eq('company_id', req.user.company_id);
+    if (req.user!.companyId) {
+      query = query.eq('company_id', req.user!.companyId);
     } else {
       query = query.is('company_id', null);
     }
@@ -630,7 +617,7 @@ router.post('/api/settings/smtp', authenticate, authorize(['SuperAdmin']), async
     if (!setting) {
       const { data } = await supabase
         .from('settings')
-        .insert([{ key: 'smtp_config', value: newConfig, company_id: req.user.company_id }])
+        .insert([{ key: 'smtp_config', value: newConfig, company_id: req.user!.companyId }])
         .select('*')
         .single();
       updatedSetting = data;
@@ -644,18 +631,18 @@ router.post('/api/settings/smtp', authenticate, authorize(['SuperAdmin']), async
       updatedSetting = data;
     }
     res.json({ message: 'SMTP settings saved successfully.' });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.post('/api/settings/smtp/test', authenticate, authorize(['SuperAdmin']), async (req, res) => {
+router.post('/api/settings/smtp/test', authenticate, authorize(['SuperAdmin']), async (req: Request, res: Response) => {
   const { host, port, user, pass, sender_email } = req.body;
   try {
     let finalPass = pass;
     if (pass === '********') {
       let query = supabase.from('settings').select('value').eq('key', 'smtp_config');
-      if (req.user.company_id) query = query.eq('company_id', req.user.company_id);
+      if (req.user!.companyId) query = query.eq('company_id', req.user!.companyId);
       else query = query.is('company_id', null);
       const { data: setting } = await query.maybeSingle();
       if (setting && setting.value && setting.value.pass) {
@@ -679,22 +666,22 @@ router.post('/api/settings/smtp/test', authenticate, authorize(['SuperAdmin']), 
 
     const mailOptions = {
       from: `"WFH Tracking System (Test)" <${sender_email}>`,
-      to: req.user.email,
+      to: req.user!.email,
       subject: '✅ SMTP Connection Test Successful',
       html: '<p>If you are reading this, your custom SMTP configuration is working correctly.</p>'
     };
 
     await transporter.sendMail(mailOptions);
     res.json({ message: 'Test email sent successfully! Please check your inbox.' });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: 'Failed to send test email: ' + err.message });
   }
 });
-router.get('/api/settings/screenshot-rules', authenticate, async (req, res) => {
+router.get('/api/settings/screenshot-rules', authenticate, async (req: Request, res: Response) => {
   try {
     let query = supabase.from('settings').select('*').eq('key', 'screenshot_rules');
-    if (req.user.company_id) {
-      query = query.eq('company_id', req.user.company_id);
+    if (req.user!.companyId) {
+      query = query.eq('company_id', req.user!.companyId);
     }
     const { data: setting } = await query.maybeSingle();
 
@@ -705,12 +692,12 @@ router.get('/api/settings/screenshot-rules', authenticate, async (req, res) => {
     };
 
     res.json(setting ? setting.value : defaultValue);
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.post('/api/settings/screenshot-rules', authenticate, authorize(['SuperAdmin', 'Manager']), async (req, res) => {
+router.post('/api/settings/screenshot-rules', authenticate, authorize(['SuperAdmin', 'Manager']), async (req: Request, res: Response) => {
   const { threshold, highProdInterval, standardInterval } = req.body;
   try {
     const rules = {
@@ -720,8 +707,8 @@ router.post('/api/settings/screenshot-rules', authenticate, authorize(['SuperAdm
     };
 
     let query = supabase.from('settings').select('*').eq('key', 'screenshot_rules');
-    if (req.user.company_id) {
-      query = query.eq('company_id', req.user.company_id);
+    if (req.user!.companyId) {
+      query = query.eq('company_id', req.user!.companyId);
     }
     const { data: setting } = await query.maybeSingle();
 
@@ -729,7 +716,7 @@ router.post('/api/settings/screenshot-rules', authenticate, authorize(['SuperAdm
     if (!setting) {
       const { data } = await supabase
         .from('settings')
-        .insert([{ key: 'screenshot_rules', value: rules, company_id: req.user.company_id }])
+        .insert([{ key: 'screenshot_rules', value: rules, company_id: req.user!.companyId }])
         .select('*')
         .single();
       updatedSetting = data;
@@ -743,35 +730,35 @@ router.post('/api/settings/screenshot-rules', authenticate, authorize(['SuperAdm
       updatedSetting = data;
     }
     res.json({ message: 'Screenshot rules saved successfully.', value: updatedSetting.value });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // --- SETTINGS: PRODUCTIVITY APPS ---
 
-router.get('/api/settings/productivity', authenticate, authorize(['SuperAdmin', 'Manager']), async (req, res) => {
+router.get('/api/settings/productivity', authenticate, authorize(['SuperAdmin', 'Manager']), async (req: Request, res: Response) => {
   try {
-    if (!req.user.company_id) {
+    if (!req.user!.companyId) {
       return res.status(400).json({ message: 'User does not belong to a company.' });
     }
     const { data: company, error } = await supabase
       .from('companies')
       .select('productive_apps, unproductive_apps')
-      .eq('id', req.user.company_id)
+      .eq('id', req.user!.companyId)
       .maybeSingle();
 
     if (error) throw error;
     res.json(company || { productive_apps: [], unproductive_apps: [] });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.put('/api/settings/productivity', authenticate, authorize(['SuperAdmin']), async (req, res) => {
+router.put('/api/settings/productivity', authenticate, authorize(['SuperAdmin']), async (req: Request, res: Response) => {
   const { productive_apps, unproductive_apps } = req.body;
   try {
-    if (!req.user.company_id) {
+    if (!req.user!.companyId) {
       return res.status(400).json({ message: 'User does not belong to a company.' });
     }
     const { data: updatedCompany, error } = await supabase
@@ -780,13 +767,13 @@ router.put('/api/settings/productivity', authenticate, authorize(['SuperAdmin'])
         productive_apps: Array.isArray(productive_apps) ? productive_apps : [],
         unproductive_apps: Array.isArray(unproductive_apps) ? unproductive_apps : []
       })
-      .eq('id', req.user.company_id)
+      .eq('id', req.user!.companyId)
       .select('productive_apps, unproductive_apps')
       .single();
 
     if (error) throw error;
     res.json({ message: 'Productivity settings updated successfully.', data: updatedCompany });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
@@ -864,7 +851,7 @@ const cleanupOldWebcams = async () => {
     }
 
     console.log(`Webcam cleanup completed: deleted ${deletedCount} files from disk, updated ${dbUpdatedCount} database rows.`);
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to run automated webcam cleanup:', err.message);
   }
 };
@@ -933,7 +920,7 @@ const cleanupOldScreenshots = async () => {
         console.log(`Screenshots cleanup completed: deleted ${deletedFilesCount} files from disk, removed ${idsToDelete.length} rows from database.`);
       }
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to run automated screenshots cleanup:', err.message);
   }
 };
@@ -957,7 +944,7 @@ function getCompanyDetailsMap() {
     }
     const raw = fs.readFileSync(companyDetailsPath, 'utf8');
     return JSON.parse(raw);
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to read company details map:', err.message);
     return {};
   }
@@ -966,12 +953,12 @@ function getCompanyDetailsMap() {
 function saveCompanyDetailsMap(map) {
   try {
     fs.writeFileSync(companyDetailsPath, JSON.stringify(map, null, 2));
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to save company details map:', err.message);
   }
 }
 
-router.post('/api/system/companies', authenticate, authorize(['SystemAdmin']), async (req, res) => {
+router.post('/api/system/companies', authenticate, authorize(['SystemAdmin']), async (req: Request, res: Response) => {
   const { companyName, email, registrationNumber, location, website } = req.body;
   try {
     if (!companyName || !email) {
@@ -1055,12 +1042,12 @@ router.post('/api/system/companies', authenticate, authorize(['SystemAdmin']), a
       admin: newUser,
       tempPassword
     });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.get('/api/system/companies', authenticate, authorize(['SystemAdmin']), async (req, res) => {
+router.get('/api/system/companies', authenticate, authorize(['SystemAdmin']), async (req: Request, res: Response) => {
   try {
     const { data: companies, error } = await supabase
       .from('companies')
@@ -1084,12 +1071,12 @@ router.get('/api/system/companies', authenticate, authorize(['SystemAdmin']), as
     }));
 
     res.json(enriched);
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.put('/api/system/companies/:id/status', authenticate, authorize(['SystemAdmin']), async (req, res) => {
+router.put('/api/system/companies/:id/status', authenticate, authorize(['SystemAdmin']), async (req: Request, res: Response) => {
   const { status } = req.body;
   try {
     const { data, error } = await supabase
@@ -1101,12 +1088,12 @@ router.put('/api/system/companies/:id/status', authenticate, authorize(['SystemA
 
     if (error) throw error;
     res.json({ message: 'Company status updated', company: data });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.delete('/api/system/companies/:id', authenticate, authorize(['SystemAdmin']), async (req, res) => {
+router.delete('/api/system/companies/:id', authenticate, authorize(['SystemAdmin']), async (req: Request, res: Response) => {
   try {
     const companyId = req.params.id;
 
@@ -1148,14 +1135,14 @@ router.delete('/api/system/companies/:id', authenticate, authorize(['SystemAdmin
 
     if (error) throw error;
     res.json({ message: 'Company deleted successfully' });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 
 // --- Analytics Endpoint ---
-router.get('/api/system/analytics', authenticate, authorize(['SystemAdmin']), async (req, res) => {
+router.get('/api/system/analytics', authenticate, authorize(['SystemAdmin']), async (req: Request, res: Response) => {
   try {
     const { count: totalCompanies, error: cErr } = await supabase.from('companies').select('*', { count: 'exact', head: true });
     const { count: activeCompanies, error: acErr } = await supabase.from('companies').select('*', { count: 'exact', head: true }).eq('status', 'active');
@@ -1179,30 +1166,30 @@ router.get('/api/system/analytics', authenticate, authorize(['SystemAdmin']), as
       dailyActiveUsers: activeUsersToday || 0,
       deviceCount: totalDevices || 0
     });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // --- Announcements Endpoints ---
-router.post('/api/system/announcements', authenticate, authorize(['SystemAdmin']), async (req, res) => {
+router.post('/api/system/announcements', authenticate, authorize(['SystemAdmin']), async (req: Request, res: Response) => {
   const { title, message, target_role, color } = req.body;
   if (!title || !message) return res.status(400).json({ message: 'Title and message are required' });
   
   try {
     const { data, error } = await supabase
       .from('system_announcements')
-      .insert([{ title, message, target_role: target_role || 'all', created_by: req.user.id, color: color || '#f57c00' }])
+      .insert([{ title, message, target_role: target_role || 'all', created_by: req.user!.id, color: color || '#f57c00' }])
       .select()
       .single();
     if (error) throw error;
     res.status(201).json({ message: 'Announcement created', data });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.delete('/api/system/announcements/:id', authenticate, authorize(['SystemAdmin']), async (req, res) => {
+router.delete('/api/system/announcements/:id', authenticate, authorize(['SystemAdmin']), async (req: Request, res: Response) => {
   try {
     const { error } = await supabase
       .from('system_announcements')
@@ -1210,12 +1197,12 @@ router.delete('/api/system/announcements/:id', authenticate, authorize(['SystemA
       .eq('id', req.params.id);
     if (error) throw error;
     res.json({ message: 'Announcement deleted' });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.get('/api/system/announcements', authenticate, authorize(['SystemAdmin']), async (req, res) => {
+router.get('/api/system/announcements', authenticate, authorize(['SystemAdmin']), async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabase
       .from('system_announcements')
@@ -1223,28 +1210,28 @@ router.get('/api/system/announcements', authenticate, authorize(['SystemAdmin'])
       .order('created_at', { ascending: false });
     if (error) throw error;
     res.json(data);
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.get('/api/announcements/latest', authenticate, async (req, res) => {
+router.get('/api/announcements/latest', authenticate, async (req: Request, res: Response) => {
   try {
-    // Basic logic: get latest active announcement matching target_role = 'all' or req.user.role
+    // Basic logic: get latest active announcement matching target_role = 'all' or req.user!.role
     const { data, error } = await supabase
       .from('system_announcements')
       .select('*')
       .eq('is_active', true)
-      .in('target_role', ['all', req.user.role])
+      .in('target_role', ['all', req.user!.role])
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (error) throw error;
     res.json(data || null);
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-module.exports = router;
+export default router;

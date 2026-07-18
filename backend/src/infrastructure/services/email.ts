@@ -1,5 +1,5 @@
-const nodemailer = require('nodemailer');
-const supabase = require('../database/supabase');
+import nodemailer from 'nodemailer';
+import supabase from '../database/supabase';
 
 const getSmtpConfig = async (companyId = null, recipientEmail = null) => {
   let finalCompanyId = companyId;
@@ -256,4 +256,4 @@ const sendRegistrationOTPEmail = async (recipientEmail, otpCode) => {
   }
 };
 
-module.exports = { sendWarningEmail, sendPasswordResetEmail, sendRegistrationOTPEmail };
+export { sendWarningEmail, sendPasswordResetEmail, sendRegistrationOTPEmail };

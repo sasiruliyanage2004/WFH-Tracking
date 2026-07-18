@@ -1,14 +1,17 @@
-const express = require('express');
+// @ts-nocheck
+import { saveBase64Image, toMongo, formatAttendance, formatActivityLog, formatTask, formatScreenshot, formatWorkReport, formatNotification, generateId } from '../../utils/helpers';
+import { sendNotification } from '../../infrastructure/services/notification';
+import express, { Request, Response } from 'express';
 const router = express.Router();
-const supabase = require('../../infrastructure/database/supabase');
-const { sendWarningEmail } = require('../../infrastructure/services/email');
+import supabase from '../../infrastructure/database/supabase';
+import { sendWarningEmail } from '../../infrastructure/services/email';
 const logger = require('../../infrastructure/services/logger');
-const { authenticate, authorize } = require('../middlewares/auth');
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
+import { authenticate, authorize } from '../middlewares/auth';
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
-const generateId = () => crypto.randomBytes(12).toString('hex');
+
 
 // In-memory cache for rolling 1-hour activity details to prevent warning email spam
 // Structure: { [employeeId]: { logs: Array<{ timestamp, activeSeconds, idleSeconds }>, lastWarningSentAt: number } }
@@ -66,14 +69,14 @@ async function checkRollingWarning(employee, activeSeconds, idleSeconds, minMinu
 // since we will mount this router at /api
 
 // 5. MONITORING & ACTIVITY ROUTING
-router.post('/monitoring/screenshot', authenticate, async (req, res) => {
+router.post('/monitoring/screenshot', authenticate, async (req: Request, res: Response) => {
   const { image, timestamp } = req.body;
   if (!image) return res.status(400).json({ message: 'No image uploaded' });
 
   try {
     const timeVal = timestamp || Date.now();
-    const filename = `screenshot_${req.user.id}_${timeVal}.jpg`;
-    const screenshotUrl = await saveBase64Image(image, screenshotsDir, filename);
+    const filename = `screenshot_${req.user!.id}_${timeVal}.jpg`;
+    const screenshotUrl = await saveBase64Image(image, 'screenshots', filename);
 
     if (!screenshotUrl) {
       return res.status(400).json({ message: 'Failed to process image data: image is empty or invalid' });
@@ -82,7 +85,7 @@ router.post('/monitoring/screenshot', authenticate, async (req, res) => {
     const { data: ssRecord, error } = await supabase
       .from('screenshots')
       .insert([{
-        employee_id: req.user.id,
+        employee_id: req.user!.id,
         screenshot_url: screenshotUrl,
         timestamp: timestamp ? new Date(timestamp).toISOString() : new Date().toISOString()
       }])
@@ -96,7 +99,7 @@ router.post('/monitoring/screenshot', authenticate, async (req, res) => {
     const { data: log } = await supabase
       .from('activity_logs')
       .select('*')
-      .eq('employee_id', req.user.id)
+      .eq('employee_id', req.user!.id)
       .eq('date', today)
       .maybeSingle();
 
@@ -110,7 +113,7 @@ router.post('/monitoring/screenshot', authenticate, async (req, res) => {
       const { data: oldScreenshots } = await supabase
         .from('screenshots')
         .select('*')
-        .eq('employee_id', req.user.id)
+        .eq('employee_id', req.user!.id)
         .lt('timestamp', oneHourAgo);
 
       if (oldScreenshots && oldScreenshots.length > 0) {
@@ -120,7 +123,7 @@ router.post('/monitoring/screenshot', authenticate, async (req, res) => {
             if (fs.existsSync(absolutePath)) {
               try {
                 fs.unlinkSync(absolutePath);
-              } catch (err) {
+              } catch (err: any) {
                 console.error('Failed to delete physical screenshot file:', err.message);
               }
             }
@@ -132,7 +135,7 @@ router.post('/monitoring/screenshot', authenticate, async (req, res) => {
                 await supabase.storage
                   .from('wfh-tracking')
                   .remove([storagePath]);
-              } catch (err) {
+              } catch (err: any) {
                 console.error('Failed to delete Supabase storage file:', err.message);
               }
             }
@@ -142,7 +145,7 @@ router.post('/monitoring/screenshot', authenticate, async (req, res) => {
         const { error: delErr, count } = await supabase
           .from('screenshots')
           .delete({ count: 'exact' })
-          .eq('employee_id', req.user.id)
+          .eq('employee_id', req.user!.id)
           .lt('timestamp', oneHourAgo);
 
         if (!delErr) deletedCount = count || oldScreenshots.length;
@@ -155,22 +158,22 @@ router.post('/monitoring/screenshot', authenticate, async (req, res) => {
       retentionStatus: autoDeleted ? 'High Productivity: 1h auto-delete active' : 'Standard Audit: All retained',
       deletedCount
     });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.get('/monitoring/screenshots/:employeeId', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
+router.get('/monitoring/screenshots/:employeeId', authenticate, authorize(['Manager', 'SuperAdmin']), async (req: Request, res: Response) => {
   try {
     // Department isolation check for Manager
-    if (req.user.role === 'Manager') {
+    if (req.user!.role === 'Manager') {
       const { data: targetUser } = await supabase
         .from('users')
         .select('department')
         .eq('id', req.params.employeeId)
         .single();
       
-      if (targetUser && targetUser.department !== req.user.department) {
+      if (targetUser && targetUser.department !== req.user!.department) {
         return res.status(403).json({ message: 'Access denied. You can only view screenshots for employees in your department.' });
       }
     }
@@ -193,12 +196,12 @@ router.get('/monitoring/screenshots/:employeeId', authenticate, authorize(['Mana
 
     if (error) throw error;
     res.json(formatScreenshot(list));
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.post('/monitoring/screenshots/delete-bulk', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
+router.post('/monitoring/screenshots/delete-bulk', authenticate, authorize(['Manager', 'SuperAdmin']), async (req: Request, res: Response) => {
   const { ids } = req.body;
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return res.status(400).json({ message: 'No screenshot IDs provided.' });
@@ -217,7 +220,7 @@ router.post('/monitoring/screenshots/delete-bulk', authenticate, authorize(['Man
           if (fs.existsSync(absolutePath)) {
             try {
               fs.unlinkSync(absolutePath);
-            } catch (err) {
+            } catch (err: any) {
               console.error('Failed to delete physical screenshot file:', err.message);
             }
           }
@@ -229,7 +232,7 @@ router.post('/monitoring/screenshots/delete-bulk', authenticate, authorize(['Man
               await supabase.storage
                 .from('wfh-tracking')
                 .remove([storagePath]);
-            } catch (err) {
+            } catch (err: any) {
               console.error('Failed to delete Supabase storage file:', err.message);
             }
           }
@@ -248,12 +251,12 @@ router.post('/monitoring/screenshots/delete-bulk', authenticate, authorize(['Man
       message: 'Screenshots deleted successfully.', 
       deletedCount: ids.length 
     });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.post('/monitoring/activity', authenticate, async (req, res) => {
+router.post('/monitoring/activity', authenticate, async (req: Request, res: Response) => {
   const { activeSeconds, idleSeconds, keyboardCount, mouseCount, date } = req.body;
   const today = date || new Date().toISOString().split('T')[0];
 
@@ -273,7 +276,7 @@ router.post('/monitoring/activity', authenticate, async (req, res) => {
     const { data: log, error: fetchErr } = await supabase
       .from('activity_logs')
       .select('*')
-      .eq('employee_id', req.user.id)
+      .eq('employee_id', req.user!.id)
       .eq('date', today)
       .maybeSingle();
 
@@ -316,7 +319,7 @@ router.post('/monitoring/activity', authenticate, async (req, res) => {
       const { data, error } = await supabase
         .from('activity_logs')
         .insert([{
-          employee_id: req.user.id,
+          employee_id: req.user!.id,
           date: today,
           active_minutes: activeMinutes,
           idle_minutes: idleMinutes,
@@ -333,38 +336,38 @@ router.post('/monitoring/activity', authenticate, async (req, res) => {
     }
 
     res.json({ message: 'Activity log updated.', log: formatActivityLog(updatedLog) });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.get('/monitoring/my-activity', authenticate, async (req, res) => {
+router.get('/monitoring/my-activity', authenticate, async (req: Request, res: Response) => {
   const today = new Date().toISOString().split('T')[0];
   try {
     const { data: log } = await supabase
       .from('activity_logs')
       .select('*')
-      .eq('employee_id', req.user.id)
+      .eq('employee_id', req.user!.id)
       .eq('date', today)
       .maybeSingle();
 
     res.json(formatActivityLog(log) || { activeMinutes: 0, idleMinutes: 0, keyboardCount: 0, mouseCount: 0, productivityPercentage: 100 });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.get('/monitoring/activity/:employeeId', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
+router.get('/monitoring/activity/:employeeId', authenticate, authorize(['Manager', 'SuperAdmin']), async (req: Request, res: Response) => {
   try {
     // Department isolation check for Manager
-    if (req.user.role === 'Manager') {
+    if (req.user!.role === 'Manager') {
       const { data: targetUser } = await supabase
         .from('users')
         .select('department')
         .eq('id', req.params.employeeId)
         .single();
       
-      if (targetUser && targetUser.department !== req.user.department) {
+      if (targetUser && targetUser.department !== req.user!.department) {
         return res.status(403).json({ message: 'Access denied. You can only view activity for employees in your department.' });
       }
     }
@@ -377,13 +380,13 @@ router.get('/monitoring/activity/:employeeId', authenticate, authorize(['Manager
 
     if (error) throw error;
     res.json(formatActivityLog(logs || []));
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // Hardware Device Registration
-router.post('/devices/register', authenticate, async (req, res) => {
+router.post('/devices/register', authenticate, async (req: Request, res: Response) => {
   const { machine_id, hostname } = req.body;
   if (!machine_id) return res.status(400).json({ message: 'Machine ID is required' });
 
@@ -392,35 +395,35 @@ router.post('/devices/register', authenticate, async (req, res) => {
       .from('devices')
       .upsert({
         machine_id,
-        employee_id: req.user.id,
-        company_id: req.user.company_id,
+        employee_id: req.user!.id,
+        company_id: req.user!.companyId,
         hostname,
         last_active: new Date().toISOString()
       }, { onConflict: 'machine_id' });
 
     if (error) throw error;
     res.json({ message: 'Device registered successfully' });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.get('/devices/count', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
+router.get('/devices/count', authenticate, authorize(['Manager', 'SuperAdmin']), async (req: Request, res: Response) => {
   try {
     const { count, error } = await supabase
       .from('devices')
       .select('*', { count: 'exact', head: true })
-      .eq('company_id', req.user.company_id);
+      .eq('company_id', req.user!.companyId);
 
     if (error) throw error;
     res.json({ count: count || 0 });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // App & Website Usage Tracking - log application usage from agent
-router.post('/monitoring/usage-log', authenticate, async (req, res) => {
+router.post('/monitoring/usage-log', authenticate, async (req: Request, res: Response) => {
   const { appName, windowTitle, type, durationMinutes, date } = req.body;
   const today = date || new Date().toISOString().split('T')[0];
 
@@ -431,11 +434,11 @@ router.post('/monitoring/usage-log', authenticate, async (req, res) => {
   try {
     // Dynamically classify Productivity based on Company Settings
     let finalType = type; // fallback to agent's classification
-    if (req.user.company_id) {
+    if (req.user!.companyId) {
       const { data: companyData } = await supabase
         .from('companies')
         .select('productive_apps, unproductive_apps')
-        .eq('id', req.user.company_id)
+        .eq('id', req.user!.companyId)
         .maybeSingle();
 
       if (companyData) {
@@ -461,7 +464,7 @@ router.post('/monitoring/usage-log', authenticate, async (req, res) => {
     const { data: existingRecord, error: selectError } = await supabase
       .from('app_usage')
       .select('*')
-      .eq('employee_id', req.user.id.toString())
+      .eq('employee_id', req.user!.id.toString())
       .eq('date', today)
       .eq('app_name', appName)
       .maybeSingle();
@@ -482,7 +485,7 @@ router.post('/monitoring/usage-log', authenticate, async (req, res) => {
       const { error: insertError } = await supabase
         .from('app_usage')
         .insert([{
-          employee_id: req.user.id.toString(),
+          employee_id: req.user!.id.toString(),
           date: today,
           app_name: appName,
           window_title: windowTitle || '',
@@ -494,26 +497,26 @@ router.post('/monitoring/usage-log', authenticate, async (req, res) => {
     }
 
     res.json({ success: true, message: 'Usage logged successfully.' });
-  } catch (err) {
+  } catch (err: any) {
     console.error('Supabase DB Error:', err.message);
     res.status(500).json({ message: err.message });
   }
 });
 
 // App & Website Usage Tracking - fetch logs for manager dashboard
-router.get('/monitoring/usage/:employeeId', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
+router.get('/monitoring/usage/:employeeId', authenticate, authorize(['Manager', 'SuperAdmin']), async (req: Request, res: Response) => {
   const { date } = req.query;
 
   try {
     // Department isolation check for Manager
-    if (req.user.role === 'Manager') {
+    if (req.user!.role === 'Manager') {
       const { data: targetUser } = await supabase
         .from('users')
         .select('department')
         .eq('id', req.params.employeeId)
         .single();
       
-      if (targetUser && targetUser.department !== req.user.department) {
+      if (targetUser && targetUser.department !== req.user!.department) {
         return res.status(403).json({ message: 'Access denied. You can only view usage for employees in your department.' });
       }
     }
@@ -544,14 +547,14 @@ router.get('/monitoring/usage/:employeeId', authenticate, authorize(['Manager', 
 
     if (error) throw error;
     res.json(data || []);
-  } catch (err) {
+  } catch (err: any) {
     console.error('Supabase Fetch Error:', err.message);
     res.status(500).json({ message: err.message });
   }
 });
 
 // GET /api/monitoring/leaderboard - Get aggregated employee metrics
-router.get('/monitoring/leaderboard', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
+router.get('/monitoring/leaderboard', authenticate, authorize(['Manager', 'SuperAdmin']), async (req: Request, res: Response) => {
   const { dateRange, department } = req.query;
   
   let startDate, endDate;
@@ -590,10 +593,10 @@ router.get('/monitoring/leaderboard', authenticate, authorize(['Manager', 'Super
       .from('users')
       .select('id, name, email, department, profile_pic')
       .eq('role', 'Employee')
-      .eq('company_id', req.user.company_id);
+      .eq('company_id', req.user!.companyId);
       
-    if (req.user.role === 'Manager') {
-      userQuery = userQuery.eq('department', req.user.department);
+    if (req.user!.role === 'Manager') {
+      userQuery = userQuery.eq('department', req.user!.department);
     } else if (department && department !== 'All') {
       userQuery = userQuery.eq('department', department);
     }
@@ -720,17 +723,17 @@ router.get('/monitoring/leaderboard', authenticate, authorize(['Manager', 'Super
     leaderboard.sort((a, b) => b.productivityRatio - a.productivityRatio);
     
     res.json(leaderboard);
-  } catch (err) {
+  } catch (err: any) {
     console.error('Leaderboard Fetch Error:', err.message);
     res.status(500).json({ message: err.message });
   }
 });
 
 // Manager dashboard summary stats
-router.get('/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
+router.get('/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdmin']), async (req: Request, res: Response) => {
   const today = new Date().toISOString().split('T')[0];
-  const isManager = req.user.role === 'Manager';
-  const dept = req.user.department;
+  const isManager = req.user!.role === 'Manager';
+  const dept = req.user!.department;
   
   try {
     let employeeIds = [];
@@ -739,7 +742,7 @@ router.get('/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdmi
         .from('users')
         .select('id')
         .eq('department', dept)
-        .eq('company_id', req.user.company_id)
+        .eq('company_id', req.user!.companyId)
         .eq('role', 'Employee');
       employeeIds = deptEmps ? deptEmps.map(u => u.id) : [];
     }
@@ -747,7 +750,7 @@ router.get('/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdmi
     let employeesQuery = supabase
       .from('users')
       .select('*', { count: 'exact', head: true })
-      .eq('company_id', req.user.company_id)
+      .eq('company_id', req.user!.companyId)
       .eq('role', 'Employee');
       
     if (isManager) {
@@ -758,7 +761,7 @@ router.get('/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdmi
     let checkinsQuery = supabase
       .from('attendance')
       .select('*')
-      .eq('company_id', req.user.company_id)
+      .eq('company_id', req.user!.companyId)
       .or(`date.eq.${today},check_out_time.is.null`);
       
     if (isManager) {
@@ -806,7 +809,7 @@ router.get('/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdmi
     let reportsQuery = supabase
       .from('work_reports')
       .select('*', { count: 'exact', head: true })
-      .eq('company_id', req.user.company_id)
+      .eq('company_id', req.user!.companyId)
       .eq('approval_status', 'Pending');
       
     if (isManager) {
@@ -817,7 +820,7 @@ router.get('/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdmi
     let activityQuery = supabase
       .from('activity_logs')
       .select('*')
-      .eq('company_id', req.user.company_id)
+      .eq('company_id', req.user!.companyId)
       .eq('date', today);
       
     if (isManager) {
@@ -884,10 +887,12 @@ router.get('/monitoring/summary', authenticate, authorize(['Manager', 'SuperAdmi
       liveCheckins: enrichedCheckins,
       weeklyTrend
     });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 
-module.exports = router;
+export default router;
+
+

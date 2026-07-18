@@ -1,7 +1,10 @@
-const express = require('express');
+// @ts-nocheck
+import { saveBase64Image, toMongo, formatAttendance, formatActivityLog, formatTask, formatScreenshot, formatWorkReport, formatNotification, generateId } from '../../utils/helpers';
+import { sendNotification } from '../../infrastructure/services/notification';
+import express, { Request, Response } from 'express';
 const router = express.Router();
-const supabase = require('../../infrastructure/database/supabase');
-const { authenticate, authorize } = require('../middlewares/auth');
+import supabase from '../../infrastructure/database/supabase';
+import { authenticate, authorize } from '../middlewares/auth';
 
 const formatAttendance = (data) => {
   if (!data) return null;
@@ -45,7 +48,7 @@ setInterval(() => {
   }
 }, 60 * 1000);
 
-router.post('/mobile-location', async (req, res) => {
+router.post('/mobile-location', async (req: Request, res: Response) => {
   const { token, latitude, longitude, address } = req.body;
   if (!token) return res.status(400).json({ message: 'Token required' });
   
@@ -59,7 +62,7 @@ router.post('/mobile-location', async (req, res) => {
   res.json({ success: true });
 });
 
-router.get('/mobile-location-status', authenticate, async (req, res) => {
+router.get('/mobile-location-status', authenticate, async (req: Request, res: Response) => {
   const { token } = req.query;
   if (!token) return res.status(400).json({ message: 'Token required' });
   
@@ -76,7 +79,7 @@ router.get('/mobile-location-status', authenticate, async (req, res) => {
   return res.json({ status: 'pending' });
 });
 
-router.post('/checkin', authenticate, async (req, res) => {
+router.post('/checkin', authenticate, async (req: Request, res: Response) => {
   const { latitude, longitude, address, webcamImage } = req.body;
   const today = new Date().toISOString().split('T')[0];
 
@@ -84,14 +87,14 @@ router.post('/checkin', authenticate, async (req, res) => {
     const { data: existing } = await supabase
       .from('attendance')
       .select('*')
-      .eq('employee_id', req.user.id)
+      .eq('employee_id', req.user!.id)
       .eq('date', today)
       .maybeSingle();
 
     let webcamUrl = '';
     if (webcamImage) {
-      const filename = `webcam_${req.user.id}_${Date.now()}.jpg`;
-      webcamUrl = await saveBase64Image(webcamImage, webcamsDir, filename);
+      const filename = `webcam_${req.user!.id}_${Date.now()}.jpg`;
+      webcamUrl = await saveBase64Image(webcamImage, 'webcams', filename);
     }
 
     let att;
@@ -126,7 +129,7 @@ router.post('/checkin', authenticate, async (req, res) => {
       const { data, error: insertErr } = await supabase
         .from('attendance')
         .insert([{
-          employee_id: req.user.id,
+          employee_id: req.user!.id,
           date: today,
           check_in_time: new Date(),
           latitude,
@@ -134,7 +137,7 @@ router.post('/checkin', authenticate, async (req, res) => {
           address: address || '',
           webcam_image: webcamUrl,
           status: 'Present',
-          company_id: req.user.company_id
+          company_id: req.user!.companyId
         }])
         .select('*')
         .single();
@@ -149,23 +152,23 @@ router.post('/checkin', authenticate, async (req, res) => {
     const { data: managers } = await supabase.from('users').select('id').eq('role', 'Manager');
     if (managers) {
       for (let mgr of managers) {
-        await sendNotification(mgr.id, `${req.user.name} has checked in from WFH.`, 'checkin');
+        await sendNotification(mgr.id, `${req.user!.name} has checked in from WFH.`, 'checkin');
       }
     }
 
     res.status(201).json({ message: 'Checked in successfully.', attendance: formatAttendance(att) });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // --- Hearbeat Endpoint ---
-router.post('/heartbeat', authenticate, async (req, res) => {
+router.post('/heartbeat', authenticate, async (req: Request, res: Response) => {
   try {
     const { data: att } = await supabase
       .from('attendance')
       .select('id')
-      .eq('employee_id', req.user.id)
+      .eq('employee_id', req.user!.id)
       .is('check_out_time', null)
       .maybeSingle();
 
@@ -178,18 +181,18 @@ router.post('/heartbeat', authenticate, async (req, res) => {
     } else {
       res.json({ success: true, autoCheckedOut: true });
     }
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ success: false });
   }
 });
 
-router.post('/checkout', authenticate, async (req, res) => {
+router.post('/checkout', authenticate, async (req: Request, res: Response) => {
   const today = new Date().toISOString().split('T')[0];
   try {
     const { data: atts, error: fetchErr } = await supabase
       .from('attendance')
       .select('*')
-      .eq('employee_id', req.user.id)
+      .eq('employee_id', req.user!.id)
       .is('check_out_time', null)
       .order('check_in_time', { ascending: false })
       .limit(1);
@@ -240,7 +243,7 @@ router.post('/checkout', authenticate, async (req, res) => {
       const { data: log } = await supabase
         .from('activity_logs')
         .select('*')
-        .eq('employee_id', req.user.id)
+        .eq('employee_id', req.user!.id)
         .eq('date', today)
         .maybeSingle();
 
@@ -261,22 +264,22 @@ router.post('/checkout', authenticate, async (req, res) => {
     }
 
     // Trigger report reminder
-    await sendNotification(req.user.id, 'Remember to submit your Daily Work Report before logging off.', 'report');
+    await sendNotification(req.user!.id, 'Remember to submit your Daily Work Report before logging off.', 'report');
 
     res.json({ message: 'Checked out successfully.', attendance: formatAttendance(updatedAtt) });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.post('/break/start', authenticate, async (req, res) => {
+router.post('/break/start', authenticate, async (req: Request, res: Response) => {
   const { breakType, note } = req.body;
   const today = new Date().toISOString().split('T')[0];
   try {
     const { data: atts, error: fetchErr } = await supabase
       .from('attendance')
       .select('*')
-      .eq('employee_id', req.user.id)
+      .eq('employee_id', req.user!.id)
       .is('check_out_time', null)
       .order('check_in_time', { ascending: false })
       .limit(1);
@@ -314,8 +317,8 @@ router.post('/break/start', authenticate, async (req, res) => {
     // Alert Managers
     const { data: managers } = await supabase.from('users').select('id').eq('role', 'Manager');
     const notifMsg = note
-      ? `${req.user.name} went on a ${breakType} break. Note: "${note}"`
-      : `${req.user.name} went on a ${breakType} break.`;
+      ? `${req.user!.name} went on a ${breakType} break. Note: "${note}"`
+      : `${req.user!.name} went on a ${breakType} break.`;
       
     if (managers) {
       for (let mgr of managers) {
@@ -324,18 +327,18 @@ router.post('/break/start', authenticate, async (req, res) => {
     }
 
     res.json({ message: `Started ${breakType} break.`, attendance: formatAttendance(updatedAtt) });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.post('/break/end', authenticate, async (req, res) => {
+router.post('/break/end', authenticate, async (req: Request, res: Response) => {
   const today = new Date().toISOString().split('T')[0];
   try {
     const { data: atts, error: fetchErr } = await supabase
       .from('attendance')
       .select('*')
-      .eq('employee_id', req.user.id)
+      .eq('employee_id', req.user!.id)
       .is('check_out_time', null)
       .order('check_in_time', { ascending: false })
       .limit(1);
@@ -374,24 +377,24 @@ router.post('/break/end', authenticate, async (req, res) => {
     const { data: managers } = await supabase.from('users').select('id').eq('role', 'Manager');
     if (managers) {
       for (let mgr of managers) {
-        await sendNotification(mgr.id, `${req.user.name} returned from their break.`, 'break');
+        await sendNotification(mgr.id, `${req.user!.name} returned from their break.`, 'break');
       }
     }
 
     res.json({ message: 'Break ended. Resumed work shift.', attendance: formatAttendance(updatedAtt) });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.post('/break/retroactive', authenticate, async (req, res) => {
+router.post('/break/retroactive', authenticate, async (req: Request, res: Response) => {
   const { breakType, durationMinutes } = req.body;
   const today = new Date().toISOString().split('T')[0];
   try {
     const { data: atts, error: fetchErr } = await supabase
       .from('attendance')
       .select('*')
-      .eq('employee_id', req.user.id)
+      .eq('employee_id', req.user!.id)
       .is('check_out_time', null)
       .order('check_in_time', { ascending: false })
       .limit(1);
@@ -428,25 +431,25 @@ router.post('/break/retroactive', authenticate, async (req, res) => {
     // Alert Managers
     const { data: managers } = await supabase.from('users').select('id').eq('role', 'Manager');
     if (managers) {
-      const notifMsg = `${req.user.name} logged an idle period of ${durationMinutes} minutes as a "${breakType}" break.`;
+      const notifMsg = `${req.user!.name} logged an idle period of ${durationMinutes} minutes as a "${breakType}" break.`;
       for (let mgr of managers) {
         await sendNotification(mgr.id, notifMsg, 'break');
       }
     }
 
     res.json({ message: 'Retroactive break logged successfully.', attendance: formatAttendance(updatedAtt) });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.get('/status', authenticate, async (req, res) => {
+router.get('/status', authenticate, async (req: Request, res: Response) => {
   const today = new Date().toISOString().split('T')[0];
   try {
     const { data: atts } = await supabase
       .from('attendance')
       .select('*')
-      .eq('employee_id', req.user.id)
+      .eq('employee_id', req.user!.id)
       .or(`date.eq.${today},check_out_time.is.null`)
       .order('check_in_time', { ascending: false })
       .limit(1);
@@ -454,29 +457,29 @@ router.get('/status', authenticate, async (req, res) => {
     const att = atts && atts.length > 0 ? atts[0] : null;
 
     res.json({ attendance: formatAttendance(att) });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.get('/history', authenticate, async (req, res) => {
+router.get('/history', authenticate, async (req: Request, res: Response) => {
   try {
     const { data: history } = await supabase
       .from('attendance')
       .select('*')
-      .eq('employee_id', req.user.id)
+      .eq('employee_id', req.user!.id)
       .order('check_in_time', { ascending: false });
 
     res.json(formatAttendance(history || []));
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.get('/all', authenticate, authorize(['Manager', 'SuperAdmin']), async (req, res) => {
+router.get('/all', authenticate, authorize(['Manager', 'SuperAdmin']), async (req: Request, res: Response) => {
   const { date, employeeId } = req.query;
   try {
-    let builder = supabase.from('attendance').select('*').eq('company_id', req.user.company_id);
+    let builder = supabase.from('attendance').select('*').eq('company_id', req.user!.companyId);
     if (date) builder = builder.eq('date', date);
     if (employeeId) builder = builder.eq('employee_id', employeeId);
 
@@ -496,10 +499,12 @@ router.get('/all', authenticate, authorize(['Manager', 'SuperAdmin']), async (re
     }
 
     res.json([]);
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 });
 
 
-module.exports = router;
+export default router;
+
+
