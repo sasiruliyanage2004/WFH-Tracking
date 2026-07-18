@@ -1,6 +1,6 @@
-const fs = require('fs');
-const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
+import fs from 'fs';
+import path from 'path';
+import { createClient } from '@supabase/supabase-js';
 // Load environment variables from the parent directory if not present
 require('dotenv').config({ path: path.join(__dirname, '../backend/.env') });
 

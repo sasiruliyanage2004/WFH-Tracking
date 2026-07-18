@@ -4,10 +4,12 @@
   "description": "Work From Home tracking desktop agent",
   "author": "Sasiru Liyanage",
   "homepage": "https://github.com/sasiruliyanage2004/WFH-Tracking",
-  "main": "main.js",
+  "main": "out/main.js",
   "scripts": {
-    "start": "electron .",
-    "build": "electron-builder --win",
+    "clean": "rimraf out",
+    "build:ts": "npm run clean && tsc",
+    "start": "npm run build:ts && electron .",
+    "build": "npm run build:ts && electron-builder --win",
     "release": "npm run build"
   },
   "dependencies": {
@@ -18,8 +20,12 @@
     "node-machine-id": "^1.1.12"
   },
   "devDependencies": {
+    "@types/node": "^26.1.1",
     "electron": "^30.0.1",
-    "electron-builder": "^26.15.3"
+    "electron-builder": "^26.15.3",
+    "rimraf": "^6.1.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^7.0.2"
   },
   "build": {
     "appId": "com.wfh.desktopagent",
@@ -56,7 +62,13 @@
       "output": "dist"
     },
     "files": [
-      "**/*"
+      "out/**/*",
+      "react-build/**/*",
+      "splash.html",
+      "win-icon.ico",
+      "activity-monitor.ps1",
+      "get-active-window.ps1",
+      "package.json"
     ]
   }
 }

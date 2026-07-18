@@ -1,13 +1,14 @@
 process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true';
-const { app, BrowserWindow, ipcMain, desktopCapturer, Menu, session, powerMonitor, Notification, Tray, powerSaveBlocker } = require('electron');
-const path = require('path');
-const { autoUpdater } = require('electron-updater');
-const url = require('url');
-const { exec, spawn } = require('child_process');
-const axios = require('axios');
-const fs = require('fs');
-const os = require('os');
-const crypto = require('crypto');
+import { app, BrowserWindow, ipcMain, desktopCapturer, Menu, session, powerMonitor, Notification, Tray, powerSaveBlocker } from 'electron';
+import path from 'path';
+import { autoUpdater } from 'electron-updater';
+import * as url from 'url';
+import { exec, spawn } from 'child_process';
+import axios from 'axios';
+import fs from 'fs';
+import os from 'os';
+import * as crypto from 'crypto';
+const activeWindow = require('active-win');
 
 // Local persistent cache configuration
 const getOfflineCacheDir = () => path.join(app.getPath('userData'), 'offline-cache');
@@ -28,18 +29,18 @@ function appendOfflineLog(filename, payload) {
   try {
     ensureCacheDirs();
     const filePath = path.join(getOfflineCacheDir(), filename);
-    let logs = [];
+    let logs: any[] = [];
     if (fs.existsSync(filePath)) {
       try {
         logs = JSON.parse(fs.readFileSync(filePath, 'utf8')) || [];
-      } catch (e) {
+      } catch (e: any) {
         logs = [];
       }
     }
     logs.push(payload);
     fs.writeFileSync(filePath, JSON.stringify(logs, null, 2), 'utf8');
     console.log(`Desktop Agent: Cached offline log to ${filename}`);
-  } catch (err) {
+  } catch (err: any) {
     console.error(`Desktop Agent: Failed to cache offline log to ${filename}:`, err.message);
   }
 }
@@ -72,16 +73,16 @@ async function flushOfflineCache() {
     // 1. Flush cached usage logs
     const usagePath = path.join(getOfflineCacheDir(), 'usage-logs.json');
     if (fs.existsSync(usagePath)) {
-      let logs = [];
+      let logs: any[] = [];
       try {
         logs = JSON.parse(fs.readFileSync(usagePath, 'utf8')) || [];
-      } catch (e) {
+      } catch (e: any) {
         logs = [];
       }
 
       if (logs.length > 0) {
         console.log(`Desktop Agent: Found ${logs.length} cached offline usage logs. Attempting to flush...`);
-        const remainingLogs = [];
+        const remainingLogs: any[] = [];
         for (const log of logs) {
           try {
             await axios.post(
@@ -90,7 +91,7 @@ async function flushOfflineCache() {
               { headers: { Authorization: `Bearer ${sessionToken}` } }
             );
             console.log(`Desktop Agent: Flushed usage log for ${log.appName}`);
-          } catch (err) {
+          } catch (err: any) {
             console.error(`Failed to flush cached usage log for ${log.appName}:`, err.message);
             remainingLogs.push(log);
           }
@@ -108,16 +109,16 @@ async function flushOfflineCache() {
     // 2. Flush cached activity logs
     const activityPath = path.join(getOfflineCacheDir(), 'activity-logs.json');
     if (fs.existsSync(activityPath)) {
-      let logs = [];
+      let logs: any[] = [];
       try {
         logs = JSON.parse(fs.readFileSync(activityPath, 'utf8')) || [];
-      } catch (e) {
+      } catch (e: any) {
         logs = [];
       }
 
       if (logs.length > 0) {
         console.log(`Desktop Agent: Found ${logs.length} cached offline activity logs. Attempting to flush...`);
-        const remainingLogs = [];
+        const remainingLogs: any[] = [];
         for (const log of logs) {
           try {
             await axios.post(
@@ -126,7 +127,7 @@ async function flushOfflineCache() {
               { headers: { Authorization: `Bearer ${sessionToken}` } }
             );
             console.log(`Desktop Agent: Flushed activity log for date ${log.date}`);
-          } catch (err) {
+          } catch (err: any) {
             console.error(`Failed to flush cached activity telemetry:`, err.message);
             remainingLogs.push(log);
           }
@@ -163,47 +164,47 @@ async function flushOfflineCache() {
             );
             fs.unlinkSync(filePath);
             console.log(`Desktop Agent: Flushed offline screenshot file: ${file}`);
-          } catch (err) {
+          } catch (err: any) {
             console.error(`Failed to flush cached screenshot file ${file}:`, err.message);
           }
         }
       }
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('Desktop Agent: Failed to flush offline cache:', err.message);
   }
 }
 
 const BACKEND_URL = process.env.REACT_APP_API_URL || 'https://wfh-tracking.onrender.com';
 const isDev = !app.isPackaged;
-const FRONTEND_URL = process.env.FRONTEND_URL || (isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, 'react-build/index.html')}`);
+const FRONTEND_URL = process.env.FRONTEND_URL || (isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '../react-build/index.html')}`);
 
-let mainWindow = null;
-let sessionToken = null;
-let tray = null;
+let mainWindow: BrowserWindow | null = null;
+let sessionToken: string | null = null;
+let tray: Tray | null = null;
 
-let trackingInterval = null;
-let trackingActive = false;
-let sleepBlockerId = null;
+let trackingInterval: NodeJS.Timeout | null = null;
+let trackingActive: boolean = false;
+let sleepBlockerId: number | null = null;
 let totalTrackedSeconds = 0;
 let usageBuffer = {};
 let tickCount = 0;
 
 // Global input hook telemetry variables
-let activityProcess = null;
-let localKeyboardCount = 0;
+let activityProcess: any = null;
+let localKeyboardCount: number = 0;
 let localMouseCount = 0;
 let activeSecondsInTick = 0;
 let idleSecondsInTick = 0;
 let lastInputTime = Date.now();
 
-let splashWindow = null;
-let currentActiveAppType = 'Neutral';
+let splashWindow: BrowserWindow | null = null;
+let currentActiveAppType: string = 'Neutral';
 
 // Idle Break detection variables
-let wasIdleBefore = false;
-let maxIdleTimeSecs = 0;
-let idleCheckInterval = null;
+let wasIdleBefore: boolean = false;
+let maxIdleTimeSecs: number = 0;
+let idleCheckInterval: NodeJS.Timeout | null = null;
 
 function createSplashWindow() {
   splashWindow = new BrowserWindow({
@@ -213,14 +214,14 @@ function createSplashWindow() {
     transparent: true,
     alwaysOnTop: true,
     resizable: false,
-    icon: path.join(__dirname, 'win-icon.ico'),
+    icon: path.join(__dirname, '../win-icon.ico'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
     }
   });
 
-  splashWindow.loadFile(path.join(__dirname, 'splash.html'));
+  splashWindow.loadFile(path.join(__dirname, '../splash.html'));
 
   splashWindow.on('closed', () => {
     splashWindow = null;
@@ -233,7 +234,7 @@ function createWindow() {
     height: 800,
     // Native title bar restored
     show: false,  // Hide while loading
-    icon: path.join(__dirname, 'win-icon.ico'),
+    icon: path.join(__dirname, '../win-icon.ico'),
     backgroundColor: '#070b14', // Premium dark background
     autoHideMenuBar: true,
     webPreferences: {
@@ -243,82 +244,82 @@ function createWindow() {
     }
   });
 
-  mainWindow.removeMenu();
+  mainWindow?.removeMenu();
 
   // Intercept input for reload (Ctrl+R) and DevTools (Ctrl+Shift+I)
-  mainWindow.webContents.on('before-input-event', (event, input) => {
+  mainWindow?.webContents.on('before-input-event', (event, input) => {
     if (input.control && input.key.toLowerCase() === 'r') {
-      mainWindow.webContents.session.clearCache().then(() => {
-        mainWindow.reload();
+      mainWindow?.webContents.session.clearCache().then(() => {
+        mainWindow?.reload();
       });
       event.preventDefault();
     }
     if (input.control && input.shift && input.key.toLowerCase() === 'i') {
-      mainWindow.webContents.openDevTools();
+      mainWindow?.webContents.openDevTools();
       event.preventDefault();
     }
   });
 
   // Log all console messages from the renderer process
-  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+  mainWindow?.webContents.on('console-message', (event, level, message, line, sourceId) => {
     console.log(`[RENDERER CONSOLE] [Level ${level}] ${message} (at ${sourceId}:${line})`);
   });
 
 const startUrl = FRONTEND_URL;
-  mainWindow.loadURL(startUrl);
+  mainWindow?.loadURL(startUrl);
 
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+  mainWindow?.webContents.setWindowOpenHandler(({ url }) => {
     require('electron').shell.openExternal(url);
     return { action: 'deny' };
   });
 
-  mainWindow.webContents.on('did-finish-load', () => {
-    // mainWindow.webContents.openDevTools();
+  mainWindow?.webContents.on('did-finish-load', () => {
+    // mainWindow?.webContents.openDevTools();
     // Smooth transition from splash to main window
     setTimeout(() => {
       if (splashWindow) {
         splashWindow.close();
       }
       if (mainWindow) {
-        mainWindow.show();
-        mainWindow.focus();
+        mainWindow?.show();
+        mainWindow?.focus();
       }
     }, 1500); // 1.5 second duration
   });
 
   // Retry loading React app if the dev server takes time to start
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+  mainWindow?.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
     if (isDev && (validatedURL.includes('localhost:3000') || validatedURL.includes('127.0.0.1:3000'))) {
       console.log('Failed to load React app on port 3000, waiting 2s and retrying...');
       setTimeout(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.loadURL(startUrl);
+        if (mainWindow && !mainWindow?.isDestroyed()) {
+          mainWindow?.loadURL(startUrl);
         }
       }, 2000);
     }
   });
 
-  mainWindow.on('close', (event) => {
-    if (!app.isQuitting) {
+  mainWindow?.on('close', (event) => {
+    if (!(app as any).isQuitting) {
       event.preventDefault();
-      mainWindow.hide();
+      mainWindow?.hide();
     }
   });
 
-  mainWindow.on('closed', () => {
+  mainWindow?.on('closed', () => {
     stopTracking();
     mainWindow = null;
   });
 
-  mainWindow.on('maximize', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('window:maximized');
+  mainWindow?.on('maximize', () => {
+    if (mainWindow && !mainWindow?.isDestroyed()) {
+      mainWindow?.webContents.send('window:maximized');
     }
   });
 
-  mainWindow.on('unmaximize', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('window:unmaximized');
+  mainWindow?.on('unmaximize', () => {
+    if (mainWindow && !mainWindow?.isDestroyed()) {
+      mainWindow?.webContents.send('window:unmaximized');
     }
   });
 
@@ -349,8 +350,8 @@ function startIdleDetection() {
         if (wasIdleBefore) {
           const idleMins = Math.round(maxIdleTimeSecs / 60);
           console.log(`Desktop Agent: User returned after being idle for ${idleMins} minutes. Sending prompt to frontend.`);
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('idle:prompt-break', {
+          if (mainWindow && !mainWindow?.isDestroyed()) {
+            mainWindow?.webContents.send('idle:prompt-break', {
               durationMinutes: idleMins
             });
           }
@@ -358,7 +359,7 @@ function startIdleDetection() {
           maxIdleTimeSecs = 0;
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Idle detection error:', err.message);
     }
   }, 5000); // Check every 5 seconds
@@ -408,19 +409,19 @@ app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
   
   // Set up System Tray
-  tray = new Tray(path.join(__dirname, 'win-icon.ico'));
+  tray = new Tray(path.join(__dirname, '../win-icon.ico'));
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'Open WFH Tracker', click: () => mainWindow && mainWindow.show() },
+    { label: 'Open WFH Tracker', click: () => mainWindow && mainWindow?.show() },
     { type: 'separator' },
     { label: 'Quit', click: () => {
-      app.isQuitting = true;
+      (app as any).isQuitting = true;
       app.quit();
     }}
   ]);
   tray.setToolTip('WFH Tracker');
   tray.setContextMenu(contextMenu);
   tray.on('double-click', () => {
-    if (mainWindow) mainWindow.show();
+    if (mainWindow) mainWindow?.show();
   });
 
   createSplashWindow();
@@ -453,7 +454,7 @@ app.on('before-quit', (event) => {
     }).catch(err => {
       console.error('Auto check-out failed on shutdown:', err.message);
     }).finally(() => {
-      app.isQuitting = true;
+      (app as any).isQuitting = true;
       app.quit();
     });
   }
@@ -471,14 +472,14 @@ ipcMain.handle('screen:capture', async () => {
       // Return an array of base64 data URLs for all screens
       return sources.map(source => source.thumbnail.toDataURL());
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('Native screen capture failed:', err.message);
   }
   return null;
 });
 
 // Device Info Handler
-const { machineIdSync } = require('node-machine-id');
+import { machineIdSync } from 'node-machine-id';
 ipcMain.handle('device:info', async () => {
   try {
     const id = machineIdSync();
@@ -489,7 +490,7 @@ ipcMain.handle('device:info', async () => {
       hostname: hostname,
       os: platform
     };
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to get device info:', err);
     return null;
   }
@@ -507,7 +508,7 @@ ipcMain.on('screenshot:cache', (event, { image }) => {
     };
     fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
     console.log(`Desktop Agent: Cached screenshot offline: screenshot_${timestamp}.json`);
-  } catch (err) {
+  } catch (err: any) {
     console.error('Desktop Agent: Failed to cache screenshot offline:', err.message);
   }
 });
@@ -522,8 +523,8 @@ ipcMain.on('tracking:toggle', (event, { active, token }) => {
   }
 });
 
-let breakInterval = null;
-let activeMinutesOnBreak = 0;
+let breakInterval: NodeJS.Timeout | null = null;
+let activeMinutesOnBreak: number = 0;
 
 ipcMain.on('break:status', (event, { isOnBreak }) => {
   if (isOnBreak) {
@@ -544,9 +545,9 @@ ipcMain.on('break:status', (event, { isOnBreak }) => {
             });
             notif.on('click', () => {
               if (mainWindow) {
-                if (mainWindow.isMinimized()) mainWindow.restore();
-                mainWindow.show();
-                mainWindow.focus();
+                if (mainWindow?.isMinimized()) mainWindow?.restore();
+                mainWindow?.show();
+                mainWindow?.focus();
               }
             });
             notif.show();
@@ -572,16 +573,16 @@ ipcMain.on('window:minimize', () => {
 
 ipcMain.on('window:maximize', () => {
   if (mainWindow) {
-    if (mainWindow.isMaximized()) {
-      mainWindow.unmaximize();
+    if (mainWindow?.isMaximized()) {
+      mainWindow?.unmaximize();
     } else {
-      mainWindow.maximize();
+      mainWindow?.maximize();
     }
   }
 });
 
 ipcMain.on('window:close', () => {
-  if (mainWindow) mainWindow.hide();
+  if (mainWindow) mainWindow?.hide();
 });
 
 function startTracking() {
@@ -600,7 +601,7 @@ function startTracking() {
   const debugLogPath = path.join(app.getPath('userData'), 'agent_debug.log');
   try {
     fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: startTracking() called. Active window tracking started.\n`);
-  } catch (e) {}
+  } catch (e: any) {}
 
   console.log('Desktop Agent: Active window tracking started.');
   
@@ -612,21 +613,21 @@ function startTracking() {
   // Spawn the PowerShell activity monitor script (Windows only)
   if (process.platform === 'win32') {
     try {
-      const monitorSourcePath = path.join(__dirname, 'activity-monitor.ps1');
+      const monitorSourcePath = path.join(__dirname, '../activity-monitor.ps1');
       const monitorPath = path.join(app.getPath('userData'), 'activity-monitor.ps1');
 
       try {
         const scriptContent = fs.readFileSync(monitorSourcePath);
         fs.writeFileSync(monitorPath, scriptContent);
         fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: Copied activity-monitor.ps1 to userData successfully.\n`);
-      } catch (err) {
+      } catch (err: any) {
         fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: Failed to copy activity-monitor.ps1: ${err.message}\n`);
       }
 
       const pathExists = fs.existsSync(monitorPath);
       try {
         fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: Spawning background activity monitor sidecar. monitorPath="${monitorPath}" exists=${pathExists}\n`);
-      } catch (e) {}
+      } catch (e: any) {}
       console.log('Desktop Agent: Spawning background activity monitor sidecar...');
       
       activityProcess = spawn('powershell', [
@@ -639,7 +640,7 @@ function startTracking() {
 
       try {
         fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: Spawned powershell. PID=${activityProcess.pid}\n`);
-      } catch (e) {}
+      } catch (e: any) {}
 
       activityProcess.stdout.on('data', (data) => {
         const rawText = data.toString('utf8');
@@ -647,7 +648,7 @@ function startTracking() {
         
         try {
           fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Activity Monitor Stdout - Raw length: ${rawText.length}, Clean: "${cleanText.trim()}"\n`);
-        } catch (e) {}
+        } catch (e: any) {}
 
         const outputLines = cleanText.split('\n');
         for (let line of outputLines) {
@@ -675,7 +676,7 @@ function startTracking() {
             
             try {
               fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Parsed Activity - Keys: ${keys}, Clicks: ${clicks}. Cumulative Active in tick: ${activeSecondsInTick}s, Idle: ${idleSecondsInTick}s\n`);
-            } catch (e) {}
+            } catch (e: any) {}
 
             // Pass the active window info if available
             if (parts.length >= 4 && parts[2].startsWith('App:') && parts[3].startsWith('Title:')) {
@@ -691,7 +692,7 @@ function startTracking() {
         console.error('Activity monitor stderr:', errText);
         try {
           fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Activity Monitor STDERR: "${errText.trim()}"\n`);
-        } catch (e) {}
+        } catch (e: any) {}
       });
 
       activityProcess.on('close', (code) => {
@@ -699,7 +700,7 @@ function startTracking() {
         console.log(`Activity monitor process exited with code ${code}`);
         try {
           fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Activity Monitor Process EXITED with code: ${code}\n`);
-        } catch (e) {}
+        } catch (e: any) {}
       });
 
       activityProcess.on('error', (err) => {
@@ -707,14 +708,14 @@ function startTracking() {
         console.error('Activity monitor process error:', err.message);
         try {
           fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Activity Monitor Process ERROR: ${err.message}\n`);
-        } catch (e) {}
+        } catch (e: any) {}
       });
-    } catch (err) {
+    } catch (err: any) {
       const debugLogPath = path.join(app.getPath('userData'), 'agent_debug.log');
       console.error('Failed to start background activity monitor:', err.message);
       try {
         fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Failed to start background activity monitor: ${err.message}\n`);
-      } catch (e) {}
+      } catch (e: any) {}
     }
   }
 
@@ -745,7 +746,7 @@ function startTracking() {
         } else {
           idleSecondsInTick += 10;
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to get system idle time:', err.message);
         activeSecondsInTick += 10;
       }
@@ -825,7 +826,7 @@ async function sendHeartbeat() {
         body: 'You were automatically checked out due to long inactivity (e.g. PC went to sleep).'
       }).show();
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to send heartbeat:', err.message);
   }
 }
@@ -861,7 +862,7 @@ async function flushActivityTelemetry() {
         headers: { Authorization: `Bearer ${sessionToken}` }
       }
     );
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to sync global activity telemetry:', err.response?.data?.message || err.message);
     // Save to offline persistent cache
     cacheOfflineActivityLog({
@@ -874,13 +875,13 @@ async function flushActivityTelemetry() {
 }
 
 function handleActiveWindowOutput(stdout) {
-  const fs = require('fs');
+  // fs is already imported at top
   const logPath = path.join(app.getPath('userData'), 'agent_debug.log');
   const output = stdout.trim().replace(/^\uFEFF/, '');
   
   try {
     fs.appendFileSync(logPath, `[${new Date().toISOString()}] Captured output: "${output}"\n`);
-  } catch (e) {}
+  } catch (e: any) {}
 
   if (output && output.startsWith('App:')) {
     // Parse App:AppName|Title:WindowTitle
@@ -989,7 +990,7 @@ async function flushUsageBuffer() {
           headers: { Authorization: `Bearer ${sessionToken}` }
         }
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error(`Failed to log app ${appName}:`, err.response?.data?.message || err.message);
       // Save to offline persistent cache
       cacheOfflineUsageLog({

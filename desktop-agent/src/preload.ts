@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer, webFrame } = require('electron');
+import { contextBridge, ipcRenderer, webFrame } from 'electron';
 
 contextBridge.exposeInMainWorld('api', {
   getDeviceInfo: () => ipcRenderer.invoke('device:info'),
@@ -12,14 +12,14 @@ contextBridge.exposeInMainWorld('api', {
   setZoomFactor: (factor) => {
     try {
       webFrame.setZoomFactor(factor);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Preload: Failed to set zoom factor:', e);
     }
   },
   getZoomFactor: () => {
     try {
       return webFrame.getZoomFactor();
-    } catch (e) {
+    } catch (e: any) {
       return 1.0;
     }
   },
