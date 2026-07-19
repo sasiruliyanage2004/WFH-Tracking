@@ -742,7 +742,7 @@ function ManagerMonitoring() {
         onClose={() => setSelectedEmpDialog(null)}
         maxWidth="md"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
+        sx={{ '& .MuiDialog-paper': { borderRadius: 3 } }}
       >
         {selectedEmpDialog && (
           <>
