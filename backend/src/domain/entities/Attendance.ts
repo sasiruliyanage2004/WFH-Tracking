@@ -13,9 +13,6 @@ export interface Attendance {
   status: 'Present' | 'Absent' | 'On Leave' | 'Half Day';
   workHours: number;
   breakHours: number;
-  checkInLocation?: string;
-  checkInAddress?: string;
-  webcamImage?: string;
   checkInMethod?: 'manual' | 'auto';
   isAutoCheckIn?: boolean;
   onBreak?: boolean;

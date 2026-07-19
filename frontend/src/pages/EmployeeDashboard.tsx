@@ -582,12 +582,7 @@ function EmployeeDashboard() {
     try {
       const res = await axios.post(
         `${API_URL}/api/attendance/checkin`,
-        {
-          latitude: gpsData.latitude || 0,
-          longitude: gpsData.longitude || 0,
-          address: gpsData.address || (isRecentCheckout ? '' : 'Standard WFH Location'),
-          webcamImage: capturedPhoto
-        },
+        {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setAttendance(res.data.attendance);

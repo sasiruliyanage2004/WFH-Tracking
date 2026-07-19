@@ -21,9 +21,6 @@ const formatAttendance = (data) => {
     durationHours: data.duration_hours || 0,
     workHours: data.duration_hours || data.work_hours || 0,
     breakHours: data.break_hours || 0,
-    checkInLocation: data.check_in_location,
-    checkInAddress: data.check_in_address,
-    webcamImage: data.webcam_image,
     checkInMethod: data.check_in_method || 'manual',
     isAutoCheckIn: data.is_auto_check_in || false,
     
@@ -81,7 +78,7 @@ router.get('/mobile-location-status', authenticate, async (req: Request, res: Re
 });
 
 router.post('/checkin', authenticate, async (req: Request, res: Response) => {
-  const { latitude, longitude, address, webcamImage, offlineTimestamp } = req.body;
+  const { offlineTimestamp } = req.body;
   const checkInDate = offlineTimestamp ? new Date(offlineTimestamp) : new Date();
   const today = checkInDate.toISOString().split('T')[0];
 
@@ -92,12 +89,6 @@ router.post('/checkin', authenticate, async (req: Request, res: Response) => {
       .eq('employee_id', req.user!.id)
       .eq('date', today)
       .maybeSingle();
-
-    let webcamUrl = '';
-    if (webcamImage) {
-      const filename = `webcam_${req.user!.id}_${Date.now()}.jpg`;
-      webcamUrl = await saveBase64Image(webcamImage, 'webcams', filename);
-    }
 
     let att;
     let error;
@@ -114,10 +105,6 @@ router.post('/checkin', authenticate, async (req: Request, res: Response) => {
         .update({
           check_in_time: checkInDate,
           check_out_time: null,
-          latitude: latitude || existing.latitude,
-          longitude: longitude || existing.longitude,
-          address: address || existing.address || '',
-          webcam_image: webcamUrl || existing.webcam_image,
           status: 'Present'
         })
         .eq('id', existing.id)
@@ -134,10 +121,6 @@ router.post('/checkin', authenticate, async (req: Request, res: Response) => {
           employee_id: req.user!.id,
           date: today,
           check_in_time: checkInDate,
-          latitude,
-          longitude,
-          address: address || '',
-          webcam_image: webcamUrl,
           status: 'Present',
           company_id: req.user!.companyId
         }])
