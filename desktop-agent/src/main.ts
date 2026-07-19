@@ -11,6 +11,14 @@ import * as crypto from 'crypto';
 // active-win was removed
 
 // Local persistent cache configuration
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('workforceos', process.execPath, [path.resolve(process.argv[1])]);
+  }
+} else {
+  app.setAsDefaultProtocolClient('workforceos');
+}
+
 const getOfflineCacheDir = () => path.join(app.getPath('userData'), 'offline-cache');
 const getOfflineScreenshotsDir = () => path.join(getOfflineCacheDir(), 'screenshots');
 

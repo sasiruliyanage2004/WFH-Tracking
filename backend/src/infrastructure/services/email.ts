@@ -317,6 +317,12 @@ export const sendWelcomeEmail = async (userName: string, userEmail: string, temp
           <li>Click on <strong>Check In</strong> to start your shift!</li>
         </ol>
 
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="workforceos://open" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+            Open WorkforceOS App
+          </a>
+        </div>
+
         <div style="background: #ffffff; padding: 15px; border-radius: 5px; margin: 20px 0; border: 1px solid #d1d5db;">
           <p style="margin: 0 0 10px 0;"><strong>Your Login Credentials:</strong></p>
           <p style="margin: 0 0 5px 0;"><strong>Email:</strong> ${userEmail}</p>
