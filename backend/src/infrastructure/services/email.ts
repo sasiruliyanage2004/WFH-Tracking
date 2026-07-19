@@ -256,7 +256,7 @@ const sendRegistrationOTPEmail = async (recipientEmail, otpCode) => {
   }
 };
 
-export const sendSuspiciousActivityEmail = async (employeeName: string, managerEmail: string, companyId?: string) => {
+const sendSuspiciousActivityEmail = async (employeeName: string, managerEmail: string, companyId?: string) => {
   const config = await getSmtpConfig(companyId, managerEmail);
   if (!config.user || !config.pass) return false;
 
@@ -289,7 +289,7 @@ export const sendSuspiciousActivityEmail = async (employeeName: string, managerE
   }
 };
 
-export const sendWelcomeEmail = async (userName: string, userEmail: string, tempPassword: string, appUrl: string, companyId?: string) => {
+const sendWelcomeEmail = async (userName: string, userEmail: string, tempPassword: string, appUrl: string, companyId?: string) => {
   const config = await getSmtpConfig(companyId, userEmail);
   if (!config.user || !config.pass) return false;
 
