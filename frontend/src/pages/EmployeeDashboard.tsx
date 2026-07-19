@@ -308,19 +308,16 @@ function EmployeeDashboard() {
 
   // Break overlay ticking timer
   useEffect(() => {
-    if (!attendance || !attendance.onBreak) {
+    if (!attendance || !attendance.onBreak || !attendance.currentBreakStartTime) {
       setBreakTimeStr('00:00');
       return;
     }
 
-    if (!attendance.breaks || attendance.breaks.length === 0) return;
-    const currentBreak = attendance.breaks[attendance.breaks.length - 1];
-
     const tick = () => {
-      const diffMs = Date.now() - new Date(currentBreak.startTime).getTime();
+      const diffMs = Date.now() - new Date(attendance.currentBreakStartTime).getTime();
       const minutes = Math.floor(diffMs / 60000);
       const seconds = Math.floor((diffMs % 60000) / 1000);
-      const pad = (num) => String(num).padStart(2, '0');
+      const pad = (num) => String(num || 0).padStart(2, '0');
       setBreakTimeStr(`${pad(minutes)}:${pad(seconds)}`);
     };
 
@@ -1278,7 +1275,7 @@ function EmployeeDashboard() {
                       attendance.breakHistory.map((brk: any, i: number) => (
                         <Chip 
                           key={i} 
-                          label={`${brk.breakType || brk.type} Break`} 
+                          label={`${brk.breakType || brk.break_type || brk.type} Break`} 
                           size="small" 
                           icon={<AccessTimeIcon sx={{ fontSize: '0.8rem !important' }} />}
                           sx={{ 
