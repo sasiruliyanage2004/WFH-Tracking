@@ -308,13 +308,24 @@ function EmployeeDashboard() {
 
   // Break overlay ticking timer
   useEffect(() => {
-    if (!attendance || !attendance.onBreak || !attendance.currentBreakStartTime) {
+    if (!attendance || !attendance.onBreak) {
       setBreakTimeStr('00:00');
       return;
     }
 
+    const currentBreak = attendance.breakHistory && attendance.breakHistory.length > 0
+      ? attendance.breakHistory[attendance.breakHistory.length - 1]
+      : null;
+
+    if (!currentBreak || (!currentBreak.startTime && !currentBreak.start_time)) {
+      setBreakTimeStr('00:00');
+      return;
+    }
+
+    const startTimeStr = currentBreak.startTime || currentBreak.start_time;
+
     const tick = () => {
-      const diffMs = Date.now() - new Date(attendance.currentBreakStartTime).getTime();
+      const diffMs = Date.now() - new Date(startTimeStr).getTime();
       const minutes = Math.floor(diffMs / 60000);
       const seconds = Math.floor((diffMs % 60000) / 1000);
       const pad = (num) => String(num || 0).padStart(2, '0');
