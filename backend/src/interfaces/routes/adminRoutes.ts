@@ -3,6 +3,7 @@ import { sendNotification } from '../../infrastructure/services/notification';
 import express, { Request, Response } from 'express';
 const router = express.Router();
 import supabase from '../../infrastructure/database/supabase';
+import { sendWelcomeEmail } from '../../infrastructure/services/email';
 import { authenticate, authorize } from '../middlewares/auth';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
@@ -66,8 +67,12 @@ router.post('/api/users/employees', authenticate, authorize(['SuperAdmin', 'Mana
 
     if (error) throw error;
 
+    // Send Welcome Email
+    const appUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    sendWelcomeEmail(name, email.toLowerCase(), tempPassword, appUrl, req.user!.companyId).catch(err => console.error('Error sending welcome email:', err));
+
     res.status(201).json({
-      message: 'Employee created successfully. Temporary password is: password1234',
+      message: 'Employee created successfully. Temporary password is: password1234. Welcome email sent.',
       user: newUser
     });
   } catch (err: any) {
@@ -410,7 +415,7 @@ router.post('/api/users/superadmins', authenticate, authorize('SuperAdmin'), asy
       profilePic: newUser.profile_pic
     };
 
-    res.status(201).json({ message: 'SuperAdmin created successfully', user: returnUser });
+    res.status(201).json({ message: 'SuperAdmin created successfully. Welcome email sent.', user: returnUser });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }

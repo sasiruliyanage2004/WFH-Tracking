@@ -289,4 +289,40 @@ export const sendSuspiciousActivityEmail = async (employeeName: string, managerE
   }
 };
 
-export { sendWarningEmail, sendPasswordResetEmail, sendRegistrationOTPEmail, sendSuspiciousActivityEmail };
+export const sendWelcomeEmail = async (userName: string, userEmail: string, tempPassword: string, appUrl: string, companyId?: string) => {
+  const config = await getSmtpConfig(companyId, userEmail);
+  if (!config.user || !config.pass) return false;
+
+  const transporter = nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.port === 465,
+    auth: { user: config.user, pass: config.pass }
+  });
+
+  const mailOptions = {
+    from: config.sender,
+    to: userEmail,
+    subject: 'Welcome to WorkforceOS - Your Account is Ready',
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px; border-left: 5px solid #2563eb; background: #eff6ff;">
+        <h2>Welcome to WorkforceOS!</h2>
+        <p>Hi <strong>${userName}</strong>,</p>
+        <p>An administrator has created a new account for you.</p>
+        <p><strong>Login URL:</strong> <a href="${appUrl}">${appUrl}</a></p>
+        <p><strong>Temporary Password:</strong> ${tempPassword}</p>
+        <p><em>Note: You will be required to change this password immediately after your first login.</em></p>
+      </div>
+    `
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (err) {
+    console.error('Failed to send welcome email:', err);
+    return false;
+  }
+};
+
+export { sendWarningEmail, sendPasswordResetEmail, sendRegistrationOTPEmail, sendSuspiciousActivityEmail, sendWelcomeEmail };
