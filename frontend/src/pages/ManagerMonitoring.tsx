@@ -27,7 +27,12 @@ import {
   Tabs,
   Tab,
   InputAdornment,
-  Tooltip
+  Tooltip,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Divider
 } from '@mui/material';
 import {
   Visibility as ViewIcon,
@@ -35,7 +40,10 @@ import {
   GetApp as ExportIcon,
   Search as SearchIcon,
   Circle as CircleIcon,
-  Groups as GroupsIcon
+  Groups as GroupsIcon,
+  Close as CloseIcon,
+  MyLocation as MapIcon,
+  Face as FaceIcon
 } from '@mui/icons-material';
 import CustomLoader from '../components/CustomLoader';
 
@@ -47,6 +55,9 @@ function ManagerMonitoring() {
   
   // Navigation tabs: 0 = Productivity Leaderboard (Top Users), 1 = Live Status Directory
   const [viewTab, setViewTab] = useState(0); // Default to Leaderboard as requested
+
+  // State for the map+selfie popup dialog
+  const [selectedEmpDialog, setSelectedEmpDialog] = useState<any>(null);
 
   const calculateTotalHours = (rec) => {
     if (!rec) return '--';
@@ -687,15 +698,30 @@ function ManagerMonitoring() {
                             {calculateTotalHours(checkinRec)} {calculateTotalHours(checkinRec) !== '--' ? 'hrs' : ''}
                           </TableCell>
                           <TableCell align="center">
-                            <Button
-                              variant="contained"
-                              size="small"
-                              startIcon={<ViewIcon />}
-                              onClick={() => navigate(`/manager/monitoring/${emp._id || emp.id}`)}
-                              sx={{ textTransform: 'none', borderRadius: 1.5 }}
-                            >
-                              Track
-                            </Button>
+                            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                              {checkinRec && (
+                                <Tooltip title="View Map & Selfie">
+                                  <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<MapIcon />}
+                                    onClick={() => setSelectedEmpDialog({ emp, checkinRec })}
+                                    sx={{ textTransform: 'none', borderRadius: 1.5, fontSize: '0.75rem' }}
+                                  >
+                                    Map & Selfie
+                                  </Button>
+                                </Tooltip>
+                              )}
+                              <Button
+                                variant="contained"
+                                size="small"
+                                startIcon={<ViewIcon />}
+                                onClick={() => navigate(`/manager/monitoring/${emp._id || emp.id}`)}
+                                sx={{ textTransform: 'none', borderRadius: 1.5 }}
+                              >
+                                Track
+                              </Button>
+                            </Box>
                           </TableCell>
                         </TableRow>
                       );
@@ -708,6 +734,89 @@ function ManagerMonitoring() {
         </Box>
       )}
     </Box>
+
+      {/* Map & Selfie Quick-View Dialog */}
+      <Dialog
+        open={!!selectedEmpDialog}
+        onClose={() => setSelectedEmpDialog(null)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        {selectedEmpDialog && (
+          <>
+            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Avatar sx={{ width: 38, height: 38, bgcolor: 'primary.main', fontWeight: 700, fontSize: '0.9rem' }}>
+                  {selectedEmpDialog.emp.name?.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase()}
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                    {selectedEmpDialog.emp.name}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {selectedEmpDialog.emp.department} • Check-in Verification
+                  </Typography>
+                </Box>
+              </Box>
+              <IconButton onClick={() => setSelectedEmpDialog(null)} size="small">
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+            <Divider />
+            <DialogContent sx={{ p: 3 }}>
+              <Grid container spacing={3}>
+                {/* MAP */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <MapIcon color="primary" sx={{ fontSize: 18 }} /> Check-in Location
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                    {selectedEmpDialog.checkinRec?.location?.address || 'No address logged'}
+                  </Typography>
+                  <Box sx={{ width: '100%', height: 260, borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+                    <iframe
+                      title="Check-in GPS Map"
+                      src={`https://maps.google.com/maps?q=${selectedEmpDialog.checkinRec?.location?.latitude || 40.7128},${selectedEmpDialog.checkinRec?.location?.longitude || -74.006}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen
+                      loading="lazy"
+                    />
+                  </Box>
+                </Grid>
+                {/* SELFIE */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <FaceIcon color="primary" sx={{ fontSize: 18 }} /> Verification Selfie
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                    {selectedEmpDialog.checkinRec?.checkInTime
+                      ? `Logged: ${new Date(selectedEmpDialog.checkinRec.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                      : 'Check-in time unknown'}
+                  </Typography>
+                  <Box sx={{ width: '100%', height: 260, borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider', bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {selectedEmpDialog.checkinRec?.webcamImage ? (
+                      <Box
+                        component="img"
+                        src={selectedEmpDialog.checkinRec.webcamImage.startsWith('http') ? selectedEmpDialog.checkinRec.webcamImage : `${API_URL}${selectedEmpDialog.checkinRec.webcamImage}`}
+                        alt="Verification selfie"
+                        sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <Box sx={{ textAlign: 'center', color: 'text.disabled' }}>
+                        <FaceIcon sx={{ fontSize: 48, mb: 1, opacity: 0.3 }} />
+                        <Typography variant="body2">No selfie captured for this check-in</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </Grid>
+              </Grid>
+            </DialogContent>
+          </>
+        )}
+      </Dialog>
   );
 }
 
