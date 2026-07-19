@@ -1,7 +1,43 @@
+// frontend/src/pages/EmployeeMonitoring.js
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CircularProgress,
+  Divider,
+  Grid,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogActions,
+  IconButton,
+  Chip,
+  Checkbox,
+  TextField,
+  Alert,
+  Tooltip
+} from '@mui/material';
+import {
+  ArrowBack as BackIcon,
+  MyLocation as MapIcon,
+  Schedule as TimeIcon,
+  Close as CloseIcon,
+  Delete as DeleteIcon,
+  Refresh as RefreshIcon
+} from '@mui/icons-material';
 import CustomLoader from '../components/CustomLoader';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -14,20 +50,21 @@ function EmployeeMonitoring() {
   const [selectedDate, setSelectedDate] = useState(() => {
     return new Date().toISOString().split('T')[0]; // Default to today
   });
-  const [employeeInfo, setEmployeeInfo] = useState<any>(null);
-  const [attendance, setAttendance] = useState<any[]>([]);
-  const [screenshots, setScreenshots] = useState<any[]>([]);
-  const [activity, setActivity] = useState<any[]>([]);
-  const [appUsage, setAppUsage] = useState<any[]>([]);
+  const [employeeInfo, setEmployeeInfo] = useState(null);
+  const [attendance, setAttendance] = useState([]);
+  const [screenshots, setScreenshots] = useState([]);
+  const [activity, setActivity] = useState([]);
+  const [appUsage, setAppUsage] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   // Deletion selection states
   const [isSelectMode, setIsSelectMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const toggleSelect = (id: string) => {
+  const toggleSelect = (id) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
@@ -42,8 +79,6 @@ function EmployeeMonitoring() {
   };
 
   const handleDeleteSelected = async () => {
-    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} screenshot(s)?`)) return;
-    
     try {
       setDeleteLoading(true);
       const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -55,7 +90,8 @@ function EmployeeMonitoring() {
       // Reset state
       setSelectedIds([]);
       setIsSelectMode(false);
-    } catch (err: any) {
+      setDeleteConfirmOpen(false);
+    } catch (err) {
       console.error('Failed to delete screenshots:', err.message);
     } finally {
       setDeleteLoading(false);
@@ -96,7 +132,7 @@ function EmployeeMonitoring() {
         const usageRes = await axios.get(`${API_URL}/api/monitoring/usage/${employeeId}?date=${selectedDate}${cacheBuster}`, authHeader);
         setAppUsage(usageRes.data);
 
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to load employee details:', err.message);
     } finally {
       if (!isManualRefresh) setLoading(false);
@@ -110,12 +146,11 @@ function EmployeeMonitoring() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-[80vh]">
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
         <CustomLoader />
-      </div>
+      </Box>
     );
   }
-  
   // Get most recent check-in location coords
   const latestCheckin = attendance.length > 0 ? attendance[0] : null;
   const latitude = latestCheckin?.location?.latitude || 40.7128;
@@ -124,7 +159,7 @@ function EmployeeMonitoring() {
 
   // Get productivity score for selected date
   const selectedDateActivity = activity.find(act => act.date === selectedDate);
-  const prodScore = selectedDateActivity ? selectedDateActivity.productivityPercentage : (latestCheckin ? 100 : 0);
+  const prodScore = selectedDateActivity ? selectedDateActivity.productivityPercentage : 100;
 
   // Embeddable Google Map URL without API Key
   const googleMapEmbedUrl = `https://maps.google.com/maps?q=${latitude},${longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
@@ -139,7 +174,7 @@ function EmployeeMonitoring() {
   const unproductivePct = totalUsageMins > 0 ? (unproductiveMins / totalUsageMins) * 100 : 0;
   const neutralPct = totalUsageMins > 0 ? (neutralMins / totalUsageMins) * 100 : 0;
 
-  const formatDuration = (mins: number) => {
+  const formatDuration = (mins) => {
     if (mins < 1) {
       const secs = Math.round(mins * 60);
       return `${secs} sec${secs !== 1 ? 's' : ''}`;
@@ -150,415 +185,530 @@ function EmployeeMonitoring() {
     }
     return `${Math.round(mins)} min${Math.round(mins) !== 1 ? 's' : ''}`;
   };
-  
-  // Format dates
-  const getFormattedTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
 
   return (
-    <div className="pb-8 space-y-6 animate-fade-in text-on-surface">
-      {/* Header section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-surface p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-white/5">
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => navigate('/manager/dashboard')}
-            className="p-2 rounded-full hover:bg-white/10 transition-colors flex items-center justify-center text-primary"
-            title="Back to Dashboard"
-          >
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
-          
-          {employeeInfo?.profilePic ? (
-            <img 
-              src={employeeInfo.profilePic.startsWith('http') ? employeeInfo.profilePic : `${API_URL}${employeeInfo.profilePic}`} 
-              alt={employeeInfo?.name} 
-              className="w-14 h-14 rounded-full object-cover border-2 border-primary/50"
-            />
-          ) : (
-            <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xl border-2 border-primary/50">
-              {employeeInfo?.name?.charAt(0) || 'E'}
-            </div>
-          )}
-          
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-              {employeeInfo?.name || 'Loading Employee...'}
-              {latestCheckin && !latestCheckin.checkOutTime && (
-                <span className="flex h-3 w-3 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                </span>
-              )}
-            </h1>
-            <p className="text-secondary/80 flex items-center gap-1 text-sm">
-              <span className="material-symbols-outlined text-[16px]">badge</span>
-              {employeeInfo?.role || 'Employee'} • {employeeInfo?.department || 'Department'}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 w-full md:w-auto bg-surface-variant/50 p-2 rounded-xl border border-white/5">
-          <button 
+    <Box sx={{ pb: 5 }}>
+      {/* Back Header & Date Picker */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Button variant="outlined" startIcon={<BackIcon />} onClick={() => navigate('/manager/dashboard')}>
+            Back to Dashboard
+          </Button>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            Monitoring: {employeeInfo?.name || 'Employee Profile'}
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Button 
+            variant="outlined" 
+            size="small" 
+            startIcon={<RefreshIcon />}
             onClick={() => fetchEmployeeDetails(true)}
-            className="p-2 rounded-lg hover:bg-primary/20 text-primary transition-colors flex items-center justify-center group"
-            title="Refresh Data"
+            sx={{ mr: 2 }}
           >
-            <span className="material-symbols-outlined group-hover:rotate-180 transition-transform duration-500">refresh</span>
-          </button>
-          
-          <div className="h-8 w-px bg-white/10"></div>
-          
-          <div className="flex items-center gap-2 px-2">
-            <span className="material-symbols-outlined text-secondary/70 text-sm">calendar_today</span>
-            <input 
-              type="date" 
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              max={new Date().toISOString().split('T')[0]}
-              className="bg-transparent border-none text-white focus:ring-0 cursor-pointer text-sm font-medium [color-scheme:dark]"
-            />
-          </div>
-        </div>
-      </div>
-      
+            Refresh Data
+          </Button>
+          <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+            Select Date:
+          </Typography>
+          <TextField
+            type="date"
+            size="small"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            slotProps={{
+              htmlInput: {
+                max: new Date().toISOString().split('T')[0]
+              }
+            }}
+            sx={(theme) => ({
+              width: 170,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                bgcolor: 'background.paper',
+                '& input': {
+                  color: 'text.primary',
+                },
+              },
+              '& input::-webkit-calendar-picker-indicator': {
+                filter: theme.palette.mode === 'dark' ? 'invert(1)' : 'none',
+                cursor: 'pointer',
+              }
+            })}
+          />
+        </Box>
+      </Box>
+
       {latestCheckin?.is_auto_checkout && (
-        <div className="bg-amber-500/10 border border-amber-500/30 text-amber-200 p-4 rounded-xl flex items-start gap-3 backdrop-blur-md">
-          <span className="material-symbols-outlined text-amber-500">warning</span>
-          <div>
-            <strong className="block text-amber-400 mb-1">Auto-Checkout Triggered</strong>
-            <span className="text-sm">This employee's session was automatically checked out due to laptop sleep, shutdown, or extended disconnection.</span>
-          </div>
-        </div>
+        <Alert severity="warning" variant="filled" sx={{ mb: 3, borderRadius: 2 }}>
+          <strong>Auto-Checkout:</strong> This employee's session was automatically checked out due to laptop sleep, shutdown, or extended disconnection.
+        </Alert>
       )}
 
-      {/* Summary Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="glass-card-ai p-5 flex flex-col justify-between">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-secondary/80 text-sm font-medium">Productivity Score</span>
-            <div className={`p-1.5 rounded-lg ${prodScore >= 70 ? 'bg-emerald-500/20 text-emerald-400' : prodScore >= 40 ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'}`}>
-              <span className="material-symbols-outlined text-[20px]">speed</span>
-            </div>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <h2 className="text-3xl font-bold text-white">{Math.round(prodScore)}</h2>
-            <span className="text-secondary font-medium">%</span>
-          </div>
-          
-          <div className="mt-3 w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-            <div 
-              className={`h-full rounded-full ${prodScore >= 70 ? 'bg-emerald-500' : prodScore >= 40 ? 'bg-amber-500' : 'bg-red-500'}`} 
-              style={{ width: `${prodScore}%` }}
-            ></div>
-          </div>
-        </div>
-
-        <div className="glass-card-ai p-5 flex flex-col justify-between">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-secondary/80 text-sm font-medium">App Usage</span>
-            <div className="p-1.5 rounded-lg bg-blue-500/20 text-blue-400">
-              <span className="material-symbols-outlined text-[20px]">apps</span>
-            </div>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <h2 className="text-3xl font-bold text-white">{appUsage.length}</h2>
-            <span className="text-secondary font-medium">apps</span>
-          </div>
-          <p className="text-xs text-secondary/70 mt-2 mt-auto">Logged today</p>
-        </div>
-
-        <div className="glass-card-ai p-5 flex flex-col justify-between">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-secondary/80 text-sm font-medium">Check In</span>
-            <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400">
-              <span className="material-symbols-outlined text-[20px]">login</span>
-            </div>
-          </div>
-          <h2 className="text-2xl font-bold text-white truncate">
-            {latestCheckin?.checkInTime ? getFormattedTime(latestCheckin.checkInTime) : '--:--'}
-          </h2>
-          <p className="text-xs text-secondary/70 mt-2 mt-auto">First seen today</p>
-        </div>
-
-        <div className="glass-card-ai p-5 flex flex-col justify-between">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-secondary/80 text-sm font-medium">Security</span>
-            <div className="p-1.5 rounded-lg bg-purple-500/20 text-purple-400">
-              <span className="material-symbols-outlined text-[20px]">shield</span>
-            </div>
-          </div>
-          
-          {selectedDateActivity?.suspiciousMouseEvents > 0 ? (
-            <div>
-              <h2 className="text-xl font-bold text-red-400 flex items-center gap-1">
-                <span className="material-symbols-outlined text-lg">warning</span>
-                Flagged
-              </h2>
-              <p className="text-xs text-red-400/80 mt-1">{selectedDateActivity.suspiciousMouseEvents} suspicious events</p>
-            </div>
-          ) : (
-            <div>
-              <h2 className="text-xl font-bold text-emerald-400 flex items-center gap-1">
-                <span className="material-symbols-outlined text-lg">verified_user</span>
-                Secure
-              </h2>
-              <p className="text-xs text-secondary/70 mt-1">No alerts today</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Verification Row: Map and Selfie */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass-panel p-6">
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">my_location</span>
-            Check-in Location
-          </h3>
-          <p className="text-sm text-secondary/80 mb-4 bg-white/5 p-3 rounded-lg flex items-start gap-2">
-            <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5">location_on</span>
-            {mapAddress}
-          </p>
-          <div className="w-full h-64 rounded-xl overflow-hidden border border-white/10 relative group">
-            <div className="absolute inset-0 bg-primary/10 group-hover:bg-transparent transition-colors pointer-events-none z-10"></div>
-            <iframe
-              title="Employee CheckIn GPS Map"
-              src={googleMapEmbedUrl}
-              className="w-full h-full border-0 grayscale invert opacity-80 group-hover:grayscale-0 group-hover:invert-0 group-hover:opacity-100 transition-all duration-500"
-              allowFullScreen
-              loading="lazy"
-            />
-          </div>
-        </div>
-
-        <div className="glass-panel p-6">
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">face</span>
-            Verification Selfie
-          </h3>
-          <div className="w-full h-80 rounded-xl overflow-hidden bg-black/40 border border-white/10 flex items-center justify-center relative">
-            {latestCheckin?.webcamImage ? (
-              <img
-                src={latestCheckin.webcamImage.startsWith('http') ? latestCheckin.webcamImage : `${API_URL}${latestCheckin.webcamImage}`}
-                alt="Verification Selfie"
-                className="w-full h-full object-cover cursor-zoom-in hover:scale-105 transition-transform duration-500"
-                onClick={() => setSelectedImage(latestCheckin.webcamImage.startsWith('http') ? latestCheckin.webcamImage : `${API_URL}${latestCheckin.webcamImage}`)}
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center text-secondary/50">
-                <span className="material-symbols-outlined text-4xl mb-2">no_photography</span>
-                <p>No selfie captured today</p>
-              </div>
-            )}
-            
-            {latestCheckin?.webcamImage && (
-              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-4 flex justify-between items-end">
-                <span className="bg-primary/20 text-primary text-xs font-bold px-2 py-1 rounded border border-primary/30 backdrop-blur-md">
-                  Verified Match
-                </span>
-                <span className="text-white/70 text-xs flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px]">schedule</span>
-                  {getFormattedTime(latestCheckin.checkInTime)}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Screenshots Section */}
-      <div className="glass-panel p-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">screenshot_monitor</span>
-            Live Screenshots
-            <span className="bg-white/10 text-secondary text-xs px-2 py-0.5 rounded-full ml-2">
-              {screenshots.length} total
-            </span>
-          </h3>
-          
-          <div className="flex gap-2">
-            {isSelectMode ? (
-              <>
-                <button 
-                  onClick={handleSelectAll} 
-                  className="px-3 py-1.5 text-sm font-medium bg-white/5 hover:bg-white/10 text-white rounded-lg transition-colors border border-white/10"
-                >
-                  {selectedIds.length === screenshots.length ? 'Deselect All' : 'Select All'}
-                </button>
-                <button 
-                  onClick={handleDeleteSelected} 
-                  disabled={selectedIds.length === 0 || deleteLoading}
-                  className="px-3 py-1.5 text-sm font-medium bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors border border-red-500/30 disabled:opacity-50 flex items-center gap-1"
-                >
-                  {deleteLoading ? <span className="material-symbols-outlined animate-spin text-[16px]">sync</span> : <span className="material-symbols-outlined text-[16px]">delete</span>}
-                  Delete ({selectedIds.length})
-                </button>
-                <button 
-                  onClick={() => { setIsSelectMode(false); setSelectedIds([]); }} 
-                  className="px-3 py-1.5 text-sm font-medium bg-white/5 hover:bg-white/10 text-secondary rounded-lg transition-colors border border-white/10"
-                >
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <button 
-                onClick={() => setIsSelectMode(true)}
-                className="px-3 py-1.5 text-sm font-medium bg-white/5 hover:bg-white/10 text-white rounded-lg transition-colors border border-white/10 flex items-center gap-1"
-              >
-                <span className="material-symbols-outlined text-[16px]">checklist</span>
-                Select Multiple
-              </button>
-            )}
-          </div>
-        </div>
-
-        {screenshots.length === 0 ? (
-          <div className="py-12 flex flex-col items-center justify-center bg-white/5 rounded-xl border border-white/5 border-dashed">
-            <span className="material-symbols-outlined text-4xl text-secondary/40 mb-3">image_not_supported</span>
-            <p className="text-secondary/60 text-sm">No screenshots recorded for this date.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {screenshots.map((ss) => {
-              const sId = ss._id || ss.id;
-              const isSelected = selectedIds.includes(sId);
-              const imgUrl = ss.imageUrl.startsWith('http') ? ss.imageUrl : `${API_URL}${ss.imageUrl}`;
+      <Grid container spacing={3}>
+        {/* GPS Verification Map and webcam selfie validation */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card sx={{ borderRadius: 3, height: '100%' }}>
+            <CardContent>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <MapIcon color="primary" /> Latest Check-in Location
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Address: {mapAddress}
+              </Typography>
               
-              return (
-                <div 
-                  key={sId} 
-                  className={`group relative rounded-xl overflow-hidden aspect-video bg-black/40 border transition-all ${
-                    isSelected ? 'border-primary shadow-[0_0_15px_rgba(0,225,171,0.3)] ring-2 ring-primary ring-offset-2 ring-offset-[#0B1120]' : 'border-white/10 hover:border-white/30'
-                  }`}
-                >
-                  <img
-                    src={imgUrl}
-                    alt="Desktop capture"
-                    className={`w-full h-full object-cover transition-transform duration-500 ${isSelectMode ? 'cursor-pointer' : 'cursor-zoom-in group-hover:scale-105'}`}
-                    onClick={() => {
-                      if (isSelectMode) toggleSelect(sId);
-                      else setSelectedImage(imgUrl);
-                    }}
-                  />
-                  
-                  {isSelectMode && (
-                    <div className="absolute top-2 left-2 z-10">
-                      <div className={`w-5 h-5 rounded flex items-center justify-center border ${isSelected ? 'bg-primary border-primary' : 'bg-black/50 border-white/50 backdrop-blur-sm'}`}>
-                        {isSelected && <span className="material-symbols-outlined text-[14px] text-on-primary font-bold">check</span>}
-                      </div>
-                    </div>
+              {/* Google Map iframe container */}
+              <Box sx={{ width: '100%', height: 320, borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+                <iframe
+                  title="Employee CheckIn GPS Map"
+                  src={googleMapEmbedUrl}
+                  width="100%"
+                  height="100%"
+                  frameBorder="0"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  aria-hidden="false"
+                  tabIndex={0}
+                />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Webcam Verification check-in selfie */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card sx={{ borderRadius: 3, height: '100%' }}>
+            <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
+                  Verification Selfie
+                </Typography>
+                {latestCheckin?.webcamImage ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <Box
+                      component="img"
+                      src={latestCheckin.webcamImage.startsWith('/uploads') ? `${API_URL}${latestCheckin.webcamImage}` : latestCheckin.webcamImage}
+                      alt="check-in selfie verification"
+                      onClick={() => setSelectedImage(latestCheckin.webcamImage.startsWith('/uploads') ? `${API_URL}${latestCheckin.webcamImage}` : latestCheckin.webcamImage)}
+                      sx={{
+                        width: '100%',
+                        maxHeight: 280,
+                        objectFit: 'contain',
+                        borderRadius: 2,
+                        cursor: 'zoom-in',
+                        border: '1px solid',
+                        borderColor: 'divider'
+                      }}
+                    />
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 5 }}>
+                    {latestCheckin ? 'No identity verification selfie captured for this check-in.' : 'Employee did not check in on this date.'}
+                  </Typography>
+                )}
+              </Box>
+              
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Logged Time: {latestCheckin?.checkInTime ? new Date(latestCheckin.checkInTime).toLocaleString() : '--'}
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Today's Breaks Card */}
+        <Grid size={{ xs: 12 }}>
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent>
+               <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TimeIcon color="primary" /> Breaks & Pauses
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              {latestCheckin?.breaks && latestCheckin.breaks.length > 0 ? (
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {latestCheckin.breaks.map((b, i) => {
+                    const start = new Date(b.startTime);
+                    const end = b.endTime ? new Date(b.endTime) : new Date();
+                    const diffMins = Math.round((end.getTime() - start.getTime()) / 60000);
+                    return (
+                      <Chip 
+                        key={i} 
+                        label={`${b.breakType}: ${diffMins}m ${b.note ? `"${b.note}"` : ''}`} 
+                        variant="outlined"
+                        color="secondary"
+                      />
+                    );
+                  })}
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  {latestCheckin ? 'No breaks taken on this date.' : 'Employee did not check in on this date.'}
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Screenshot monitoring logs viewer */}
+        <Grid size={{ xs: 12 }}>
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  Screen Capture Logs (Every 5 mins)
+                </Typography>
+                
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                  {prodScore >= 70 ? (
+                    <Chip
+                      label={`🛡️ Privacy Enabled: 1h Auto-Delete Active (${prodScore}% Productivity)`}
+                      color="success"
+                      variant="outlined"
+                      sx={{ fontWeight: 600 }}
+                    />
+                  ) : (
+                    <Chip
+                      label={`🔍 Full Audit: All Retained (${prodScore}% Productivity)`}
+                      color="warning"
+                      variant="outlined"
+                      sx={{ fontWeight: 600 }}
+                    />
                   )}
 
-                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent p-2 pt-6 pointer-events-none">
-                    <p className="text-xs text-white/90 font-medium flex justify-between items-center drop-shadow-md">
-                      {new Date(ss.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                  {screenshots.length > 0 && (
+                    <>
+                      {!isSelectMode ? (
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          startIcon={<DeleteIcon />}
+                          onClick={() => {
+                            setIsSelectMode(true);
+                            setSelectedIds([]);
+                          }}
+                          sx={{ borderRadius: 2, fontWeight: 700 }}
+                        >
+                          Delete Captures
+                        </Button>
+                      ) : (
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={handleSelectAll}
+                            sx={{ borderRadius: 2, fontWeight: 600 }}
+                          >
+                            {selectedIds.length === screenshots.length ? 'Deselect All' : 'Select All'}
+                          </Button>
+                          <Button
+                            variant="contained"
+                            color="error"
+                            size="small"
+                            startIcon={<DeleteIcon />}
+                            onClick={() => setDeleteConfirmOpen(true)}
+                            disabled={selectedIds.length === 0}
+                            sx={{ borderRadius: 2, fontWeight: 700 }}
+                          >
+                            Delete Selected ({selectedIds.length})
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => {
+                              setIsSelectMode(false);
+                              setSelectedIds([]);
+                            }}
+                            sx={{ borderRadius: 2, color: 'text.secondary', borderColor: 'divider' }}
+                          >
+                            Cancel
+                          </Button>
+                        </Box>
+                      )}
+                    </>
+                  )}
+                </Box>
+              </Box>
+              <Divider sx={{ mb: 3 }} />
 
-      {/* App & URL Usage Section */}
-      <div className="glass-panel p-0 overflow-hidden">
-        <div className="p-6 pb-4 border-b border-white/5">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">pie_chart</span>
-            App & URL Usage Analysis
-          </h3>
-          
-          {appUsage.length > 0 && (
-            <div className="mt-6">
-              <div className="flex justify-between text-xs font-medium text-secondary mb-2">
-                <span className="text-emerald-400">Productive ({Math.round(productivePct)}%)</span>
-                <span className="text-slate-400">Neutral ({Math.round(neutralPct)}%)</span>
-                <span className="text-amber-400">Unproductive ({Math.round(unproductivePct)}%)</span>
-              </div>
-              <div className="w-full h-2.5 bg-white/5 rounded-full overflow-hidden flex shadow-inner">
-                <div className="bg-emerald-500 h-full transition-all duration-1000" style={{ width: `${productivePct}%` }} title="Productive"></div>
-                <div className="bg-slate-400 h-full transition-all duration-1000" style={{ width: `${neutralPct}%` }} title="Neutral"></div>
-                <div className="bg-amber-500 h-full transition-all duration-1000" style={{ width: `${unproductivePct}%` }} title="Unproductive"></div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-secondary">
-            <thead className="text-xs uppercase bg-white/5 text-secondary border-y border-white/5">
-              <tr>
-                <th className="px-6 py-4 font-semibold tracking-wider">Application / URL</th>
-                <th className="px-6 py-4 font-semibold tracking-wider">Category</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-right">Time Spent</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {appUsage.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="px-6 py-12 text-center text-secondary/60 bg-white/5">
-                    No application usage data logged for this date.
-                  </td>
-                </tr>
+              {screenshots.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 4 }}>
+                  No screen capture history logged.
+                </Typography>
               ) : (
-                appUsage.sort((a, b) => b.duration_minutes - a.duration_minutes).map((app, index) => (
-                  <tr key={index} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-6 py-4 font-medium text-white flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center border border-white/5 shadow-sm">
-                        <span className="material-symbols-outlined text-[18px] text-primary/70">
-                          {app.app_name.includes('http') || app.app_name.includes('www.') || app.app_name.includes('.com') ? 'public' : 'desktop_windows'}
-                        </span>
-                      </div>
-                      <span className="truncate max-w-[200px] md:max-w-[400px]" title={app.app_name}>
-                        {app.app_name}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                        app.type === 'Productive' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                        app.type === 'Unproductive' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                        'bg-slate-500/10 text-slate-300 border-slate-500/20'
-                      }`}>
-                        {app.type || 'Neutral'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right font-medium text-white/90">
-                      {formatDuration(app.duration_minutes)}
-                    </td>
-                  </tr>
-                ))
+                <Grid container spacing={2}>
+                  {screenshots.map((ss) => {
+                    const isSelected = selectedIds.includes(ss._id || ss.id);
+                    return (
+                      <Grid key={ss._id || ss.id} size={{ xs: 12, sm: 6, md: 4 }}>
+                        <Paper
+                          variant="outlined"
+                          sx={{
+                            p: 1,
+                            cursor: 'pointer',
+                            position: 'relative',
+                            borderColor: isSelected ? 'error.main' : 'divider',
+                            borderWidth: isSelected ? '2px' : '1px',
+                            boxShadow: isSelected ? '0 0 10px rgba(239, 68, 68, 0.25)' : 'none',
+                            '&:hover': { 
+                              borderColor: isSelectMode ? (isSelected ? 'error.dark' : 'primary.main') : 'primary.main', 
+                              transform: 'scale(1.02)' 
+                            },
+                            transition: 'all 0.2s ease-in-out',
+                            borderRadius: 2
+                          }}
+                          onClick={() => {
+                            if (isSelectMode) {
+                              toggleSelect(ss._id || ss.id);
+                            } else {
+                              setSelectedImage(ss.screenshotUrl.startsWith('/uploads') ? `${API_URL}${ss.screenshotUrl}` : ss.screenshotUrl);
+                            }
+                          }}
+                        >
+                          {isSelectMode && (
+                            <Box sx={{ position: 'absolute', top: 4, left: 4, zIndex: 10 }}>
+                              <Checkbox
+                                size="small"
+                                color="error"
+                                checked={isSelected}
+                                onChange={() => toggleSelect(ss._id || ss.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                sx={{
+                                  p: 0.5,
+                                  color: 'rgba(255,255,255,0.7)',
+                                  bgcolor: 'rgba(0,0,0,0.5)',
+                                  borderRadius: 1,
+                                  '&.Mui-checked': {
+                                    color: 'error.main',
+                                    bgcolor: 'rgba(0,0,0,0.7)',
+                                  },
+                                  '&:hover': {
+                                    bgcolor: 'rgba(0,0,0,0.8)',
+                                  }
+                                }}
+                              />
+                            </Box>
+                          )}
+                          <Box
+                            component="img"
+                            src={ss.screenshotUrl.startsWith('/uploads') ? `${API_URL}${ss.screenshotUrl}` : ss.screenshotUrl}
+                            alt="screen capture log"
+                            sx={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 1 }}
+                          />
+                          <Typography variant="caption" align="center" sx={{ mt: 1, fontWeight: 500, display: 'block' }}>
+                            {new Date(ss.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                    );
+                  })}
+                </Grid>
               )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            </CardContent>
+          </Card>
+        </Grid>
 
-      {/* Image Preview Modal */}
-      {selectedImage && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-fade-in"
-          onClick={() => setSelectedImage(null)}
-        >
-          <div className="relative max-w-7xl max-h-[90vh] flex flex-col items-center">
-            <button 
-              className="absolute -top-12 right-0 p-2 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors"
-              onClick={(e) => { e.stopPropagation(); setSelectedImage(null); }}
+        {/* Application & Website Usage Telemetry Logs */}
+        <Grid size={{ xs: 12 }}>
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+                Application & Website Usage Logs (Active Window)
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+
+              {appUsage.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 4 }}>
+                  No application usage telemetry logged from the desktop agent.
+                </Typography>
+              ) : (
+                <Box>
+                  {/* Segmented Progress bar */}
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                    Productivity Breakdown
+                  </Typography>
+                  <Box sx={{ display: 'flex', height: 16, borderRadius: 8, overflow: 'hidden', mb: 2, bgcolor: 'action.hover', border: '1px solid', borderColor: 'divider' }}>
+                    {productiveMins > 0 && (
+                      <Box 
+                        sx={{ width: `${productivePct}%`, bgcolor: 'success.main', transition: 'width 0.3s ease' }} 
+                        title={`Productive: ${productivePct.toFixed(1)}%`} 
+                      />
+                    )}
+                    {neutralMins > 0 && (
+                      <Box 
+                        sx={{ width: `${neutralPct}%`, bgcolor: 'action.disabledBackground', transition: 'width 0.3s ease' }} 
+                        title={`Neutral: ${neutralPct.toFixed(1)}%`} 
+                      />
+                    )}
+                    {unproductiveMins > 0 && (
+                      <Box 
+                        sx={{ width: `${unproductivePct}%`, bgcolor: 'error.main', transition: 'width 0.3s ease' }} 
+                        title={`Unproductive: ${unproductivePct.toFixed(1)}%`} 
+                      />
+                    )}
+                  </Box>
+
+                  {/* Legend row */}
+                  <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mb: 4 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'success.main' }} />
+                      <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                        Productive: <strong>{formatDuration(productiveMins)}</strong> ({productivePct.toFixed(0)}%)
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'action.disabled' }} />
+                      <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                        Neutral: <strong>{formatDuration(neutralMins)}</strong> ({neutralPct.toFixed(0)}%)
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'error.main' }} />
+                      <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                        Unproductive: <strong>{formatDuration(unproductiveMins)}</strong> ({unproductivePct.toFixed(0)}%)
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* App logs table */}
+                  <TableContainer component={Paper} variant="outlined" sx={{ border: 'none' }}>
+                    <Table>
+                      <TableHead sx={{ bgcolor: 'action.hover' }}>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 600 }}>Application</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Focused Window Title</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }} align="right">Time Spent</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {appUsage.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell sx={{ fontWeight: 500 }}>{item.app_name}</TableCell>
+                            <TableCell sx={{ color: 'text.secondary', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {item.window_title || '--'}
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                size="small"
+                                label={item.type}
+                                color={item.type === 'Productive' ? 'success' : item.type === 'Unproductive' ? 'error' : 'default'}
+                                variant="outlined"
+                                sx={{ fontWeight: 600 }}
+                              />
+                            </TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600 }}>
+                              {formatDuration(item.duration_minutes)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Activity & Productivity Logs */}
+        <Grid size={{ xs: 12 }}>
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TimeIcon color="primary" /> Keyboard & Mouse Interaction Logs
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+
+              {activity.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 3 }}>
+                  No activity logs synchronized.
+                </Typography>
+              ) : (
+                <TableContainer component={Paper} variant="outlined" sx={{ border: 'none' }}>
+                  <Table>
+                    <TableHead sx={{ bgcolor: 'action.hover' }}>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Active Duration (Mins)</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Idle Duration (Mins)</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Keyboard Keypresses</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Mouse Clicks/Events</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Productivity Score</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {activity.map((act) => (
+                        <TableRow key={act._id}>
+                          <TableCell sx={{ fontWeight: 500 }}>{act.date}</TableCell>
+                          <TableCell>{Math.round(act.activeMinutes * 10) / 10} min</TableCell>
+                          <TableCell>{Math.round(act.idleMinutes * 10) / 10} min</TableCell>
+                          <TableCell>{act.keyboardCount}</TableCell>
+                          <TableCell>{act.mouseCount}</TableCell>
+                          <TableCell sx={{ fontWeight: 700, color: act.productivityPercentage > 80 ? 'success.main' : act.productivityPercentage > 50 ? 'warning.main' : 'error.main' }}>
+                            {act.productivityPercentage}%
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Image zoom modal Dialog */}
+      <Dialog open={selectedImage !== null} onClose={() => setSelectedImage(null)} maxWidth="lg">
+        <Box sx={{ position: 'relative', bgcolor: 'black' }}>
+          <Tooltip title="Close">
+            <IconButton
+              onClick={() => setSelectedImage(null)}
+              sx={{ position: 'absolute', top: 8, right: 8, color: 'white', bgcolor: 'rgba(0,0,0,0.5)', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' } }}
             >
-              <span className="material-symbols-outlined">close</span>
-            </button>
-            <img 
-              src={selectedImage} 
-              alt="Expanded view" 
-              className="max-w-full max-h-[85vh] object-contain rounded-lg border border-white/20 shadow-2xl"
-              onClick={(e) => e.stopPropagation()} 
+              <CloseIcon />
+            </IconButton>
+          </Tooltip>
+          <DialogContent sx={{ p: 0, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Box
+              component="img"
+              src={selectedImage}
+              alt="Zoomed Capture Details"
+              sx={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain' }}
             />
-          </div>
-        </div>
-      )}
-    </div>
+          </DialogContent>
+        </Box>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, color: 'error.main' }}>⚠️ Delete Screenshots</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            Are you sure you want to delete the <strong>{selectedIds.length}</strong> selected screen capture{selectedIds.length > 1 ? 's' : ''}?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            This action cannot be undone. The selected screenshots will be permanently deleted from the system and server storage.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={() => setDeleteConfirmOpen(false)} color="inherit" disabled={deleteLoading}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteSelected}
+            variant="contained"
+            color="error"
+            disabled={deleteLoading}
+            startIcon={deleteLoading ? <CircularProgress size={20} color="inherit" /> : <DeleteIcon />}
+          >
+            {deleteLoading ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }
 
