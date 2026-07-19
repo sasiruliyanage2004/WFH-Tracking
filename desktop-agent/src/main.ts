@@ -8,7 +8,7 @@ import axios from 'axios';
 import fs from 'fs';
 import os from 'os';
 import * as crypto from 'crypto';
-const activeWindow = require('active-win');
+// active-win was removed
 
 // Local persistent cache configuration
 const getOfflineCacheDir = () => path.join(app.getPath('userData'), 'offline-cache');

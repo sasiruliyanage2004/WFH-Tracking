@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
 // Load environment variables from the parent directory if not present
-require('dotenv').config({ path: path.join(__dirname, '../backend/.env') });
+require('dotenv').config({ path: path.join(__dirname, '../../backend/.env') });
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
@@ -15,7 +15,7 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function uploadRelease() {
-  const exePath = path.join(__dirname, 'dist', 'WorkforceOS-Agent-Setup.exe');
+  const exePath = path.join(__dirname, '../dist', 'WorkforceOS-Agent-Setup.exe');
   if (!fs.existsSync(exePath)) {
     console.error("Release executable not found at:", exePath);
     process.exit(1);

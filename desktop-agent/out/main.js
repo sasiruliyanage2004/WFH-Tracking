@@ -11,7 +11,7 @@ const child_process_1 = require("child_process");
 const axios_1 = __importDefault(require("axios"));
 const fs_1 = __importDefault(require("fs"));
 const os_1 = __importDefault(require("os"));
-const activeWindow = require('active-win');
+// active-win was removed
 // Local persistent cache configuration
 const getOfflineCacheDir = () => path_1.default.join(electron_1.app.getPath('userData'), 'offline-cache');
 const getOfflineScreenshotsDir = () => path_1.default.join(getOfflineCacheDir(), 'screenshots');
