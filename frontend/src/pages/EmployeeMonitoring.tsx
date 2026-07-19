@@ -249,16 +249,16 @@ function EmployeeMonitoring() {
                 <TimeIcon color="primary" /> Breaks & Pauses
               </Typography>
               <Divider sx={{ mb: 2 }} />
-              {latestCheckin?.breaks && latestCheckin.breaks.length > 0 ? (
+              {(latestCheckin?.breakHistory || latestCheckin?.breaks) && (latestCheckin.breakHistory || latestCheckin.breaks).length > 0 ? (
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  {latestCheckin.breaks.map((b, i) => {
-                    const start = new Date(b.startTime);
-                    const end = b.endTime ? new Date(b.endTime) : new Date();
+                  {(latestCheckin.breakHistory || latestCheckin.breaks).map((b: any, i: number) => {
+                    const start = new Date(b.startTime || b.start_time);
+                    const end = (b.endTime || b.end_time) ? new Date(b.endTime || b.end_time) : new Date();
                     const diffMins = Math.round((end.getTime() - start.getTime()) / 60000);
                     return (
                       <Chip 
                         key={i} 
-                        label={`${b.breakType}: ${diffMins}m ${b.note ? `"${b.note}"` : ''}`} 
+                        label={`${b.breakType || b.break_type || b.type}: ${diffMins}m ${b.note ? `"${b.note}"` : ''}`} 
                         variant="outlined"
                         color="secondary"
                       />
