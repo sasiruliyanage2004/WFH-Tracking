@@ -41,6 +41,11 @@ public class GlobalHook {
     private static long _lastMouseMoveTime = 0;
     private static int _lastMouseX = 0;
     private static int _lastMouseY = 0;
+    
+    private static int _lastDx = 0;
+    private static int _lastDy = 0;
+    private static int _jigglerSuspicionScore = 0;
+    public static bool IsSuspicious = false;
 
     public static void Start() {
         _keyboardHookID = SetHook(_keyboardProc, WH_KEYBOARD_LL);
@@ -68,6 +73,8 @@ public class GlobalHook {
     private static IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam) {
         if (nCode >= 0 && (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN)) {
             KeyboardCount++;
+            _jigglerSuspicionScore = 0;
+            IsSuspicious = false;
         }
         return CallNextHookEx(_keyboardHookID, nCode, wParam, lParam);
     }
@@ -79,9 +86,25 @@ public class GlobalHook {
             } else if (wParam == (IntPtr)WM_MOUSEMOVE) {
                 MSLLHOOKSTRUCT hookStruct = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT));
                 long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                if (now - _lastMouseMoveTime > 1000) {
-                    int dx = hookStruct.pt.x - _lastMouseX;
-                    int dy = hookStruct.pt.y - _lastMouseY;
+                
+                int dx = hookStruct.pt.x - _lastMouseX;
+                int dy = hookStruct.pt.y - _lastMouseY;
+
+                if (now - _lastMouseMoveTime > 500) {
+                    if (dx == -_lastDx && dy == -_lastDy && (dx != 0 || dy != 0)) {
+                        _jigglerSuspicionScore += 2;
+                    } else if (dx == _lastDx && dy == _lastDy && Math.Abs(dx) <= 5 && Math.Abs(dy) <= 5 && (dx != 0 || dy != 0)) {
+                        _jigglerSuspicionScore += 1;
+                    } else {
+                        _jigglerSuspicionScore = Math.Max(0, _jigglerSuspicionScore - 1);
+                    }
+
+                    if (_jigglerSuspicionScore > 10) {
+                        IsSuspicious = true;
+                    }
+                    _lastDx = dx;
+                    _lastDy = dy;
+
                     if (Math.Abs(dx) > 5 || Math.Abs(dy) > 5) {
                         MouseCount++;
                         _lastMouseMoveTime = now;
@@ -121,10 +144,11 @@ public class GlobalHook {
         }
 
         // Output to stdout for Electron to read
-        Console.WriteLine("KEYS:" + KeyboardCount + "|CLICKS:" + MouseCount + "|App:" + processName + "|Title:" + windowTitle);
+        Console.WriteLine("KEYS:" + KeyboardCount + "|CLICKS:" + MouseCount + "|App:" + processName + "|Title:" + windowTitle + "|Suspicious:" + (IsSuspicious ? "1" : "0"));
         Console.Out.Flush();
         KeyboardCount = 0;
         MouseCount = 0;
+        IsSuspicious = false;
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]

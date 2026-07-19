@@ -196,6 +196,7 @@ let localKeyboardCount: number = 0;
 let localMouseCount = 0;
 let activeSecondsInTick = 0;
 let idleSecondsInTick = 0;
+let isSuspiciousTick = false;
 let lastInputTime = Date.now();
 
 let splashWindow: BrowserWindow | null = null;
@@ -228,7 +229,7 @@ function createSplashWindow() {
   });
 }
 
-function createWindow() {
+function createWindow(isHiddenStartup: boolean = false) {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -280,7 +281,7 @@ const startUrl = FRONTEND_URL;
       if (splashWindow) {
         splashWindow.close();
       }
-      if (mainWindow) {
+      if (mainWindow && !isHiddenStartup) {
         mainWindow?.show();
         mainWindow?.focus();
       }
@@ -340,11 +341,20 @@ function startIdleDetection() {
 
       const idleTimeSecs = powerMonitor.getSystemIdleTime();
       
-      // 15 minutes threshold (900 seconds)
       if (idleTimeSecs >= 900) {
-        wasIdleBefore = true;
-        if (idleTimeSecs > maxIdleTimeSecs) {
-          maxIdleTimeSecs = idleTimeSecs;
+        if (idleTimeSecs >= 7200) { // 2 hours
+          console.log(`Desktop Agent: User idle for >= 2 hours. Auto-checkout triggered.`);
+          if (mainWindow && !mainWindow?.isDestroyed()) {
+             mainWindow?.webContents.send('idle:auto-checkout');
+          }
+          wasIdleBefore = false;
+          maxIdleTimeSecs = 0;
+          stopTracking();
+        } else {
+          wasIdleBefore = true;
+          if (idleTimeSecs > maxIdleTimeSecs) {
+            maxIdleTimeSecs = idleTimeSecs;
+          }
         }
       } else {
         if (wasIdleBefore) {
@@ -369,8 +379,11 @@ app.whenReady().then(() => {
   // Auto Start on OS Boot
   app.setLoginItemSettings({
     openAtLogin: true,
-    openAsHidden: false
+    openAsHidden: true,
+    args: ['--hidden']
   });
+
+  const isHiddenStartup = process.argv.includes('--hidden');
 
   // --- AUTO UPDATER LOGIC ---
   autoUpdater.checkForUpdatesAndNotify();
@@ -424,12 +437,20 @@ app.whenReady().then(() => {
     if (mainWindow) mainWindow?.show();
   });
 
-  createSplashWindow();
-  createWindow();
+  if (!isHiddenStartup) {
+    createSplashWindow();
+  }
+  createWindow(isHiddenStartup);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
+    }
+  });
+
+  ipcMain.on('notification:show', (event, { title, body }) => {
+    if (Notification.isSupported()) {
+      new Notification({ title, body, icon: path.join(__dirname, '../win-icon.ico') }).show();
     }
   });
 });
@@ -597,6 +618,7 @@ function startTracking() {
   localMouseCount = 0;
   activeSecondsInTick = 0;
   idleSecondsInTick = 0;
+  isSuspiciousTick = false;
 
   const debugLogPath = path.join(app.getPath('userData'), 'agent_debug.log');
   try {
@@ -658,6 +680,12 @@ function startTracking() {
             const parts = line.split('|');
             const keys = parseInt(parts[0].replace('KEYS:', '')) || 0;
             const clicks = parseInt(parts[1].replace('CLICKS:', '')) || 0;
+            const suspiciousPart = parts.find((p: string) => p.startsWith('Suspicious:'));
+            const suspicious = suspiciousPart ? suspiciousPart.replace('Suspicious:', '') === '1' : false;
+
+            if (suspicious) {
+              isSuspiciousTick = true;
+            }
 
             localKeyboardCount += keys;
             localMouseCount += clicks;
@@ -838,12 +866,14 @@ async function flushActivityTelemetry() {
   const clicks = localMouseCount;
   const activeSecs = activeSecondsInTick;
   const idleSecs = idleSecondsInTick;
+  const suspicious = isSuspiciousTick;
 
   // Reset local tick counters
   localKeyboardCount = 0;
   localMouseCount = 0;
   activeSecondsInTick = 0;
   idleSecondsInTick = 0;
+  isSuspiciousTick = false;
 
   if (activeSecs === 0 && idleSecs === 0) return; // Nothing to sync
 
@@ -856,7 +886,8 @@ async function flushActivityTelemetry() {
         activeSeconds: activeSecs,
         idleSeconds: idleSecs,
         keyboardCount: keys,
-        mouseCount: clicks
+        mouseCount: clicks,
+        suspicious: suspicious
       },
       {
         headers: { Authorization: `Bearer ${sessionToken}` }
@@ -869,7 +900,8 @@ async function flushActivityTelemetry() {
       activeSeconds: activeSecs,
       idleSeconds: idleSecs,
       keyboardCount: keys,
-      mouseCount: clicks
+      mouseCount: clicks,
+      suspicious: suspicious
     });
   }
 }

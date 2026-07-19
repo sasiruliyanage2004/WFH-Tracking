@@ -27,7 +27,7 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({ open, onClo
   const checkOutTime = new Date(attendanceData.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const start = new Date(attendanceData.checkInTime).getTime();
   const end = new Date(attendanceData.checkOutTime).getTime();
-  const totalHours = ((end - start) / 3600000).toFixed(2);
+  const totalHours = attendanceData.durationHours ? attendanceData.durationHours.toFixed(2) : ((end - start) / 3600000).toFixed(2);
 
   return (
     <Dialog

@@ -4,7 +4,7 @@ import { sendNotification } from '../../infrastructure/services/notification';
 import express, { Request, Response } from 'express';
 const router = express.Router();
 import supabase from '../../infrastructure/database/supabase';
-import { sendWarningEmail } from '../../infrastructure/services/email';
+import { sendWarningEmail, sendSuspiciousActivityEmail } from '../../infrastructure/services/email';
 const logger = require('../../infrastructure/services/logger');
 import { authenticate, authorize } from '../middlewares/auth';
 import crypto from 'crypto';
@@ -15,7 +15,8 @@ import path from 'path';
 
 // In-memory cache for rolling 1-hour activity details to prevent warning email spam
 // Structure: { [employeeId]: { logs: Array<{ timestamp, activeSeconds, idleSeconds }>, lastWarningSentAt: number } }
-const rollingActivityCache = {};
+const rollingActivityCache: any = {};
+const suspiciousAlertCache: any = {};
 
 async function checkRollingWarning(employee, activeSeconds, idleSeconds, minMinutesSetting) {
   const employeeId = employee.id;
@@ -257,8 +258,36 @@ router.post('/monitoring/screenshots/delete-bulk', authenticate, authorize(['Man
 });
 
 router.post('/monitoring/activity', authenticate, async (req: Request, res: Response) => {
-  const { activeSeconds, idleSeconds, keyboardCount, mouseCount, date } = req.body;
+  const { activeSeconds, idleSeconds, keyboardCount, mouseCount, date, suspicious } = req.body;
   const today = date || new Date().toISOString().split('T')[0];
+
+  if (suspicious) {
+    const now = Date.now();
+    const lastSent = suspiciousAlertCache[req.user!.id] || 0;
+    // Rate limit to once per hour
+    if (now - lastSent > 60 * 60 * 1000) {
+      suspiciousAlertCache[req.user!.id] = now;
+      
+      // Async alert managers
+      (async () => {
+        try {
+          const { data: managers } = await supabase
+            .from('users')
+            .select('email, id')
+            .eq('role', 'Manager');
+            
+          if (managers) {
+            for (const mgr of managers) {
+              await sendNotification(mgr.id, `${req.user!.name} has exhibited suspicious mouse activity (Anti-Cheat).`, 'warning');
+              await sendSuspiciousActivityEmail(req.user!.name, mgr.email, req.user!.companyId);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to send suspicious alert:', err);
+        }
+      })();
+    }
+  }
 
   let minMinutes = 60;
   try {

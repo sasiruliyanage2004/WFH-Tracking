@@ -256,4 +256,37 @@ const sendRegistrationOTPEmail = async (recipientEmail, otpCode) => {
   }
 };
 
-export { sendWarningEmail, sendPasswordResetEmail, sendRegistrationOTPEmail };
+export const sendSuspiciousActivityEmail = async (employeeName: string, managerEmail: string, companyId?: string) => {
+  const config = await getSmtpConfig(companyId, managerEmail);
+  if (!config.user || !config.pass) return false;
+
+  const transporter = nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.port === 465,
+    auth: { user: config.user, pass: config.pass }
+  });
+
+  const mailOptions = {
+    from: config.sender,
+    to: managerEmail,
+    subject: '⚠️ Security Alert: Suspicious Activity Detected',
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px; border-left: 5px solid #dc2626; background: #fef2f2;">
+        <h2>Suspicious Activity Detected</h2>
+        <p>Our Anti-Cheat system has detected suspicious, artificial mouse movements (e.g. Mouse Jiggler) from <strong>${employeeName}</strong>.</p>
+        <p>Please review their activity logs and screenshots in the dashboard.</p>
+      </div>
+    `
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (err) {
+    console.error('Failed to send suspicious activity email:', err);
+    return false;
+  }
+};
+
+export { sendWarningEmail, sendPasswordResetEmail, sendRegistrationOTPEmail, sendSuspiciousActivityEmail };

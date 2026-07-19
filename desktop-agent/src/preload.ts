@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('api', {
   minimizeWindow: () => ipcRenderer.send('window:minimize'),
   maximizeWindow: () => ipcRenderer.send('window:maximize'),
   closeWindow: () => ipcRenderer.send('window:close'),
+  showNotification: (title: string, body: string) => ipcRenderer.send('notification:show', { title, body }),
   setZoomFactor: (factor) => {
     try {
       webFrame.setZoomFactor(factor);
@@ -30,6 +31,10 @@ contextBridge.exposeInMainWorld('api', {
   onIdlePrompt: (callback) => {
     ipcRenderer.removeAllListeners('idle:prompt-break');
     ipcRenderer.on('idle:prompt-break', (event, data) => callback(data));
+  },
+  onIdleAutoCheckout: (callback) => {
+    ipcRenderer.removeAllListeners('idle:auto-checkout');
+    ipcRenderer.on('idle:auto-checkout', () => callback());
   },
   onWindowMaximize: (callback) => {
     ipcRenderer.removeAllListeners('window:maximized');

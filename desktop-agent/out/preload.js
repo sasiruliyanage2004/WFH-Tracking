@@ -10,6 +10,7 @@ electron_1.contextBridge.exposeInMainWorld('api', {
     minimizeWindow: () => electron_1.ipcRenderer.send('window:minimize'),
     maximizeWindow: () => electron_1.ipcRenderer.send('window:maximize'),
     closeWindow: () => electron_1.ipcRenderer.send('window:close'),
+    showNotification: (title, body) => electron_1.ipcRenderer.send('notification:show', { title, body }),
     setZoomFactor: (factor) => {
         try {
             electron_1.webFrame.setZoomFactor(factor);

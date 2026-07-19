@@ -153,21 +153,51 @@ function EmployeeDashboard() {
     try {
       setLoading(true);
       const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+
+      // Sync offline actions if online
+      if (navigator.onLine) {
+        const offlineActionStr = localStorage.getItem('offlineAction');
+        if (offlineActionStr) {
+          try {
+            const action = JSON.parse(offlineActionStr);
+            if (action.type === 'checkin') {
+              await axios.post(`${API_URL}/api/attendance/checkin`, { offlineTimestamp: action.timestamp, latitude: 0, longitude: 0, address: 'Offline Check-in', webcamImage: '' }, authHeader);
+            } else if (action.type === 'checkout') {
+              await axios.post(`${API_URL}/api/attendance/checkout`, { offlineTimestamp: action.timestamp }, authHeader);
+            }
+            localStorage.removeItem('offlineAction');
+          } catch (e: any) {
+             console.error('Failed to sync offline action:', e.message);
+          }
+        }
+      }
       
       const attendanceRes = await axios.get(`${API_URL}/api/attendance/status`, authHeader);
       const att = attendanceRes.data.attendance;
       
       if (!att) {
         try {
-          const checkInRes = await axios.post(
-            `${API_URL}/api/attendance/checkin`,
-            { latitude: 0, longitude: 0, address: 'Auto Check-in on Startup', webcamImage: '' },
-            authHeader
-          );
-          setAttendance(checkInRes.data.attendance);
-          setAutoCheckinSnackbar(true);
+          // Check if this is the employee's very first time logging in
+          const historyRes = await axios.get(`${API_URL}/api/attendance/history`, authHeader);
+          const hasPastCheckins = historyRes.data && historyRes.data.length > 0;
+
+          if (hasPastCheckins) {
+            const checkInRes = await axios.post(
+              `${API_URL}/api/attendance/checkin`,
+              { latitude: 0, longitude: 0, address: 'Auto Check-in on Startup', webcamImage: '' },
+              authHeader
+            );
+            setAttendance(checkInRes.data.attendance);
+            if (window.api && window.api.showNotification) {
+              window.api.showNotification('WorkforceOS', 'Welcome! You have been automatically checked in. Have a great day! 🚀');
+            } else {
+              setAutoCheckinSnackbar(true);
+            }
+          } else {
+            setAttendance(null);
+          }
         } catch (err) {
-          console.error('Auto checkin failed:', err.message);
+          console.error('Auto checkin or history fetch failed:', err.message);
           setAttendance(att);
         }
       } else {
@@ -236,6 +266,26 @@ function EmployeeDashboard() {
         // Clear local state and refetch
         setAttendance(null);
         fetchData();
+      });
+    }
+
+    if (window.api && typeof window.api.onIdleAutoCheckout === 'function') {
+      window.api.onIdleAutoCheckout(async () => {
+        try {
+          await axios.post(`${API_URL}/api/attendance/checkout`, {}, { headers: { Authorization: `Bearer ${token}` } });
+          setAttendance(null);
+          fetchData();
+          if (window.api.showNotification) {
+            window.api.showNotification('Auto Check-Out', 'You have been automatically checked out due to 2 hours of inactivity.');
+          }
+        } catch (err) {
+          if (!navigator.onLine) {
+            const timestamp = new Date().toISOString();
+            const action = { type: 'checkout', timestamp };
+            localStorage.setItem('offlineAction', JSON.stringify(action));
+            setAttendance(null);
+          }
+        }
       });
     }
 
@@ -542,8 +592,24 @@ function EmployeeDashboard() {
       setAttendance(res.data.attendance);
       setCapturedPhoto('');
       fetchData();
-    } catch (err) {
-      console.error(err.response?.data?.message || err.message);
+    } catch (err: any) {
+      if (!navigator.onLine || !err.response) {
+        const timestamp = new Date().toISOString();
+        const action = { type: 'checkin', timestamp };
+        localStorage.setItem('offlineAction', JSON.stringify(action));
+        setAttendance({
+          id: 'offline-' + Date.now(),
+          checkInTime: timestamp,
+          checkOutTime: null,
+          status: 'Present',
+          durationHours: 0,
+          date: timestamp.split('T')[0],
+          isOffline: true
+        });
+        setCapturedPhoto('');
+      } else {
+        console.error(err.response?.data?.message || err.message);
+      }
     }
   };
 
@@ -559,8 +625,20 @@ function EmployeeDashboard() {
       setCheckoutData(res.data.attendance);
       setShowCheckoutSuccess(true);
       fetchData();
-    } catch (err) {
-      console.error(err.response?.data?.message || err.message);
+    } catch (err: any) {
+      if (!navigator.onLine || !err.response) {
+        const timestamp = new Date().toISOString();
+        const action = { type: 'checkout', timestamp };
+        localStorage.setItem('offlineAction', JSON.stringify(action));
+        if (attendance) {
+          const updatedAtt = { ...attendance, checkOutTime: timestamp, status: 'Completed' };
+          setAttendance(updatedAtt);
+          setCheckoutData(updatedAtt);
+          setShowCheckoutSuccess(true);
+        }
+      } else {
+        console.error(err.response?.data?.message || err.message);
+      }
     }
   };
 
@@ -905,57 +983,6 @@ function EmployeeDashboard() {
                 </Box>
               </Box>
 
-              {/* GPS & Webcam configuration options with auto-GPS capture */}
-              {(!isCheckedIn && !isRecentCheckout) && (
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>Verification Step:</Typography>
-                  <Button
-                    variant={capturedPhoto ? "contained" : "outlined"}
-                    fullWidth
-                    startIcon={gpsLoading ? <CircularProgress size={20} color="inherit" /> : <CameraIcon />}
-                    onClick={openWebcam}
-                    sx={{ py: 1.2, borderRadius: 2 }}
-                  >
-                    {capturedPhoto 
-                      ? (gpsData.latitude ? 'Selfie & Location Captured' : 'Selfie Captured (Resolving GPS...)') 
-                      : 'Capture Verification Selfie'}
-                  </Button>
-
-                  {gpsData.address && (
-                    <Typography variant="caption" component="div" sx={{ mt: 1.5, color: 'success.main', fontWeight: 500 }}>
-                      📍 Location Verified: {gpsData.address}
-                    </Typography>
-                  )}
-                  {gpsError && (
-                    <Box sx={{ mt: 1.5 }}>
-                      <Typography variant="caption" component="div" sx={{ color: 'warning.main', fontWeight: 500, mb: 1 }}>
-                        ⚠️ {gpsError}
-                      </Typography>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        color="warning"
-                        onClick={startMobileVerification}
-                        sx={{ textTransform: 'none', borderRadius: 2 }}
-                      >
-                        📱 Verify Exact Location via Mobile
-                      </Button>
-                    </Box>
-                  )}
-
-                  {capturedPhoto && (
-                    <Box sx={{ mt: 2.5, display: 'flex', justifyContent: 'center' }}>
-                      <Box
-                        component="img"
-                        src={capturedPhoto}
-                        alt="selfie"
-                        sx={{ width: 160, height: 120, borderRadius: 3, objectFit: 'cover', border: '3px solid', borderColor: 'primary.main', boxShadow: 3 }}
-                      />
-                    </Box>
-                  )}
-                </Box>
-              )}
-
               {/* Action Buttons */}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {!isCheckedIn && !isRecentCheckout && (
@@ -964,7 +991,6 @@ function EmployeeDashboard() {
                     color="primary"
                     size="large"
                     fullWidth
-                    disabled={(!isRecentCheckout && !capturedPhoto) || gpsLoading || !!gpsError}
                     startIcon={<CheckInIcon />}
                     onClick={handleCheckIn}
                     sx={{ py: 1.8, borderRadius: 3, fontWeight: 700, fontSize: '1rem', bgcolor: '#0038a8' }}
@@ -1240,9 +1266,43 @@ function EmployeeDashboard() {
                   value={shiftProgressPercent} 
                   sx={{ height: 6, borderRadius: 3, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { borderRadius: 3 } }}
                 />
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontWeight: 600 }}>
-                  {attendance ? `Completed ${shiftProgressPercent}% of 8 hrs target` : 'Not Checked-In'}
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1.5, alignItems: 'center' }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    {attendance ? `Completed ${shiftProgressPercent}% of 8 hrs target` : 'Not Checked-In'}
+                  </Typography>
+                </Box>
+                
+                {/* Break History Section */}
+                <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, bgcolor: 'background.default', border: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', display: 'block', mb: 1, fontSize: '0.65rem' }}>
+                    Today's Breaks
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    {attendance && attendance.breakHistory && attendance.breakHistory.length > 0 ? (
+                      attendance.breakHistory.map((brk: any, i: number) => (
+                        <Chip 
+                          key={i} 
+                          label={`${brk.breakType || brk.type} Break`} 
+                          size="small" 
+                          icon={<AccessTimeIcon sx={{ fontSize: '0.8rem !important' }} />}
+                          sx={{ 
+                            fontSize: '0.7rem', 
+                            height: 24, 
+                            bgcolor: 'rgba(245, 158, 11, 0.1)', 
+                            color: '#fbbf24',
+                            fontWeight: 600,
+                            border: '1px solid rgba(245, 158, 11, 0.25)',
+                            '& .MuiChip-icon': { color: 'inherit' }
+                          }} 
+                        />
+                      ))
+                    ) : (
+                      <Typography variant="caption" color="text.disabled" sx={{ fontStyle: 'italic', fontWeight: 500 }}>
+                        No breaks recorded today.
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
               </Box>
             </Card>
 

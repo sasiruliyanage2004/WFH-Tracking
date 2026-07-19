@@ -18,7 +18,8 @@ const formatAttendance = (data) => {
     checkInTime: data.check_in_time,
     checkOutTime: data.check_out_time,
     status: data.status,
-    workHours: data.work_hours,
+    durationHours: data.duration_hours || 0,
+    workHours: data.duration_hours || data.work_hours || 0,
     breakHours: data.break_hours || 0,
     checkInLocation: data.check_in_location,
     checkInAddress: data.check_in_address,
@@ -29,7 +30,7 @@ const formatAttendance = (data) => {
     onBreak: data.on_break || false,
     currentBreakType: data.current_break_type || null,
     currentBreakStartTime: data.current_break_start_time || null,
-    breakHistory: data.break_history || []
+    breakHistory: data.breaks || []
   };
 };
 
@@ -80,8 +81,9 @@ router.get('/mobile-location-status', authenticate, async (req: Request, res: Re
 });
 
 router.post('/checkin', authenticate, async (req: Request, res: Response) => {
-  const { latitude, longitude, address, webcamImage } = req.body;
-  const today = new Date().toISOString().split('T')[0];
+  const { latitude, longitude, address, webcamImage, offlineTimestamp } = req.body;
+  const checkInDate = offlineTimestamp ? new Date(offlineTimestamp) : new Date();
+  const today = checkInDate.toISOString().split('T')[0];
 
   try {
     const { data: existing } = await supabase
@@ -110,7 +112,7 @@ router.post('/checkin', authenticate, async (req: Request, res: Response) => {
       const { data, error: updateErr } = await supabase
         .from('attendance')
         .update({
-          check_in_time: new Date(),
+          check_in_time: checkInDate,
           check_out_time: null,
           latitude: latitude || existing.latitude,
           longitude: longitude || existing.longitude,
@@ -131,7 +133,7 @@ router.post('/checkin', authenticate, async (req: Request, res: Response) => {
         .insert([{
           employee_id: req.user!.id,
           date: today,
-          check_in_time: new Date(),
+          check_in_time: checkInDate,
           latitude,
           longitude,
           address: address || '',
@@ -187,7 +189,9 @@ router.post('/heartbeat', authenticate, async (req: Request, res: Response) => {
 });
 
 router.post('/checkout', authenticate, async (req: Request, res: Response) => {
-  const today = new Date().toISOString().split('T')[0];
+  const { offlineTimestamp } = req.body;
+  const checkOutTime = offlineTimestamp ? new Date(offlineTimestamp) : new Date();
+  const today = checkOutTime.toISOString().split('T')[0];
   try {
     const { data: atts, error: fetchErr } = await supabase
       .from('attendance')
@@ -206,7 +210,6 @@ router.post('/checkout', authenticate, async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'You have already checked out today.' });
     }
 
-    const checkOutTime = new Date();
     const checkIn = new Date(att.check_in_time);
     const sessionMs = checkOutTime - checkIn;
     const sessionHours = sessionMs / (1000 * 60 * 60);

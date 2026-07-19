@@ -206,7 +206,7 @@ function createSplashWindow() {
         splashWindow = null;
     });
 }
-function createWindow() {
+function createWindow(isHiddenStartup = false) {
     mainWindow = new electron_1.BrowserWindow({
         width: 1280,
         height: 800,
@@ -252,7 +252,7 @@ function createWindow() {
             if (splashWindow) {
                 splashWindow.close();
             }
-            if (mainWindow) {
+            if (mainWindow && !isHiddenStartup) {
                 mainWindow?.show();
                 mainWindow?.focus();
             }
@@ -333,8 +333,10 @@ electron_1.app.whenReady().then(() => {
     // Auto Start on OS Boot
     electron_1.app.setLoginItemSettings({
         openAtLogin: true,
-        openAsHidden: false
+        openAsHidden: true,
+        args: ['--hidden']
     });
+    const isHiddenStartup = process.argv.includes('--hidden');
     // --- AUTO UPDATER LOGIC ---
     electron_updater_1.autoUpdater.checkForUpdatesAndNotify();
     electron_updater_1.autoUpdater.on('update-available', () => {
@@ -380,11 +382,18 @@ electron_1.app.whenReady().then(() => {
         if (mainWindow)
             mainWindow?.show();
     });
-    createSplashWindow();
-    createWindow();
+    if (!isHiddenStartup) {
+        createSplashWindow();
+    }
+    createWindow(isHiddenStartup);
     electron_1.app.on('activate', () => {
         if (electron_1.BrowserWindow.getAllWindows().length === 0) {
             createWindow();
+        }
+    });
+    electron_1.ipcMain.on('notification:show', (event, { title, body }) => {
+        if (electron_1.Notification.isSupported()) {
+            new electron_1.Notification({ title, body, icon: path_1.default.join(__dirname, '../win-icon.ico') }).show();
         }
     });
 });
