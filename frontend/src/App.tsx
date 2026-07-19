@@ -8,7 +8,7 @@ import { authFail } from './redux/store';
 
 // Layout
 import DashboardLayout from './components/DashboardLayout';
-
+import TailwindDashboardLayout from './components/TailwindDashboardLayout';
 
 // Background Trackers
 import ActivityTracker from './components/ActivityTracker';
@@ -485,7 +485,11 @@ function App() {
       return <Navigate to="/manager/dashboard" replace />;
     }
 
-    return (
+    return !isDesktop ? (
+      <TailwindDashboardLayout>
+        {children}
+      </TailwindDashboardLayout>
+    ) : (
       <DashboardLayout isDarkMode={isDarkMode} setIsDarkMode={toggleTheme} appTheme={appTheme}>
         {children}
       </DashboardLayout>

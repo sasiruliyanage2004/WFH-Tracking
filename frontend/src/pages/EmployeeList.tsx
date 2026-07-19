@@ -1,95 +1,26 @@
-// frontend/src/pages/EmployeeList.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Avatar,
-  Chip,
-  Grid,
-  TextField,
-  InputAdornment,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Divider,
-  IconButton,
-  Tooltip,
-  Paper,
-  Snackbar
-} from '@mui/material';
-import { maskEmail } from '../utils/maskEmail';
-import {
-  Search as SearchIcon,
-  People as PeopleIcon,
-  Monitor as MonitorIcon,
-  Delete as DeleteIcon,
-  Email as EmailIcon,
-  Business as DepartmentIcon,
-  CalendarToday as JoinedIcon,
-  FiberManualRecord as StatusDotIcon,
-  FilterList as FilterIcon,
-  Block as BlockIcon,
-  CheckCircle as CheckCircleIcon,
-  LockOpen as LockOpenIcon,
-  AccessTime as TimeIcon,
-  PersonAddOutlined as AddUserIcon
-} from '@mui/icons-material';
-import CustomLoader from '../components/CustomLoader';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-
-// Status color mapping
-const statusConfig = {
-  'Active': { color: 'success', dot: '#22c55e', label: 'Active' },
-  'Checked Out': { color: 'default', dot: '#94a3b8', label: 'Checked Out' },
-  'Absent': { color: 'error', dot: '#ef4444', label: 'Absent' },
-};
-const getStatusConfig = (status) => {
-  if (status?.startsWith('On Break')) return { color: 'warning', dot: '#f59e0b', label: status };
-  return statusConfig[status] || { color: 'default', dot: '#94a3b8', label: status };
-};
 
 function EmployeeList() {
   const { token } = useSelector((state: any) => state.auth);
   const navigate = useNavigate();
 
-  const [employees, setEmployees] = useState([]);
-  const [filtered, setFiltered] = useState([]);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [filtered, setFiltered] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [selectedEmp, setSelectedEmp] = useState(null);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [statusConfirm, setStatusConfirm] = useState(null);
-  const [unlockConfirm, setUnlockConfirm] = useState(null);
+  
+  const [selectedEmp, setSelectedEmp] = useState<any>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [newEmpData, setNewEmpData] = useState({ name: '', email: '', department: 'Engineering', role: 'Employee' });
   const [addingEmp, setAddingEmp] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [lastDeletedEmp, setLastDeletedEmp] = useState(null);
-  const pendingDeleteRef = useRef(null);
-  const timeoutIdRef = useRef(null);
-
-  useEffect(() => {
-    return () => {
-      if (pendingDeleteRef.current) {
-        clearTimeout(timeoutIdRef.current);
-        pendingDeleteRef.current();
-      }
-    };
-  }, []);
 
   const fetchEmployees = async () => {
     try {
@@ -99,7 +30,7 @@ function EmployeeList() {
       });
       setEmployees(res.data);
       setFiltered(res.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch employees:', err.message);
     } finally {
       setLoading(false);
@@ -111,7 +42,6 @@ function EmployeeList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  // Filter logic
   useEffect(() => {
     let result = [...employees];
     if (search) {
@@ -137,106 +67,9 @@ function EmployeeList() {
 
   const departments = ['All', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean)))];
 
-  const handleDeleteConfirm = () => {
-    if (!deleteConfirm) return;
-
-    // Immediately execute any previous pending delete
-    if (pendingDeleteRef.current) {
-      clearTimeout(timeoutIdRef.current);
-      pendingDeleteRef.current();
-    }
-
-    const empToDelete = deleteConfirm;
-
-    // Optimistically remove from local state
-    setEmployees(prev => prev.filter(e => e._id !== empToDelete._id));
-
-    // Define the actual delete execution
-    const performDelete = async () => {
-      try {
-        await axios.delete(`${API_URL}/api/users/employees/${empToDelete._id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      } catch (err) {
-        console.error('Delete failed:', err.message);
-        // Restore employee list on failure
-        fetchEmployees();
-      } finally {
-        if (pendingDeleteRef.current === performDelete) {
-          pendingDeleteRef.current = null;
-        }
-      }
-    };
-
-    pendingDeleteRef.current = performDelete;
-    setLastDeletedEmp(empToDelete);
-    setDeleteConfirm(null);
-    setSnackbarOpen(true);
-
-    // Schedule actual delete after 6 seconds
-    timeoutIdRef.current = setTimeout(() => {
-      if (pendingDeleteRef.current === performDelete) {
-        performDelete();
-        setSnackbarOpen(false);
-      }
-    }, 6000);
-  };
-
-  const handleUndoDelete = () => {
-    if (timeoutIdRef.current) {
-      clearTimeout(timeoutIdRef.current);
-    }
-    if (lastDeletedEmp) {
-      setEmployees(prev => [...prev, lastDeletedEmp]);
-    }
-    pendingDeleteRef.current = null;
-    setLastDeletedEmp(null);
-    setSnackbarOpen(false);
-  };
-
-  const handleStatusConfirm = async () => {
-    if (!statusConfirm) return;
-    const empToToggle = statusConfirm;
-    const newStatus = !empToToggle.isActive;
-
-    try {
-      await axios.put(`${API_URL}/api/users/employees/${empToToggle._id}/status`, { isActive: newStatus }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setEmployees(prev => prev.map(e => e._id === empToToggle._id ? { ...e, isActive: newStatus } : e));
-    } catch (err) {
-      console.error('Status toggle failed:', err.message);
-    } finally {
-      setStatusConfirm(null);
-      if (selectedEmp?._id === empToToggle._id) {
-        setSelectedEmp(prev => ({ ...prev, isActive: newStatus }));
-      }
-    }
-  };
-
-  const handleUnlockConfirm = async () => {
-    if (!unlockConfirm) return;
-    const empToUnlock = unlockConfirm;
-
-    try {
-      await axios.put(`${API_URL}/api/users/employees/${empToUnlock._id}/unlock`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setEmployees(prev => prev.map(e => e._id === empToUnlock._id ? { ...e, is_locked: false, failed_login_attempts: 0 } : e));
-    } catch (err) {
-      console.error('Unlock failed:', err.message);
-    } finally {
-      setUnlockConfirm(null);
-      if (selectedEmp?._id === empToUnlock._id) {
-        setSelectedEmp(prev => ({ ...prev, is_locked: false, failed_login_attempts: 0 }));
-      }
-    }
-  };
-
-  const handleSnackbarClose = (event, reason) => {
-    if (reason === 'clickaway') return;
-    setSnackbarOpen(false);
-  };
+  const totalActive = employees.filter(e => e.todayStatus === 'Active').length;
+  const totalAbsent = employees.filter(e => e.todayStatus === 'Absent').length;
+  const totalOnBreak = employees.filter(e => e.todayStatus?.startsWith('On Break')).length;
 
   const handleAddEmployee = async () => {
     try {
@@ -248,487 +81,229 @@ function EmployeeList() {
       setAddModalOpen(false);
       setNewEmpData({ name: '', email: '', department: 'Engineering', role: 'Employee' });
       alert(`Employee added! Tell them to login with email: ${res.data.user.email} and password: password1234`);
-    } catch (err) {
+    } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to add employee');
     } finally {
       setAddingEmp(false);
     }
   };
 
-  // Summary stats
-  const totalActive = employees.filter(e => e.todayStatus === 'Active').length;
-  const totalAbsent = employees.filter(e => e.todayStatus === 'Absent').length;
-  const totalOnBreak = employees.filter(e => e.todayStatus?.startsWith('On Break')).length;
-
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <CustomLoader />
-      </Box>
+      <div className="p-xl flex items-center justify-center h-full">
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div className="p-lg lg:p-xl space-y-xl max-w-[1600px] mx-auto animate-fadeIn pb-32">
+      
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.025em' }}>
-            Employee Directory
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 500 }}>
-            {employees.length} registered employees · Live status as of today
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<PeopleIcon />}
-            onClick={() => setAddModalOpen(true)}
-            sx={{ borderRadius: 2 }}
-          >
-            Add Employee
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<PeopleIcon />}
-            onClick={fetchEmployees}
-            sx={{ borderRadius: 2 }}
-          >
-            Refresh List
-          </Button>
-        </Box>
-      </Box>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-md">
+        <div>
+          <h1 className="font-display-lg text-headline-lg text-on-surface tracking-tight">
+            User Management
+          </h1>
+          <p className="text-on-surface-variant font-body-md mt-xs">
+            {employees.length} total personnel • Organization-wide access control
+          </p>
+        </div>
+        <div className="flex gap-sm">
+          <button onClick={() => setAddModalOpen(true)} className="neumorphic-button bg-primary border border-primary text-on-primary px-md py-sm rounded-xl font-bold flex items-center gap-xs hover:bg-primary-container transition-all">
+            <span className="material-symbols-outlined text-sm">person_add</span>
+            Add Personnel
+          </button>
+        </div>
+      </div>
 
-      {/* Summary Stats Row */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        {[
-          { label: 'Total Employees', value: employees.length, color: 'primary.main', bg: 'primary.light' },
-          { label: 'Active Now', value: totalActive, color: '#22c55e', bg: '#dcfce7' },
-          { label: 'On Break', value: totalOnBreak, color: '#f59e0b', bg: '#fef3c7' },
-          { label: 'Absent Today', value: totalAbsent, color: '#ef4444', bg: '#fee2e2' },
-        ].map(({ label, value, color, bg }) => (
-          <Grid key={label} size={{ xs: 6, sm: 3 }}>
-            <Card sx={{ borderRadius: 3, p: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.7rem' }}>
-                {label}
-              </Typography>
-              <Typography variant="h4" sx={{ fontWeight: 800, color, mt: 0.5 }}>
-                {value}
-              </Typography>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-md">
+        <div className="glass-card-ai p-md rounded-2xl border border-white/5">
+          <p className="text-on-surface-variant font-label-md uppercase tracking-wider mb-2">Total Staff</p>
+          <h3 className="font-display-lg text-4xl text-on-surface">{employees.length}</h3>
+        </div>
+        <div className="glass-card-ai p-md rounded-2xl border border-white/5 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+          <p className="text-primary font-label-md uppercase tracking-wider mb-2 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span> Active Now
+          </p>
+          <h3 className="font-display-lg text-4xl text-primary">{totalActive}</h3>
+        </div>
+        <div className="glass-card-ai p-md rounded-2xl border border-white/5">
+          <p className="text-on-surface-variant font-label-md uppercase tracking-wider mb-2">On Break</p>
+          <h3 className="font-display-lg text-4xl text-amber-400">{totalOnBreak}</h3>
+        </div>
+        <div className="glass-card-ai p-md rounded-2xl border border-white/5">
+          <p className="text-on-surface-variant font-label-md uppercase tracking-wider mb-2">Absent</p>
+          <h3 className="font-display-lg text-4xl text-error">{totalAbsent}</h3>
+        </div>
+      </div>
 
-      {/* Filters Bar */}
-      <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-        <FilterIcon color="action" sx={{ display: { xs: 'none', sm: 'block' } }} />
-        <TextField
-          placeholder="Search name, email, department..."
-          size="small"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          // @ts-ignore
-          InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
-          sx={{ minWidth: 260, flexGrow: 1 }}
-        />
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Department</InputLabel>
-          <Select value={deptFilter} label="Department" onChange={(e) => setDeptFilter(e.target.value)}>
-            {departments.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
-          </Select>
-        </FormControl>
-        <FormControl size="small" sx={{ minWidth: 140 }}>
-          <InputLabel>Status</InputLabel>
-          <Select value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value)}>
-            <MenuItem value="All">All Statuses</MenuItem>
-            <MenuItem value="Active">Active</MenuItem>
-            <MenuItem value="On Break">On Break</MenuItem>
-            <MenuItem value="Checked Out">Checked Out</MenuItem>
-            <MenuItem value="Absent">Absent</MenuItem>
-          </Select>
-        </FormControl>
-      </Paper>
-
-      {/* Employee Cards Grid */}
-      {filtered.length === 0 ? (
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <PeopleIcon sx={{ fontSize: 56, color: 'text.disabled', mb: 2 }} />
-          <Typography variant="h6" color="text.secondary">No employees found</Typography>
-          <Typography variant="body2" color="text.disabled" sx={{ mt: 1 }}>Try adjusting filters or search terms</Typography>
-        </Box>
-      ) : (
-        <Grid container spacing={2.5}>
-          {filtered.map((emp) => {
-            const sc = getStatusConfig(emp.todayStatus);
-            return (
-              <Grid key={emp._id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                <Card
-                  sx={{
-                    borderRadius: 3,
-                    height: '100%',
-                    cursor: 'pointer',
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-                    '&:hover': { transform: 'translateY(-3px)', boxShadow: 6 }
-                  }}
-                  onClick={() => setSelectedEmp(emp)}
-                >
-                  <CardContent sx={{ p: 3 }}>
-                    {/* Avatar + Name */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                      <Avatar
-                        src={emp.profilePic || ''}
-                        alt={emp.name}
-                        sx={{ width: 52, height: 52, bgcolor: 'primary.main', fontSize: '1.2rem', fontWeight: 700 }}
-                      >
-                        {emp.name.charAt(0).toUpperCase()}
-                      </Avatar>
-                      <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }} noWrap>
-                          {emp.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
-                          {maskEmail(emp.email)}
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    {!emp.isActive && (
-                      <Box sx={{ mb: 1.5 }}>
-                        <Chip
-                          label="INACTIVE"
-                          size="small"
-                          color="error"
-                          sx={{ fontSize: '0.7rem', fontWeight: 700, height: 20 }}
-                        />
-                      </Box>
-                    )}
-
-                    {/* Department chip */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-                      <Chip
-                        icon={<DepartmentIcon sx={{ fontSize: '14px !important' }} />}
-                        label={emp.department || 'N/A'}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontSize: '0.72rem', height: 24 }}
-                      />
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <StatusDotIcon sx={{ fontSize: 10, color: sc.dot }} />
-                        <Typography variant="caption" sx={{ fontWeight: 600, color: sc.dot, fontSize: '0.72rem' }}>
-                          {sc.label}
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    <Divider sx={{ my: 1.5 }} />
-
-                    {/* Action buttons */}
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        startIcon={<MonitorIcon />}
-                        onClick={(e) => { e.stopPropagation(); navigate(`/manager/monitoring/${emp._id}`); }}
-                        sx={{ flex: 1, fontSize: '0.72rem', py: 0.5 }}
-                      >
-                        Monitor
-                      </Button>
-                      <Tooltip title={emp.isActive ? "Deactivate Employee" : "Activate Employee"}>
-                        <IconButton
-                          size="small"
-                          color={emp.isActive ? "warning" : "success"}
-                          onClick={(e) => { e.stopPropagation(); setStatusConfirm(emp); }}
-                          sx={{ border: '1px solid', borderColor: emp.isActive ? 'warning.light' : 'success.light', borderRadius: 1.5 }}
-                        >
-                          {emp.isActive ? <BlockIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete Employee">
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={(e) => { e.stopPropagation(); setDeleteConfirm(emp); }}
-                          sx={{ border: '1px solid', borderColor: 'error.light', borderRadius: 1.5 }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            );
-          })}
-        </Grid>
-      )}
-
-      {/* Employee Detail Dialog */}
-      <Dialog
-        open={Boolean(selectedEmp)}
-        onClose={() => setSelectedEmp(null)}
-        maxWidth="sm"
-        fullWidth
-      >
-        {selectedEmp && (
-          <>
-            <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
-              Employee Details
-            </DialogTitle>
-            <DialogContent>
-              {/* Profile header */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3, p: 3, borderRadius: 3, bgcolor: 'action.hover' }}>
-                <Avatar
-                  src={selectedEmp.profilePic || ''}
-                  alt={selectedEmp.name}
-                  sx={{ width: 72, height: 72, bgcolor: 'primary.main', fontSize: '1.8rem', fontWeight: 700 }}
-                >
-                  {selectedEmp.name.charAt(0).toUpperCase()}
-                </Avatar>
-                <Box>
-                  <Typography variant="h5" sx={{ fontWeight: 800 }}>{selectedEmp.name}</Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-                    <StatusDotIcon sx={{ fontSize: 10, color: getStatusConfig(selectedEmp.todayStatus).dot }} />
-                    <Typography variant="body2" sx={{ color: getStatusConfig(selectedEmp.todayStatus).dot, fontWeight: 600 }}>
-                      {getStatusConfig(selectedEmp.todayStatus).label}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                    <Chip label={selectedEmp.role} size="small" color="primary" sx={{ fontWeight: 700, fontSize: '0.72rem' }} />
-                    {!selectedEmp.isActive && (
-                      <Chip label="INACTIVE" size="small" color="error" sx={{ fontWeight: 700, fontSize: '0.72rem' }} />
-                    )}
-                    {selectedEmp.is_locked && (
-                      <Chip label="LOCKED" size="small" color="error" sx={{ fontWeight: 700, fontSize: '0.72rem' }} />
-                    )}
-                  </Box>
-                </Box>
-              </Box>
-
-              {/* Detail rows */}
-              {[
-                { icon: <EmailIcon fontSize="small" />, label: 'Email', value: maskEmail(selectedEmp.email) },
-                { icon: <DepartmentIcon fontSize="small" />, label: 'Department', value: selectedEmp.department || 'N/A' },
-                { icon: <JoinedIcon fontSize="small" />, label: 'Member Since', value: new Date(selectedEmp.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) },
-                { icon: <TimeIcon fontSize="small" />, label: 'Last Login', value: selectedEmp.last_login ? new Date(selectedEmp.last_login).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never Logged In' }
-              ].map(({ icon, label, value }) => (
-                <Box key={label} sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-                  <Box sx={{ color: 'text.secondary', display: 'flex' }}>{icon}</Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.68rem' }}>
-                      {label}
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>{value}</Typography>
-                  </Box>
-                </Box>
-              ))}
-            </DialogContent>
-            <DialogActions sx={{ p: 2.5, gap: 1 }}>
-              <Button onClick={() => setSelectedEmp(null)} color="inherit">Close</Button>
-              <Button
-                variant="outlined"
-                color={selectedEmp.isActive ? "warning" : "success"}
-                startIcon={selectedEmp.isActive ? <BlockIcon /> : <CheckCircleIcon />}
-                onClick={() => { setStatusConfirm(selectedEmp); }}
-              >
-                {selectedEmp.isActive ? "Deactivate" : "Activate"}
-              </Button>
-              {selectedEmp.is_locked && (
-                <Button
-                  variant="contained"
-                  color="info"
-                  startIcon={<LockOpenIcon />}
-                  onClick={() => { setUnlockConfirm(selectedEmp); }}
-                >
-                  Unlock
-                </Button>
-              )}
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<DeleteIcon />}
-                onClick={() => { setDeleteConfirm(selectedEmp); setSelectedEmp(null); }}
-              >
-                Delete
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<MonitorIcon />}
-                onClick={() => { setSelectedEmp(null); navigate(`/manager/monitoring/${selectedEmp._id}`); }}
-              >
-                View Monitor
-              </Button>
-            </DialogActions>
-          </>
-        )}
-      </Dialog>
-
-      {/* Status Confirm Dialog */}
-      <Dialog open={Boolean(statusConfirm)} onClose={() => setStatusConfirm(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, color: statusConfirm?.isActive ? 'warning.main' : 'success.main' }}>
-          {statusConfirm?.isActive ? '⚠️ Deactivate Employee' : '✅ Activate Employee'}
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1">
-            Are you sure you want to {statusConfirm?.isActive ? 'deactivate' : 'activate'} <strong>{statusConfirm?.name}</strong>?
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            {statusConfirm?.isActive 
-              ? 'An inactive employee will not be able to log in to the system, but their data will be preserved.' 
-              : 'Activating this employee will restore their access to log in.'}
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ p: 2, gap: 1 }}>
-          <Button onClick={() => setStatusConfirm(null)} color="inherit">Cancel</Button>
-          <Button onClick={handleStatusConfirm} variant="contained" color={statusConfirm?.isActive ? "warning" : "success"}>
-            {statusConfirm?.isActive ? 'Deactivate' : 'Activate'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Unlock Confirm Dialog */}
-      <Dialog open={Boolean(unlockConfirm)} onClose={() => setUnlockConfirm(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-          <LockOpenIcon /> Unlock Account
-        </DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to unlock the account for <strong>{unlockConfirm?.name}</strong>?
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setUnlockConfirm(null)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
-          <Button onClick={handleUnlockConfirm} variant="contained" color="primary">
-            Unlock Account
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Add Employee Modal */}
-      <Dialog open={addModalOpen} onClose={() => setAddModalOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AddUserIcon color="primary" /> Add New Employee
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            They will be able to log in using their email and the temporary password: <strong>password1234</strong>
-          </Typography>
-          <TextField
-            fullWidth label="Full Name" size="small" sx={{ mb: 2 }}
-            value={newEmpData.name} onChange={e => setNewEmpData({...newEmpData, name: e.target.value})}
+      {/* Filters */}
+      <div className="glass-card-ai p-sm rounded-2xl flex flex-col md:flex-row gap-sm border border-white/5">
+        <div className="flex-1 relative">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+          <input 
+            type="text" 
+            placeholder="Search personnel by name or email..." 
+            className="w-full bg-surface-bright/50 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-on-surface outline-none focus:border-primary/50 transition-colors"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
-          <TextField
-            fullWidth label="Email Address" size="small" type="email" sx={{ mb: 2 }}
-            value={newEmpData.email} onChange={e => setNewEmpData({...newEmpData, email: e.target.value})}
-          />
-          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-            <InputLabel>Department</InputLabel>
-            <Select
-              value={newEmpData.department} label="Department"
-              onChange={e => setNewEmpData({...newEmpData, department: e.target.value})}
-            >
-              <MenuItem value="Engineering">Engineering</MenuItem>
-              <MenuItem value="Design">Design</MenuItem>
-              <MenuItem value="Marketing">Marketing</MenuItem>
-              <MenuItem value="Sales">Sales</MenuItem>
-              <MenuItem value="HR">HR</MenuItem>
-              <MenuItem value="Finance">Finance</MenuItem>
-              <MenuItem value="Operations">Operations</MenuItem>
-            </Select>
-          </FormControl>
-
-        </DialogContent>
-        <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setAddModalOpen(false)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
-          <Button onClick={handleAddEmployee} variant="contained" color="primary" disabled={addingEmp}>
-            {addingEmp ? 'Adding...' : 'Add Employee'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Delete Confirm Dialog */}
-      <Dialog open={Boolean(deleteConfirm)} onClose={() => setDeleteConfirm(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, color: 'error.main' }}>⚠️ Delete Employee</DialogTitle>
-        <DialogContent>
-          <Typography variant="body1">
-            Are you sure you want to delete <strong>{deleteConfirm?.name}</strong>?
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            This action cannot be undone. All associated data will remain in the system.
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setDeleteConfirm(null)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
-          <Button onClick={handleDeleteConfirm} variant="contained" color="primary">
-            Yes, Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Undo Delete Snackbar */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={6000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        sx={{ zIndex: 10000 }}
-      >
-        <Paper
-          elevation={12}
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2,
-            px: 2.5,
-            py: 1.5,
-            bgcolor: 'rgba(15, 23, 42, 0.95)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
-            borderRadius: 3,
-            color: '#fff',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
-            minWidth: 320,
-            animation: 'slideIn 0.3s ease-out',
-            '@keyframes slideIn': {
-              '0%': { transform: 'translateY(100%) scale(0.9)', opacity: 0 },
-              '100%': { transform: 'translateY(0) scale(1)', opacity: 1 },
-            }
-          }}
+        </div>
+        <select 
+          className="bg-surface-bright/50 border border-white/10 rounded-xl px-4 py-2 text-on-surface outline-none focus:border-primary/50 transition-colors"
+          value={deptFilter}
+          onChange={(e) => setDeptFilter(e.target.value)}
         >
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              Employee Deleted
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-              {lastDeletedEmp?.name} has been removed.
-            </Typography>
-          </Box>
-          <Button
-            size="small"
-            color="error"
-            variant="contained"
-            onClick={handleUndoDelete}
-            sx={{
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              borderRadius: 2,
-              px: 2,
-              py: 0.5,
-              fontSize: '0.75rem',
-              boxShadow: '0 0 10px rgba(239, 68, 68, 0.4)',
-              transition: 'all 0.2s',
-              '&:hover': {
-                bgcolor: 'error.dark',
-                transform: 'scale(1.05)',
-              }
-            }}
-          >
-            Undo
-          </Button>
-        </Paper>
-      </Snackbar>
-    </Box>
+          {departments.map(d => <option key={d} value={d}>{d === 'All' ? 'All Departments' : d}</option>)}
+        </select>
+        <select 
+          className="bg-surface-bright/50 border border-white/10 rounded-xl px-4 py-2 text-on-surface outline-none focus:border-primary/50 transition-colors"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="All">All Statuses</option>
+          <option value="Active">Active</option>
+          <option value="On Break">On Break</option>
+          <option value="Checked Out">Checked Out</option>
+          <option value="Absent">Absent</option>
+        </select>
+      </div>
+
+      {/* Table */}
+      <div className="glass-card-ai rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-surface-bright/30">
+              <tr>
+                <th className="px-md py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-widest border-b border-white/5">Name</th>
+                <th className="px-md py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-widest border-b border-white/5">Email</th>
+                <th className="px-md py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-widest border-b border-white/5">Department</th>
+                <th className="px-md py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-widest border-b border-white/5">Role</th>
+                <th className="px-md py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-widest border-b border-white/5">Status</th>
+                <th className="px-md py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-widest border-b border-white/5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-xl text-on-surface-variant">No personnel found</td>
+                </tr>
+              ) : (
+                filtered.map((emp) => {
+                  let statusColor = "bg-on-surface-variant/50";
+                  let textColor = "text-on-surface-variant/50";
+                  let dotClass = "w-2 h-2 rounded-full " + statusColor;
+                  let displayStatus = (emp.todayStatus || 'Offline').toUpperCase();
+
+                  if (emp.todayStatus === 'Active') {
+                    statusColor = "bg-primary";
+                    textColor = "text-primary";
+                    dotClass = "w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_10px_#4edea3]";
+                  } else if (emp.todayStatus?.startsWith('On Break')) {
+                    statusColor = "bg-amber-400";
+                    textColor = "text-amber-400";
+                    dotClass = "w-2 h-2 rounded-full " + statusColor;
+                  } else if (emp.todayStatus === 'Absent') {
+                    statusColor = "bg-error";
+                    textColor = "text-error";
+                    dotClass = "w-2 h-2 rounded-full " + statusColor;
+                  }
+
+                  // Default profile picture logic
+                  const initials = emp.name ? emp.name.charAt(0).toUpperCase() : '?';
+
+                  return (
+                    <tr key={emp._id} className="group hover:bg-primary/5 transition-colors duration-300">
+                      <td className="px-md py-md">
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            {emp.profilePic ? (
+                              <img className="w-10 h-10 rounded-full border border-white/10 object-cover" src={emp.profilePic} alt={emp.name} />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center bg-surface-bright text-on-surface font-bold text-lg">
+                                {initials}
+                              </div>
+                            )}
+                            <div className={`absolute bottom-0 right-0 w-3 h-3 ${statusColor} rounded-full border-2 border-surface-container ${emp.todayStatus === 'Active' ? 'shadow-[0_0_8px_#4edea3]' : ''}`}></div>
+                          </div>
+                          <div>
+                            <p className="font-label-md text-on-surface">{emp.name}</p>
+                            <p className="text-[10px] text-on-surface-variant/70 uppercase">ID: {emp._id.substring(0, 6)}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-md py-md font-body-md text-on-surface-variant">{emp.email}</td>
+                      <td className="px-md py-md">
+                        <span className="px-3 py-1 rounded-full bg-secondary-container/20 text-secondary text-[11px] font-bold border border-secondary/20">
+                          {emp.department || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="px-md py-md font-body-md text-on-surface">{emp.role}</td>
+                      <td className="px-md py-md">
+                        <div className="flex items-center gap-2">
+                          <div className={dotClass}></div>
+                          <span className={`text-xs font-bold ${textColor}`}>{displayStatus}</span>
+                        </div>
+                      </td>
+                      <td className="px-md py-md text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button onClick={() => navigate(`/manager/monitoring/${emp._id}`)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-primary/20 text-on-surface-variant hover:text-primary transition-all" title="Monitor">
+                            <span className="material-symbols-outlined text-sm">visibility</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Add Modal */}
+      {addModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="glass-card-ai p-xl rounded-2xl border border-white/10 shadow-2xl w-full max-w-md animate-scaleIn">
+            <h2 className="text-headline-md font-display-lg text-primary mb-2">Add Personnel</h2>
+            <p className="text-on-surface-variant text-sm mb-6">Create a new user account.</p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Full Name</label>
+                <input type="text" className="w-full bg-surface-bright/50 border border-white/10 rounded-xl px-4 py-2 text-on-surface outline-none focus:border-primary/50" value={newEmpData.name} onChange={e => setNewEmpData({...newEmpData, name: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Email</label>
+                <input type="email" className="w-full bg-surface-bright/50 border border-white/10 rounded-xl px-4 py-2 text-on-surface outline-none focus:border-primary/50" value={newEmpData.email} onChange={e => setNewEmpData({...newEmpData, email: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Department</label>
+                <select className="w-full bg-surface-bright/50 border border-white/10 rounded-xl px-4 py-2 text-on-surface outline-none focus:border-primary/50" value={newEmpData.department} onChange={e => setNewEmpData({...newEmpData, department: e.target.value})}>
+                  <option value="Engineering">Engineering</option>
+                  <option value="Design">Design</option>
+                  <option value="Marketing">Marketing</option>
+                  <option value="Sales">Sales</option>
+                  <option value="HR">HR</option>
+                  <option value="Finance">Finance</option>
+                  <option value="Operations">Operations</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-8 flex justify-end gap-4">
+              <button onClick={() => setAddModalOpen(false)} className="px-4 py-2 text-on-surface-variant hover:text-on-surface transition-colors font-bold">Cancel</button>
+              <button onClick={handleAddEmployee} disabled={addingEmp} className="px-6 py-2 bg-primary text-on-primary rounded-xl font-bold hover:shadow-[0_0_15px_rgba(78,222,163,0.4)] transition-all">
+                {addingEmp ? 'Adding...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
