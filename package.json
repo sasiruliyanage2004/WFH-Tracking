@@ -1,6 +1,7 @@
 {
   "scripts": {
     "build:desktop": "electron-builder --win --projectDir desktop-agent",
+    "build": "cd backend && npm run build",
     "start": "cd backend && npm start",
     "postinstall": "cd backend && npm install"
   },
