@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // frontend/src/pages/ManagerMonitoring.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
