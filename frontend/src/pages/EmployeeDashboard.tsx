@@ -313,7 +313,7 @@ function EmployeeDashboard() {
       return;
     }
 
-    const currentBreak = attendance.breakHistory && attendance.breakHistory.length > 0
+    const currentBreak = attendance && Array.isArray(attendance.breakHistory) && attendance.breakHistory.length > 0
       ? attendance.breakHistory[attendance.breakHistory.length - 1]
       : null;
 
@@ -1282,15 +1282,15 @@ function EmployeeDashboard() {
                     Today's Breaks
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    {attendance && attendance.breakHistory && attendance.breakHistory.length > 0 ? (
+                    {attendance && Array.isArray(attendance.breakHistory) && attendance.breakHistory.length > 0 ? (
                       attendance.breakHistory.map((brk: any, i: number) => {
-                        const start = new Date(brk.startTime || brk.start_time);
-                        const end = (brk.endTime || brk.end_time) ? new Date(brk.endTime || brk.end_time) : new Date();
+                        const start = new Date(brk?.startTime || brk?.start_time);
+                        const end = (brk?.endTime || brk?.end_time) ? new Date(brk.endTime || brk.end_time) : new Date();
                         const diffMins = Math.round((end.getTime() - start.getTime()) / 60000);
                         return (
                           <Chip 
                             key={i} 
-                            label={`${brk.breakType || brk.break_type || brk.type} Break (${diffMins}m)`} 
+                            label={`${brk?.breakType || brk?.break_type || brk?.type || 'Break'} Break (${diffMins}m)`} 
                             size="small" 
                             icon={<AccessTimeIcon sx={{ fontSize: '0.8rem !important' }} />}
                             sx={{ 
