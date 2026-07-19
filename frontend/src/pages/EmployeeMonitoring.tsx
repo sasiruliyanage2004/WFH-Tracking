@@ -1,4 +1,5 @@
 // frontend/src/pages/EmployeeMonitoring.js
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -153,17 +154,8 @@ function EmployeeMonitoring() {
   }
   // Get most recent check-in location coords
   const latestCheckin = attendance.length > 0 ? attendance[0] : null;
-  const latitude = latestCheckin?.location?.latitude || 40.7128;
-  const longitude = latestCheckin?.location?.longitude || -74.0060;
-  const mapAddress = latestCheckin?.location?.address || (latestCheckin ? 'No location logged' : 'Employee did not check in on this date');
 
   // Get productivity score for selected date
-  const selectedDateActivity = activity.find(act => act.date === selectedDate);
-  const prodScore = selectedDateActivity ? selectedDateActivity.productivityPercentage : 100;
-
-  // Embeddable Google Map URL without API Key
-  const googleMapEmbedUrl = `https://maps.google.com/maps?q=${latitude},${longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
-
   // App usage stats calculations
   const totalUsageMins = appUsage.reduce((sum, item) => sum + Number(item.duration_minutes || 0), 0);
   const productiveMins = appUsage.filter(item => item.type === 'Productive').reduce((sum, item) => sum + Number(item.duration_minutes || 0), 0);
@@ -246,77 +238,6 @@ function EmployeeMonitoring() {
       )}
 
       <Grid container spacing={3}>
-        {/* GPS Verification Map and webcam selfie validation */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card sx={{ borderRadius: 3, height: '100%' }}>
-            <CardContent>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <MapIcon color="primary" /> Latest Check-in Location
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Address: {mapAddress}
-              </Typography>
-              
-              {/* Google Map iframe container */}
-              <Box sx={{ width: '100%', height: 320, borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
-                <iframe
-                  title="Employee CheckIn GPS Map"
-                  src={googleMapEmbedUrl}
-                  width="100%"
-                  height="100%"
-                  frameBorder="0"
-                  style={{ border: 0 }}
-                  allowFullScreen
-                  aria-hidden="false"
-                  tabIndex={0}
-                />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Webcam Verification check-in selfie */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card sx={{ borderRadius: 3, height: '100%' }}>
-            <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
-              <Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
-                  Verification Selfie
-                </Typography>
-                {latestCheckin?.webcamImage ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                    <Box
-                      component="img"
-                      src={latestCheckin.webcamImage.startsWith('/uploads') ? `${API_URL}${latestCheckin.webcamImage}` : latestCheckin.webcamImage}
-                      alt="check-in selfie verification"
-                      onClick={() => setSelectedImage(latestCheckin.webcamImage.startsWith('/uploads') ? `${API_URL}${latestCheckin.webcamImage}` : latestCheckin.webcamImage)}
-                      sx={{
-                        width: '100%',
-                        maxHeight: 280,
-                        objectFit: 'contain',
-                        borderRadius: 2,
-                        cursor: 'zoom-in',
-                        border: '1px solid',
-                        borderColor: 'divider'
-                      }}
-                    />
-                  </Box>
-                ) : (
-                  <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 5 }}>
-                    {latestCheckin ? 'No identity verification selfie captured for this check-in.' : 'Employee did not check in on this date.'}
-                  </Typography>
-                )}
-              </Box>
-              
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Logged Time: {latestCheckin?.checkInTime ? new Date(latestCheckin.checkInTime).toLocaleString() : '--'}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
         {/* Today's Breaks Card */}
         <Grid size={{ xs: 12 }}>
           <Card sx={{ borderRadius: 3 }}>
