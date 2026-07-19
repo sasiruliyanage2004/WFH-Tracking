@@ -96,12 +96,10 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Setup file upload paths
 const uploadsDir = path.join(__dirname, 'uploads');
 const screenshotsDir = path.join(uploadsDir, 'screenshots');
-const webcamsDir = path.join(uploadsDir, 'webcams');
 const attachmentsDir = path.join(uploadsDir, 'attachments');
 
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 if (!fs.existsSync(screenshotsDir)) fs.mkdirSync(screenshotsDir);
-if (!fs.existsSync(webcamsDir)) fs.mkdirSync(webcamsDir);
 if (!fs.existsSync(attachmentsDir)) fs.mkdirSync(attachmentsDir);
 
 // Ensure Supabase Storage bucket 'wfh-tracking' exists

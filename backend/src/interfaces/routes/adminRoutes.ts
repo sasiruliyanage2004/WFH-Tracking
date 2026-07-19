@@ -786,80 +786,7 @@ router.put('/api/settings/productivity', authenticate, authorize(['SuperAdmin'])
 // --- DATABASE SEEDING & SERVER LAUNCH ---
 
 
-// Automated webcam cleanup task (runs daily)
-const cleanupOldWebcams = async () => {
-  console.log('Starting automated webcam selfie cleanup task...');
-  try {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 5);
-    const cutoffIso = cutoffDate.toISOString();
 
-    const { data: logs, error } = await supabase
-      .from('attendance')
-      .select('id, webcam_image')
-      .lt('created_at', cutoffIso)
-      .not('webcam_image', 'is', null);
-
-    if (error) throw error;
-
-    if (!logs || logs.length === 0) {
-      console.log('No old webcam selfies to clean up.');
-      return;
-    }
-
-    console.log(`Found ${logs.length} old attendance records with webcam images to clean up.`);
-
-    let deletedCount = 0;
-    let dbUpdatedCount = 0;
-
-    for (const log of logs) {
-      const imgPath = log.webcam_image;
-      if (!imgPath) continue;
-
-      if (imgPath.startsWith('/uploads/webcams/')) {
-        const localPath = path.join(__dirname, imgPath);
-        try {
-          if (fs.existsSync(localPath)) {
-            fs.unlinkSync(localPath);
-            deletedCount++;
-          }
-        } catch (fileErr) {
-          console.error(`Failed to delete file ${localPath}:`, fileErr.message);
-        }
-      } else if (imgPath.includes('supabase.co/storage')) {
-        const pathParts = imgPath.split('/wfh-tracking/');
-        if (pathParts.length > 1) {
-          const storagePath = pathParts[1];
-          try {
-            await supabase.storage.from('wfh-tracking').remove([storagePath]);
-            deletedCount++;
-          } catch (storageErr) {
-            console.error(`Failed to delete Supabase file ${storagePath}:`, storageErr.message);
-          }
-        }
-      }
-
-      try {
-        const { error: updateErr } = await supabase
-          .from('attendance')
-          .update({ webcam_image: null })
-          .eq('id', log.id);
-
-        if (updateErr) {
-          console.error(`Failed to update database for attendance ID ${log.id}:`, updateErr.message);
-        } else {
-          dbUpdatedCount++;
-        }
-      } catch (dbErr) {
-        console.error(`Failed to update database for attendance ID ${log.id}:`, dbErr.message);
-      }
-    }
-
-    console.log(`Webcam cleanup completed: deleted ${deletedCount} files from disk, updated ${dbUpdatedCount} database rows.`);
-  } catch (err: any) {
-    console.error('Failed to run automated webcam cleanup:', err.message);
-  }
-};
 
 // Automated screenshots cleanup task (runs daily, deletes screenshots older than 14 days to preserve disk space)
 const cleanupOldScreenshots = async () => {
@@ -930,11 +857,8 @@ const cleanupOldScreenshots = async () => {
   }
 };
 
-// Seed database on startup
 // Run cleanup tasks once on startup, then every 24 hours
-cleanupOldWebcams();
 cleanupOldScreenshots();
-setInterval(cleanupOldWebcams, 24 * 60 * 60 * 1000);
 setInterval(cleanupOldScreenshots, 24 * 60 * 60 * 1000);
 
 // 10. SYSTEM ADMIN ROUTES
