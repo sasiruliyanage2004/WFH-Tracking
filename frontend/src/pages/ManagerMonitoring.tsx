@@ -274,6 +274,7 @@ function ManagerMonitoring() {
     : getGroupsLeaderboard().filter(item => item.name.toLowerCase().includes(userSearch.toLowerCase()));
 
   return (
+    <>
     <Box sx={{ pb: 5 }}>
       {/* Top Section View Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
@@ -817,6 +818,7 @@ function ManagerMonitoring() {
           </>
         )}
       </Dialog>
+    </>
   );
 }
 
