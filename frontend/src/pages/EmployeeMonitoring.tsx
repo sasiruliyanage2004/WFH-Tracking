@@ -156,6 +156,9 @@ function EmployeeMonitoring() {
   const latestCheckin = attendance.length > 0 ? attendance[0] : null;
 
   // Get productivity score for selected date
+  const selectedDateActivity = activity.find(act => act.date === selectedDate);
+  const prodScore = selectedDateActivity ? selectedDateActivity.productivityPercentage : 100;
+
   // App usage stats calculations
   const totalUsageMins = appUsage.reduce((sum, item) => sum + Number(item.duration_minutes || 0), 0);
   const productiveMins = appUsage.filter(item => item.type === 'Productive').reduce((sum, item) => sum + Number(item.duration_minutes || 0), 0);
