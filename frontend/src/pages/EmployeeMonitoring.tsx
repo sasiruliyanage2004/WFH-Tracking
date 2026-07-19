@@ -386,7 +386,8 @@ function EmployeeMonitoring() {
                             if (isSelectMode) {
                               toggleSelect(ss._id || ss.id);
                             } else {
-                              setSelectedImage(ss.screenshotUrl.startsWith('/uploads') ? `${API_URL}${ss.screenshotUrl}` : ss.screenshotUrl);
+                              const imgUrl = ss.screenshotUrl || ss.screenshot_url || '';
+                              setSelectedImage(imgUrl.startsWith('/uploads') ? `${API_URL}${imgUrl}` : imgUrl);
                             }
                           }}
                         >
@@ -416,7 +417,7 @@ function EmployeeMonitoring() {
                           )}
                           <Box
                             component="img"
-                            src={ss.screenshotUrl.startsWith('/uploads') ? `${API_URL}${ss.screenshotUrl}` : ss.screenshotUrl}
+                            src={(ss.screenshotUrl || ss.screenshot_url || '').startsWith('/uploads') ? `${API_URL}${(ss.screenshotUrl || ss.screenshot_url || '')}` : (ss.screenshotUrl || ss.screenshot_url || '')}
                             alt="screen capture log"
                             sx={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 1 }}
                           />
