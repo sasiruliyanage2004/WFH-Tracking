@@ -308,10 +308,22 @@ export const sendWelcomeEmail = async (userName: string, userEmail: string, temp
       <div style="font-family: Arial, sans-serif; padding: 20px; border-left: 5px solid #2563eb; background: #eff6ff;">
         <h2>Welcome to WorkforceOS!</h2>
         <p>Hi <strong>${userName}</strong>,</p>
-        <p>An administrator has created a new account for you.</p>
-        <p><strong>Login URL:</strong> <a href="${appUrl}">${appUrl}</a></p>
-        <p><strong>Temporary Password:</strong> ${tempPassword}</p>
-        <p><em>Note: You will be required to change this password immediately after your first login.</em></p>
+        <p>An administrator has created a new account for you. To get started with tracking your work, please follow the steps below:</p>
+        
+        <ol style="line-height: 1.6;">
+          <li><strong>Open the WorkforceOS Desktop App</strong> on your computer.</li>
+          <li>Log in using your email address and the temporary password provided below.</li>
+          <li><strong>Change your password</strong> immediately after your first login when prompted.</li>
+          <li>Click on <strong>Check In</strong> to start your shift!</li>
+        </ol>
+
+        <div style="background: #ffffff; padding: 15px; border-radius: 5px; margin: 20px 0; border: 1px solid #d1d5db;">
+          <p style="margin: 0 0 10px 0;"><strong>Your Login Credentials:</strong></p>
+          <p style="margin: 0 0 5px 0;"><strong>Email:</strong> ${userEmail}</p>
+          <p style="margin: 0;"><strong>Temporary Password:</strong> <code style="background: #f3f4f6; padding: 2px 6px; border-radius: 4px;">${tempPassword}</code></p>
+        </div>
+        
+        <p>If you don't have the Desktop App installed yet, please contact your administrator for the installation file.</p>
       </div>
     `
   };
