@@ -19,6 +19,7 @@ import {
   TableRow,
   Chip,
   Avatar,
+  LinearProgress,
   TextField,
   Select,
   MenuItem,
@@ -562,32 +563,40 @@ function ManagerMonitoring() {
             <>
               <Grid container spacing={3} sx={{ mb: 4 }}>
                 <Grid size={{ xs: 12, sm: 4 }}>
-                  <Card sx={{ borderRadius: 3, textAlign: 'center', boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+                  <Card sx={{ borderRadius: 3, textAlign: 'center', boxShadow: 'none', border: '2px solid', borderColor: 'success.main', bgcolor: 'rgba(52, 211, 153, 0.05)' }}>
                     <CardContent>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>ACTIVE WFH STAFF</Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: 'success.main' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 0.5 }}>
+                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'success.main', animation: 'pulse-dot 2s infinite', '@keyframes pulse-dot': { '0%': { boxShadow: '0 0 0 0 rgba(52,211,153,0.7)' }, '70%': { boxShadow: '0 0 0 8px rgba(52,211,153,0)' }, '100%': { boxShadow: '0 0 0 0 rgba(52,211,153,0)' } } }} />
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>ACTIVE WFH STAFF</Typography>
+                      </Box>
+                      <Typography variant="h3" sx={{ fontWeight: 800, color: 'success.main' }}>
                         {summary?.onlineEmployees || 0}
                       </Typography>
                     </CardContent>
                   </Card>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 4 }}>
-                  <Card sx={{ borderRadius: 3, textAlign: 'center', boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+                  <Card sx={{ borderRadius: 3, textAlign: 'center', boxShadow: 'none', border: '2px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
                     <CardContent>
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>OFFLINE STAFF</Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: 'text.disabled' }}>
+                      <Typography variant="h3" sx={{ fontWeight: 800, mt: 0.5, color: 'text.disabled' }}>
                         {summary?.offlineEmployees || 0}
                       </Typography>
                     </CardContent>
                   </Card>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 4 }}>
-                  <Card sx={{ borderRadius: 3, textAlign: 'center', boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+                  <Card sx={{ borderRadius: 3, textAlign: 'center', boxShadow: 'none', border: '2px solid', borderColor: 'primary.main', bgcolor: 'rgba(79,142,247,0.05)' }}>
                     <CardContent>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>TEAM PRODUCTIVITY SCORE</Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: 'primary.main' }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>TEAM PRODUCTIVITY</Typography>
+                      <Typography variant="h3" sx={{ fontWeight: 800, mt: 0.5, color: 'primary.main' }}>
                         {summary?.productivityScore || 0}%
                       </Typography>
+                      <LinearProgress
+                        variant="determinate"
+                        value={summary?.productivityScore || 0}
+                        sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { bgcolor: (summary?.productivityScore || 0) >= 70 ? 'success.main' : (summary?.productivityScore || 0) >= 40 ? 'warning.main' : 'error.main', borderRadius: 3 } }}
+                      />
                     </CardContent>
                   </Card>
                 </Grid>
@@ -598,9 +607,10 @@ function ManagerMonitoring() {
                 <Table>
                   <TableHead sx={{ bgcolor: 'action.hover' }}>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Employee Name</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Employee</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Department</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Live Status</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Productivity</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Check-in Location</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Hours Today</TableCell>
                       <TableCell sx={{ fontWeight: 700 }} align="center">Action</TableCell>
@@ -610,21 +620,68 @@ function ManagerMonitoring() {
                     {employees.map((emp) => {
                       const checkinRec = summary?.liveCheckins?.find(c => (c.employee?._id === emp._id || c.employee?.id === emp._id));
                       const isOnline = checkinRec && !checkinRec.checkOutTime;
+                      const isOnBreak = checkinRec?.onBreak;
+                      const prodScore = checkinRec?.productivityPercentage ?? null;
+                      const initials = emp.name ? emp.name.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase() : '?';
                       
                       return (
-                        <TableRow key={emp._id || emp.id} hover>
-                          <TableCell sx={{ fontWeight: 700 }}>{emp.name}</TableCell>
-                          <TableCell>{emp.department || 'Operations'}</TableCell>
-                          <TableCell>
-                            <Chip
-                              label={isOnline ? 'Online' : 'Offline'}
-                              color={isOnline ? 'success' : 'default'}
-                              size="small"
-                              sx={{ fontWeight: 600 }}
-                            />
+                        <TableRow key={emp._id || emp.id} hover sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
+                          {/* Employee column with avatar */}
+                          <TableCell sx={{ fontWeight: 700 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                              <Avatar sx={{ width: 36, height: 36, fontSize: '0.85rem', fontWeight: 700, bgcolor: isOnline ? 'success.dark' : 'action.selected', color: isOnline ? 'success.contrastText' : 'text.secondary', border: isOnline ? '2px solid' : 'none', borderColor: 'success.main' }}>
+                                {initials}
+                              </Avatar>
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 700 }}>{emp.name}</Typography>
+                                <Typography variant="caption" color="text.secondary">{emp.email ? emp.email.split('@')[0] + '@...' : ''}</Typography>
+                              </Box>
+                            </Box>
                           </TableCell>
-                          <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {checkinRec?.location?.address || 'No location logged'}
+                          <TableCell>
+                            <Chip label={emp.department || 'Operations'} size="small" variant="outlined" sx={{ borderRadius: 1.5, fontSize: '0.75rem' }} />
+                          </TableCell>
+                          {/* Live Status with pulsing dot */}
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Box sx={{
+                                width: 9, height: 9, borderRadius: '50%',
+                                bgcolor: isOnBreak ? 'warning.main' : isOnline ? 'success.main' : 'text.disabled',
+                                ...(isOnline && !isOnBreak && {
+                                  animation: 'live-pulse 2s infinite',
+                                  '@keyframes live-pulse': {
+                                    '0%': { boxShadow: '0 0 0 0 rgba(52,211,153,0.7)' },
+                                    '70%': { boxShadow: '0 0 0 7px rgba(52,211,153,0)' },
+                                    '100%': { boxShadow: '0 0 0 0 rgba(52,211,153,0)' }
+                                  }
+                                })
+                              }} />
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: isOnBreak ? 'warning.main' : isOnline ? 'success.main' : 'text.disabled' }}>
+                                {isOnBreak ? `On Break` : isOnline ? 'Online' : 'Offline'}
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          {/* Productivity progress bar */}
+                          <TableCell sx={{ minWidth: 130 }}>
+                            {prodScore !== null && isOnline ? (
+                              <Box>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                                  <Typography variant="caption" sx={{ fontWeight: 700, color: prodScore >= 70 ? 'success.main' : prodScore >= 40 ? 'warning.main' : 'error.main' }}>
+                                    {Math.round(prodScore)}%
+                                  </Typography>
+                                </Box>
+                                <LinearProgress
+                                  variant="determinate"
+                                  value={prodScore}
+                                  sx={{ height: 6, borderRadius: 3, bgcolor: 'action.selected', '& .MuiLinearProgress-bar': { bgcolor: prodScore >= 70 ? 'success.main' : prodScore >= 40 ? 'warning.main' : 'error.main', borderRadius: 3 } }}
+                                />
+                              </Box>
+                            ) : (
+                              <Typography variant="caption" color="text.disabled">—</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell sx={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'text.secondary', fontSize: '0.8rem' }}>
+                            {checkinRec?.location?.address || '—'}
                           </TableCell>
                           <TableCell sx={{ fontWeight: 700 }}>
                             {calculateTotalHours(checkinRec)} {calculateTotalHours(checkinRec) !== '--' ? 'hrs' : ''}
@@ -637,7 +694,7 @@ function ManagerMonitoring() {
                               onClick={() => navigate(`/manager/monitoring/${emp._id || emp.id}`)}
                               sx={{ textTransform: 'none', borderRadius: 1.5 }}
                             >
-                              Track Details
+                              Track
                             </Button>
                           </TableCell>
                         </TableRow>
