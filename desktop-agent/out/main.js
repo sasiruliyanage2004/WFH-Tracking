@@ -13,6 +13,14 @@ const fs_1 = __importDefault(require("fs"));
 const os_1 = __importDefault(require("os"));
 // active-win was removed
 // Local persistent cache configuration
+if (process.defaultApp) {
+    if (process.argv.length >= 2) {
+        electron_1.app.setAsDefaultProtocolClient('workforceos', process.execPath, [path_1.default.resolve(process.argv[1])]);
+    }
+}
+else {
+    electron_1.app.setAsDefaultProtocolClient('workforceos');
+}
 const getOfflineCacheDir = () => path_1.default.join(electron_1.app.getPath('userData'), 'offline-cache');
 const getOfflineScreenshotsDir = () => path_1.default.join(getOfflineCacheDir(), 'screenshots');
 function ensureCacheDirs() {
@@ -180,6 +188,7 @@ let localKeyboardCount = 0;
 let localMouseCount = 0;
 let activeSecondsInTick = 0;
 let idleSecondsInTick = 0;
+let isSuspiciousTick = false;
 let lastInputTime = Date.now();
 let splashWindow = null;
 let currentActiveAppType = 'Neutral';
@@ -303,11 +312,21 @@ function startIdleDetection() {
                 return;
             }
             const idleTimeSecs = electron_1.powerMonitor.getSystemIdleTime();
-            // 15 minutes threshold (900 seconds)
             if (idleTimeSecs >= 900) {
-                wasIdleBefore = true;
-                if (idleTimeSecs > maxIdleTimeSecs) {
-                    maxIdleTimeSecs = idleTimeSecs;
+                if (idleTimeSecs >= 7200) { // 2 hours
+                    console.log(`Desktop Agent: User idle for >= 2 hours. Auto-checkout triggered.`);
+                    if (mainWindow && !mainWindow?.isDestroyed()) {
+                        mainWindow?.webContents.send('idle:auto-checkout');
+                    }
+                    wasIdleBefore = false;
+                    maxIdleTimeSecs = 0;
+                    stopTracking();
+                }
+                else {
+                    wasIdleBefore = true;
+                    if (idleTimeSecs > maxIdleTimeSecs) {
+                        maxIdleTimeSecs = idleTimeSecs;
+                    }
                 }
             }
             else {
@@ -556,6 +575,7 @@ function startTracking() {
     localMouseCount = 0;
     activeSecondsInTick = 0;
     idleSecondsInTick = 0;
+    isSuspiciousTick = false;
     const debugLogPath = path_1.default.join(electron_1.app.getPath('userData'), 'agent_debug.log');
     try {
         fs_1.default.appendFileSync(debugLogPath, `[${new Date().toISOString()}] Desktop Agent: startTracking() called. Active window tracking started.\n`);
@@ -611,6 +631,11 @@ function startTracking() {
                         const parts = line.split('|');
                         const keys = parseInt(parts[0].replace('KEYS:', '')) || 0;
                         const clicks = parseInt(parts[1].replace('CLICKS:', '')) || 0;
+                        const suspiciousPart = parts.find((p) => p.startsWith('Suspicious:'));
+                        const suspicious = suspiciousPart ? suspiciousPart.replace('Suspicious:', '') === '1' : false;
+                        if (suspicious) {
+                            isSuspiciousTick = true;
+                        }
                         localKeyboardCount += keys;
                         localMouseCount += clicks;
                         // If there was any user input (keys or clicks), update last input time
@@ -772,11 +797,13 @@ async function flushActivityTelemetry() {
     const clicks = localMouseCount;
     const activeSecs = activeSecondsInTick;
     const idleSecs = idleSecondsInTick;
+    const suspicious = isSuspiciousTick;
     // Reset local tick counters
     localKeyboardCount = 0;
     localMouseCount = 0;
     activeSecondsInTick = 0;
     idleSecondsInTick = 0;
+    isSuspiciousTick = false;
     if (activeSecs === 0 && idleSecs === 0)
         return; // Nothing to sync
     console.log(`Desktop Agent: Syncing global activity (${activeSecs}s active, ${idleSecs}s idle, ${keys} keys, ${clicks} clicks)...`);
@@ -785,7 +812,8 @@ async function flushActivityTelemetry() {
             activeSeconds: activeSecs,
             idleSeconds: idleSecs,
             keyboardCount: keys,
-            mouseCount: clicks
+            mouseCount: clicks,
+            suspicious: suspicious
         }, {
             headers: { Authorization: `Bearer ${sessionToken}` }
         });
@@ -797,7 +825,8 @@ async function flushActivityTelemetry() {
             activeSeconds: activeSecs,
             idleSeconds: idleSecs,
             keyboardCount: keys,
-            mouseCount: clicks
+            mouseCount: clicks,
+            suspicious: suspicious
         });
     }
 }

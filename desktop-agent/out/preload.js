@@ -35,6 +35,10 @@ electron_1.contextBridge.exposeInMainWorld('api', {
         electron_1.ipcRenderer.removeAllListeners('idle:prompt-break');
         electron_1.ipcRenderer.on('idle:prompt-break', (event, data) => callback(data));
     },
+    onIdleAutoCheckout: (callback) => {
+        electron_1.ipcRenderer.removeAllListeners('idle:auto-checkout');
+        electron_1.ipcRenderer.on('idle:auto-checkout', () => callback());
+    },
     onWindowMaximize: (callback) => {
         electron_1.ipcRenderer.removeAllListeners('window:maximized');
         electron_1.ipcRenderer.on('window:maximized', () => callback(true));
