@@ -219,7 +219,7 @@ function EmployeeDashboard() {
       // Fetch productivity score
       try {
         const prodRes = await axios.get(`${API_URL}/api/monitoring/my-activity`, authHeader);
-        setProductivity(prodRes.data.productivityPercentage);
+        setProductivity(prodRes.data.productivityPercentage ?? prodRes.data.productivity_percentage ?? 100);
       } catch (err) {
         console.warn('Could not fetch productivity score on load.');
       }
@@ -239,7 +239,7 @@ function EmployeeDashboard() {
         if (!token) return;
         const authHeader = { headers: { Authorization: `Bearer ${token}` } };
         const prodRes = await axios.get(`${API_URL}/api/monitoring/my-activity`, authHeader);
-        setProductivity(prodRes.data.productivityPercentage);
+        setProductivity(prodRes.data.productivityPercentage ?? prodRes.data.productivity_percentage ?? 100);
       } catch (err) {
         // Silent fail for polling
       }
