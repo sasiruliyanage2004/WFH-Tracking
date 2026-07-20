@@ -364,6 +364,7 @@ function EmployeeMonitoring() {
                 <Grid container spacing={2}>
                   {screenshots.map((ss) => {
                     const isSelected = selectedIds.includes(ss._id || ss.id);
+                    const ssUrl = ss.screenshot_url || ss.screenshotUrl || '';
                     return (
                       <Grid key={ss._id || ss.id} size={{ xs: 12, sm: 6, md: 4 }}>
                         <Paper
@@ -386,7 +387,7 @@ function EmployeeMonitoring() {
                             if (isSelectMode) {
                               toggleSelect(ss._id || ss.id);
                             } else {
-                              setSelectedImage(ss.screenshotUrl.startsWith('/uploads') ? `${API_URL}${ss.screenshotUrl}` : ss.screenshotUrl);
+                              setSelectedImage(ssUrl.startsWith('/uploads') ? `${API_URL}${ssUrl}` : ssUrl);
                             }
                           }}
                         >
@@ -416,7 +417,7 @@ function EmployeeMonitoring() {
                           )}
                           <Box
                             component="img"
-                            src={ss.screenshotUrl.startsWith('/uploads') ? `${API_URL}${ss.screenshotUrl}` : ss.screenshotUrl}
+                            src={ssUrl.startsWith('/uploads') ? `${API_URL}${ssUrl}` : ssUrl}
                             alt="screen capture log"
                             sx={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 1 }}
                           />
