@@ -1,346 +1,258 @@
+import axios from 'axios';
 import nodemailer from 'nodemailer';
 import supabase from '../database/supabase';
 
-const getSmtpConfig = async (companyId = null, recipientEmail = null) => {
-  let finalCompanyId = companyId;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const PLATFORM_SENDER_EMAIL = 'onboarding@resend.dev'; // Resend free tier default sender
+const PLATFORM_SENDER_NAME = 'WorkforceOS';
 
-  // Attempt to find companyId by user email if not provided
-  if (!finalCompanyId && recipientEmail) {
-    try {
-      const { data: user } = await supabase
-        .from('users')
-        .select('company_id')
-        .eq('email', recipientEmail.toLowerCase())
-        .maybeSingle();
-      if (user && user.company_id) finalCompanyId = user.company_id;
-    } catch (err) {}
-  }
-
-  // Fallback to Platform Owner's default config if no user or no company_id yet
-  // If it's a new registration for a new company, it will use global.
-  if (!finalCompanyId && recipientEmail) {
-    try {
-      const { data: globalSetting } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', 'smtp_config')
-        .is('company_id', null)
-        .maybeSingle();
-      if (globalSetting && globalSetting.value && globalSetting.value.use_custom) {
-        return {
-          user: globalSetting.value.user,
-          pass: globalSetting.value.pass,
-          host: globalSetting.value.host,
-          port: globalSetting.value.port || 587,
-          sender: globalSetting.value.sender_email || globalSetting.value.user
-        };
-      }
-    } catch (err) {}
-  }
-
-  let config = {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT || 587,
-    sender: process.env.SENDER_EMAIL || process.env.EMAIL_USER
-  };
-
-  if (finalCompanyId) {
-    try {
-      const { data: setting } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', 'smtp_config')
-        .eq('company_id', finalCompanyId)
-        .maybeSingle();
-      
-      if (setting && setting.value && setting.value.use_custom) {
-        const custom = setting.value;
-        if (custom.host && custom.user && custom.pass) {
-          config = {
-            user: custom.user,
-            pass: custom.pass,
-            host: custom.host,
-            port: custom.port || 587,
-            sender: custom.sender_email || custom.user
-          };
-        }
-      }
-    } catch (err) {
-      console.error('Failed to load custom SMTP config:', err.message);
-    }
-  }
-  
-  return config;
-};
-const sendWarningEmail = async (employee, productivity) => {
+// ─────────────────────────────────────────────
+// Core: Send via Resend REST API (platform level)
+// ─────────────────────────────────────────────
+const sendViaResendApi = async (to: string | string[], subject: string, htmlContent: string): Promise<boolean> => {
+  const toList = Array.isArray(to) ? to : [to];
   try {
-    const { user, pass, host, port, sender } = await getSmtpConfig(employee.company_id, employee.email);
-
-    let recipientEmails = ['liyanagesasiru@gmail.com'];
-    try {
-      const { data: setting } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', 'warning_emails')
-        .maybeSingle();
-      if (setting && setting.value && setting.value.length > 0) {
-        recipientEmails = setting.value;
+    await axios.post(
+      'https://api.resend.com/emails',
+      {
+        from: `${PLATFORM_SENDER_NAME} <${PLATFORM_SENDER_EMAIL}>`,
+        to: toList,
+        subject,
+        html: htmlContent,
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
       }
-    } catch (dbErr) {
-      console.error('Failed to fetch recipient emails from settings:', dbErr.message);
-    }
-
-    let transporter;
-
-    if (host && user && pass) {
-      transporter = nodemailer.createTransport({
-        host,
-        port: parseInt(port, 10),
-        secure: parseInt(port, 10) === 465, // true for 465, false for 587/25
-        auth: { user, pass }
-      });
-    } else if (user && pass) {
-      transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user, pass }
-      });
-    } else {
-      console.log('\n-------------------------------------------------------');
-      console.log('--- EMAIL NOT CONFIGURED: Simulating Warning Email ---');
-      console.log(`To: ${recipientEmails.join(', ')}`);
-      console.log(`Subject: WFH Warning: Low Productivity Alert - ${employee.name}`);
-      console.log(`Body: Employee ${employee.name} (Email: ${employee.email}) has a productivity score of ${productivity}%, which is below the 50% threshold today.`);
-      console.log('-------------------------------------------------------\n');
-      return true;
-    }
-
-    const mailOptions = {
-      from: `"WFH Tracking System" <${sender}>`,
-      to: recipientEmails.join(', '),
-      subject: `⚠️ Low Productivity Alert: ${employee.name}`,
-      html: `
-        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #ef4444; border-radius: 8px; max-width: 600px;">
-          <h2 style="color: #ef4444; margin-top: 0;">⚠️ Low Productivity Alert</h2>
-          <p>This is an automated warning alert from the Work From Home Tracking System.</p>
-          <hr style="border: 0; border-top: 1px solid #eee;" />
-          <p><strong>Employee Details:</strong></p>
-          <ul>
-            <li><strong>Name:</strong> ${employee.name}</li>
-            <li><strong>Email:</strong> ${employee.email}</li>
-            <li><strong>Role:</strong> ${employee.role}</li>
-            <li><strong>Department:</strong> ${employee.department || 'N/A'}</li>
-          </ul>
-          <p><strong>Incident Details:</strong></p>
-          <p>The employee's productivity score has dropped to <strong style="color: #ef4444; font-size: 1.1em;">${productivity}%</strong> today, which is below the minimum required threshold of 50%.</p>
-          <p style="color: #777; font-size: 0.9em; margin-top: 20px;">Please check the manager dashboard for detailed activity logs.</p>
-        </div>
-      `
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log(`Warning email successfully sent to ${recipientEmails.join(', ')} for ${employee.name}`);
+    );
+    console.log(`[Resend API] Email sent to ${toList.join(', ')} | Subject: ${subject}`);
     return true;
-  } catch (err) {
-    console.error('Failed to send warning email:', err.message);
+  } catch (err: any) {
+    console.error('[Resend API] Failed to send email:', err?.response?.data || err.message);
     return false;
   }
 };
 
-const sendPasswordResetEmail = async (recipientEmail, otpCode) => {
+// ─────────────────────────────────────────────
+// Fallback: Send via company's custom SMTP if configured
+// ─────────────────────────────────────────────
+const sendViaCustomSmtp = async (
+  companyId: string,
+  to: string | string[],
+  subject: string,
+  html: string
+): Promise<boolean> => {
   try {
-    const { user, pass, host, port, sender } = await getSmtpConfig(null, recipientEmail);
+    const { data: setting } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'smtp_config')
+      .eq('company_id', companyId)
+      .maybeSingle();
 
-    let transporter;
+    if (!setting?.value?.use_custom) return false;
+    const { host, user, pass, port, sender_email } = setting.value;
+    if (!host || !user || !pass) return false;
 
-    if (host && user && pass) {
-      transporter = nodemailer.createTransport({
-        host,
-        port: parseInt(port, 10),
-        secure: parseInt(port, 10) === 465,
-        auth: { user, pass }
-      });
-    } else if (user && pass) {
-      transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user, pass }
-      });
-    } else {
-      console.log('\n-------------------------------------------------------');
-      console.log('--- EMAIL NOT CONFIGURED: Simulating Password Reset ---');
-      console.log(`To: ${recipientEmail}`);
-      console.log(`OTP Code: ${otpCode}`);
-      console.log('-------------------------------------------------------\n');
-      return;
-    }
+    const transporter = nodemailer.createTransport({
+      host,
+      port: parseInt(port, 10) || 587,
+      secure: parseInt(port, 10) === 465,
+      auth: { user, pass },
+    });
 
-    const mailOptions = {
-      from: `"WFH Tracking System" <${sender}>`,
-      to: recipientEmail,
-      subject: `🔑 Password Reset Verification Code: ${otpCode}`,
-      html: `
-        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #66B539; border-radius: 8px; max-width: 600px;">
-          <h2 style="color: #66B539; margin-top: 0;">🔑 Reset Your Password</h2>
-          <p>You requested a password reset for your WFH Tracking System account.</p>
-          <p>Please use the following 6-digit verification code to complete your reset:</p>
-          <div style="background-color: #f4fbf0; padding: 15px; text-align: center; border-radius: 6px; font-size: 28px; font-weight: 700; letter-spacing: 5px; color: #4d8b28; border: 1px dashed #66B539; margin: 20px 0;">
-            ${otpCode}
-          </div>
-          <p>This code is valid for 10 minutes. If you did not request this, please ignore this email.</p>
-          <hr style="border: 0; border-top: 1px solid #eee;" />
-          <p style="color: #777; font-size: 0.85em; margin-top: 20px;">WFH Tracking System Security Team</p>
-        </div>
-      `
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log(`Password reset email successfully sent to ${recipientEmail}`);
-  } catch (err) {
-    console.error('Failed to send password reset email:', err.message);
-    throw err;
+    const toList = Array.isArray(to) ? to : [to];
+    await transporter.sendMail({
+      from: `"${PLATFORM_SENDER_NAME}" <${sender_email || user}>`,
+      to: toList.join(', '),
+      subject,
+      html,
+    });
+    console.log(`[Custom SMTP] Email sent to ${toList.join(', ')} | Subject: ${subject}`);
+    return true;
+  } catch (err: any) {
+    console.error('[Custom SMTP] Failed to send:', err.message);
+    return false;
   }
 };
 
-const sendRegistrationOTPEmail = async (recipientEmail, otpCode) => {
-  try {
-    const { user, pass, host, port, sender } = await getSmtpConfig(null, recipientEmail);
-
-    let transporter;
-
-    if (host && user && pass) {
-      transporter = nodemailer.createTransport({
-        host,
-        port: parseInt(port, 10),
-        secure: parseInt(port, 10) === 465,
-        auth: { user, pass }
-      });
-    } else if (user && pass) {
-      transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user, pass }
-      });
-    } else {
-      console.log('\n-------------------------------------------------------');
-      console.log('--- EMAIL NOT CONFIGURED: Simulating Registration OTP ---');
-      console.log(`To: ${recipientEmail}`);
-      console.log(`OTP Code: ${otpCode}`);
-      console.log('-------------------------------------------------------\n');
-      return;
-    }
-
-    const mailOptions = {
-      from: `"WFH Tracking System" <${sender}>`,
-      to: recipientEmail,
-      subject: `✉️ Registration Verification Code: ${otpCode}`,
-      html: `
-        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #1f4e78; border-radius: 8px; max-width: 600px;">
-          <h2 style="color: #1f4e78; margin-top: 0;">✉️ Verify Your Email Address</h2>
-          <p>Thank you for choosing to register with the WFH Employee Tracking System.</p>
-          <p>Please enter the following 6-digit verification code to complete your registration request:</p>
-          <div style="background-color: #f2f7fa; padding: 15px; text-align: center; border-radius: 6px; font-size: 28px; font-weight: 700; letter-spacing: 5px; color: #153c5e; border: 1px dashed #1f4e78; margin: 20px 0;">
-            ${otpCode}
-          </div>
-          <p>This code is valid for 10 minutes. If you did not request this registration, please ignore this email.</p>
-          <hr style="border: 0; border-top: 1px solid #eee;" />
-          <p style="color: #777; font-size: 0.85em; margin-top: 20px;">WFH Tracking System Security Team</p>
-        </div>
-      `
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log(`Registration verification email successfully sent to ${recipientEmail}`);
-  } catch (err) {
-    console.error('Failed to send registration email:', err.message);
-    throw err;
+// ─────────────────────────────────────────────
+// Smart send: Try company SMTP → fallback Brevo API
+// ─────────────────────────────────────────────
+const smartSend = async (
+  companyId: string | null,
+  to: string | string[],
+  subject: string,
+  html: string
+): Promise<boolean> => {
+  if (companyId) {
+    const sent = await sendViaCustomSmtp(companyId, to, subject, html);
+    if (sent) return true;
   }
+  return sendViaResendApi(to, subject, html);
 };
 
-const sendSuspiciousActivityEmail = async (employeeName: string, managerEmail: string, companyId?: string) => {
-  const config = await getSmtpConfig(companyId, managerEmail);
-  if (!config.user || !config.pass) return false;
+// ─────────────────────────────────────────────
+// Get per-company warning email recipients
+// ─────────────────────────────────────────────
+const getWarningRecipients = async (companyId: string): Promise<string[]> => {
+  try {
+    // 1. Try company-specific warning_emails setting
+    const { data: companySetting } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'warning_emails')
+      .eq('company_id', companyId)
+      .maybeSingle();
 
-  const transporter = nodemailer.createTransport({
-    host: config.host,
-    port: config.port,
-    secure: config.port === 465,
-    auth: { user: config.user, pass: config.pass }
-  });
+    if (companySetting?.value && Array.isArray(companySetting.value) && companySetting.value.length > 0) {
+      return companySetting.value;
+    }
 
-  const mailOptions = {
-    from: config.sender,
-    to: managerEmail,
-    subject: '⚠️ Security Alert: Suspicious Activity Detected',
-    html: `
-      <div style="font-family: Arial, sans-serif; padding: 20px; border-left: 5px solid #dc2626; background: #fef2f2;">
-        <h2>Suspicious Activity Detected</h2>
-        <p>Our Anti-Cheat system has detected suspicious, artificial mouse movements (e.g. Mouse Jiggler) from <strong>${employeeName}</strong>.</p>
-        <p>Please review their activity logs and screenshots in the dashboard.</p>
+    // 2. Fallback: get all Manager/Admin emails for this company
+    const { data: managers } = await supabase
+      .from('users')
+      .select('email')
+      .eq('company_id', companyId)
+      .in('role', ['Manager', 'SuperAdmin', 'Admin']);
+
+    if (managers && managers.length > 0) {
+      return managers.map(m => m.email);
+    }
+  } catch (err: any) {
+    console.error('[getWarningRecipients] Error:', err.message);
+  }
+
+  return [];
+};
+
+// ─────────────────────────────────────────────
+// EMAIL FUNCTIONS
+// ─────────────────────────────────────────────
+
+const sendWarningEmail = async (employee: any, productivity: number): Promise<boolean> => {
+  try {
+    const companyId = employee.company_id;
+    const recipients = await getWarningRecipients(companyId);
+
+    if (recipients.length === 0) {
+      console.warn(`[Warning Email] No recipients found for company ${companyId}. Skipping.`);
+      return false;
+    }
+
+    const subject = `⚠️ Low Productivity Alert: ${employee.name}`;
+    const html = `
+      <div style="font-family: sans-serif; padding: 20px; border: 1px solid #ef4444; border-radius: 8px; max-width: 600px;">
+        <h2 style="color: #ef4444; margin-top: 0;">⚠️ Low Productivity Alert</h2>
+        <p>This is an automated warning alert from the WorkforceOS System.</p>
+        <hr style="border: 0; border-top: 1px solid #eee;" />
+        <p><strong>Employee Details:</strong></p>
+        <ul>
+          <li><strong>Name:</strong> ${employee.name}</li>
+          <li><strong>Email:</strong> ${employee.email}</li>
+          <li><strong>Role:</strong> ${employee.role}</li>
+          <li><strong>Department:</strong> ${employee.department || 'N/A'}</li>
+        </ul>
+        <p><strong>Incident Details:</strong></p>
+        <p>The employee's productivity score has dropped to <strong style="color: #ef4444; font-size: 1.1em;">${productivity}%</strong> today, which is below the minimum required threshold of 50%.</p>
+        <p style="color: #777; font-size: 0.9em; margin-top: 20px;">Please check the manager dashboard for detailed activity logs.</p>
       </div>
-    `
-  };
+    `;
 
-  try {
-    await transporter.sendMail(mailOptions);
-    return true;
-  } catch (err) {
-    console.error('Failed to send suspicious activity email:', err);
+    return smartSend(companyId, recipients, subject, html);
+  } catch (err: any) {
+    console.error('[sendWarningEmail] Error:', err.message);
     return false;
   }
 };
 
-const sendWelcomeEmail = async (userName: string, userEmail: string, tempPassword: string, appUrl: string, companyId?: string) => {
-  const config = await getSmtpConfig(companyId, userEmail);
-  if (!config.user || !config.pass) return false;
-
-  const transporter = nodemailer.createTransport({
-    host: config.host,
-    port: config.port,
-    secure: config.port === 465,
-    auth: { user: config.user, pass: config.pass }
-  });
-
-  const mailOptions = {
-    from: config.sender,
-    to: userEmail,
-    subject: 'Welcome to WorkforceOS - Your Account is Ready',
-    html: `
-      <div style="font-family: Arial, sans-serif; padding: 20px; border-left: 5px solid #2563eb; background: #eff6ff;">
-        <h2>Welcome to WorkforceOS!</h2>
-        <p>Hi <strong>${userName}</strong>,</p>
-        <p>An administrator has created a new account for you. To get started with tracking your work, please follow the steps below:</p>
-        
-        <ol style="line-height: 1.6;">
-          <li><strong>Open the WorkforceOS Desktop App</strong> on your computer.</li>
-          <li>Log in using your email address and the temporary password provided below.</li>
-          <li><strong>Change your password</strong> immediately after your first login when prompted.</li>
-          <li>Click on <strong>Check In</strong> to start your shift!</li>
-        </ol>
-
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="workforceos://open" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
-            Open WorkforceOS App
-          </a>
-        </div>
-
-        <div style="background: #ffffff; padding: 15px; border-radius: 5px; margin: 20px 0; border: 1px solid #d1d5db;">
-          <p style="margin: 0 0 10px 0;"><strong>Your Login Credentials:</strong></p>
-          <p style="margin: 0 0 5px 0;"><strong>Email:</strong> ${userEmail}</p>
-          <p style="margin: 0;"><strong>Temporary Password:</strong> <code style="background: #f3f4f6; padding: 2px 6px; border-radius: 4px;">${tempPassword}</code></p>
-        </div>
-        
-        <p>If you don't have the Desktop App installed yet, please contact your administrator for the installation file.</p>
+const sendPasswordResetEmail = async (recipientEmail: string, otpCode: string): Promise<void> => {
+  const subject = `🔑 Password Reset Verification Code: ${otpCode}`;
+  const html = `
+    <div style="font-family: sans-serif; padding: 20px; border: 1px solid #66B539; border-radius: 8px; max-width: 600px;">
+      <h2 style="color: #66B539; margin-top: 0;">🔑 Reset Your Password</h2>
+      <p>You requested a password reset for your WorkforceOS account.</p>
+      <p>Please use the following 6-digit verification code to complete your reset:</p>
+      <div style="background-color: #f4fbf0; padding: 15px; text-align: center; border-radius: 6px; font-size: 28px; font-weight: 700; letter-spacing: 5px; color: #4d8b28; border: 1px dashed #66B539; margin: 20px 0;">
+        ${otpCode}
       </div>
-    `
-  };
+      <p>This code is valid for 10 minutes. If you did not request this, please ignore this email.</p>
+      <hr style="border: 0; border-top: 1px solid #eee;" />
+      <p style="color: #777; font-size: 0.85em; margin-top: 20px;">WorkforceOS Security Team</p>
+    </div>
+  `;
 
+  // Get user's company to try custom SMTP first
+  let companyId: string | null = null;
   try {
-    await transporter.sendMail(mailOptions);
-    return true;
-  } catch (err) {
-    console.error('Failed to send welcome email:', err);
-    return false;
-  }
+    const { data: user } = await supabase
+      .from('users')
+      .select('company_id')
+      .eq('email', recipientEmail.toLowerCase())
+      .maybeSingle();
+    companyId = user?.company_id || null;
+  } catch {}
+
+  const sent = await smartSend(companyId, recipientEmail, subject, html);
+  if (!sent) throw new Error('Failed to send password reset email');
+};
+
+const sendRegistrationOTPEmail = async (recipientEmail: string, otpCode: string): Promise<void> => {
+  const subject = `✉️ Registration Verification Code: ${otpCode}`;
+  const html = `
+    <div style="font-family: sans-serif; padding: 20px; border: 1px solid #1f4e78; border-radius: 8px; max-width: 600px;">
+      <h2 style="color: #1f4e78; margin-top: 0;">✉️ Verify Your Email Address</h2>
+      <p>Thank you for choosing to register with the WorkforceOS System.</p>
+      <p>Please enter the following 6-digit verification code to complete your registration request:</p>
+      <div style="background-color: #f2f7fa; padding: 15px; text-align: center; border-radius: 6px; font-size: 28px; font-weight: 700; letter-spacing: 5px; color: #153c5e; border: 1px dashed #1f4e78; margin: 20px 0;">
+        ${otpCode}
+      </div>
+      <p>This code is valid for 10 minutes. If you did not request this registration, please ignore this email.</p>
+      <hr style="border: 0; border-top: 1px solid #eee;" />
+      <p style="color: #777; font-size: 0.85em; margin-top: 20px;">WorkforceOS Security Team</p>
+    </div>
+  `;
+
+  const sent = await sendViaResendApi(recipientEmail, subject, html);
+  if (!sent) throw new Error('Failed to send registration OTP email');
+};
+
+const sendSuspiciousActivityEmail = async (employeeName: string, managerEmail: string, companyId?: string): Promise<boolean> => {
+  const subject = '⚠️ Security Alert: Suspicious Activity Detected';
+  const html = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; border-left: 5px solid #dc2626; background: #fef2f2;">
+      <h2>Suspicious Activity Detected</h2>
+      <p>Our Anti-Cheat system has detected suspicious, artificial mouse movements (e.g. Mouse Jiggler) from <strong>${employeeName}</strong>.</p>
+      <p>Please review their activity logs and screenshots in the dashboard.</p>
+    </div>
+  `;
+  return smartSend(companyId || null, managerEmail, subject, html);
+};
+
+const sendWelcomeEmail = async (userName: string, userEmail: string, tempPassword: string, appUrl: string, companyId?: string): Promise<boolean> => {
+  const subject = 'Welcome to WorkforceOS - Your Account is Ready';
+  const html = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; border-left: 5px solid #2563eb; background: #eff6ff;">
+      <h2>Welcome to WorkforceOS!</h2>
+      <p>Hi <strong>${userName}</strong>,</p>
+      <p>An administrator has created a new account for you. To get started with tracking your work, please follow the steps below:</p>
+      <ol style="line-height: 1.6;">
+        <li><strong>Open the WorkforceOS Desktop App</strong> on your computer.</li>
+        <li>Log in using your email address and the temporary password provided below.</li>
+        <li><strong>Change your password</strong> immediately after your first login when prompted.</li>
+        <li>Click on <strong>Check In</strong> to start your shift!</li>
+      </ol>
+      <div style="background: #ffffff; padding: 15px; border-radius: 5px; margin: 20px 0; border: 1px solid #d1d5db;">
+        <p style="margin: 0 0 10px 0;"><strong>Your Login Credentials:</strong></p>
+        <p style="margin: 0 0 5px 0;"><strong>Email:</strong> ${userEmail}</p>
+        <p style="margin: 0;"><strong>Temporary Password:</strong> <code style="background: #f3f4f6; padding: 2px 6px; border-radius: 4px;">${tempPassword}</code></p>
+      </div>
+      <p>If you don't have the Desktop App installed yet, please contact your administrator for the installation file.</p>
+    </div>
+  `;
+  return smartSend(companyId || null, userEmail, subject, html);
 };
 
 export { sendWarningEmail, sendPasswordResetEmail, sendRegistrationOTPEmail, sendSuspiciousActivityEmail, sendWelcomeEmail };
