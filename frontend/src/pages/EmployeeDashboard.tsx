@@ -92,6 +92,7 @@ function EmployeeDashboard() {
   const [mobileVerifyOpen, setMobileVerifyOpen] = useState(false);
   const [mobileVerifyToken, setMobileVerifyToken] = useState('');
   const mobileVerifyInterval = useRef(null);
+  const isInitialLoad = useRef(true);
 
   // Other Break Dialog
   const [otherBreakOpen, setOtherBreakOpen] = useState(false);
@@ -151,6 +152,9 @@ function EmployeeDashboard() {
 
   // Get status, tasks, and reports on load
   const fetchData = async () => {
+    const isFirstLoad = isInitialLoad.current;
+    isInitialLoad.current = false;
+
     try {
       setLoading(true);
       const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -176,29 +180,23 @@ function EmployeeDashboard() {
       const attendanceRes = await axios.get(`${API_URL}/api/attendance/status`, authHeader);
       const att = attendanceRes.data.attendance;
       
-      if (!att) {
-        try {
-          // Check if this is the employee's very first time logging in
-          const historyRes = await axios.get(`${API_URL}/api/attendance/history`, authHeader);
-          const hasPastCheckins = historyRes.data && historyRes.data.length > 0;
+      const shouldAutoCheckin = isFirstLoad && (!att || att.checkOutTime !== null);
 
-          if (hasPastCheckins) {
-            const checkInRes = await axios.post(
-              `${API_URL}/api/attendance/checkin`,
-              { latitude: 0, longitude: 0, address: 'Auto Check-in on Startup', webcamImage: '' },
-              authHeader
-            );
-            setAttendance(checkInRes.data.attendance);
-            if (window.api && window.api.showNotification) {
-              window.api.showNotification('WorkforceOS', 'Welcome! You have been automatically checked in. Have a great day! 🚀');
-            } else {
-              setAutoCheckinSnackbar(true);
-            }
+      if (shouldAutoCheckin) {
+        try {
+          const checkInRes = await axios.post(
+            `${API_URL}/api/attendance/checkin`,
+            { latitude: 0, longitude: 0, address: 'Auto Check-in on Startup', webcamImage: '' },
+            authHeader
+          );
+          setAttendance(checkInRes.data.attendance);
+          if (window.api && window.api.showNotification) {
+            window.api.showNotification('WorkforceOS', 'Welcome! You have been automatically checked in. Have a great day! 🚀');
           } else {
-            setAttendance(null);
+            setAutoCheckinSnackbar(true);
           }
-        } catch (err) {
-          console.error('Auto checkin or history fetch failed:', err.message);
+        } catch (err: any) {
+          console.error('Auto checkin failed:', err.message);
           setAttendance(att);
         }
       } else {
