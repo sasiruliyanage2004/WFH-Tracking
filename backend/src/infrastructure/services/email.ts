@@ -2,35 +2,42 @@ import axios from 'axios';
 import nodemailer from 'nodemailer';
 import supabase from '../database/supabase';
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const PLATFORM_SENDER_EMAIL = 'onboarding@resend.dev'; // Resend free tier default sender
+const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
+const EMAIL_USER = process.env.EMAIL_USER;
+const EMAIL_PASS = process.env.EMAIL_PASS;
+const SENDER_EMAIL = process.env.SENDER_EMAIL || EMAIL_USER;
 const PLATFORM_SENDER_NAME = 'WorkforceOS';
 
 // ─────────────────────────────────────────────
-// Core: Send via Resend REST API (platform level)
+// Core: Send via Platform SMTP (default fallback)
 // ─────────────────────────────────────────────
-const sendViaResendApi = async (to: string | string[], subject: string, htmlContent: string): Promise<boolean> => {
-  const toList = Array.isArray(to) ? to : [to];
+const sendViaPlatformSmtp = async (to: string | string[], subject: string, htmlContent: string): Promise<boolean> => {
+  if (!EMAIL_USER || !EMAIL_PASS) {
+    console.error('[Platform SMTP] Missing EMAIL_USER or EMAIL_PASS in .env');
+    return false;
+  }
+
   try {
-    await axios.post(
-      'https://api.resend.com/emails',
-      {
-        from: `${PLATFORM_SENDER_NAME} <${PLATFORM_SENDER_EMAIL}>`,
-        to: toList,
-        subject,
-        html: htmlContent,
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-    console.log(`[Resend API] Email sent to ${toList.join(', ')} | Subject: ${subject}`);
+    const transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_PORT === 465,
+      auth: { user: EMAIL_USER, pass: EMAIL_PASS },
+    });
+
+    const toList = Array.isArray(to) ? to : [to];
+    await transporter.sendMail({
+      from: `"${PLATFORM_SENDER_NAME}" <${SENDER_EMAIL}>`,
+      to: toList.join(', '),
+      subject,
+      html: htmlContent,
+    });
+    
+    console.log(`[Platform SMTP] Email sent to ${toList.join(', ')} | Subject: ${subject}`);
     return true;
   } catch (err: any) {
-    console.error('[Resend API] Failed to send email:', err?.response?.data || err.message);
+    console.error('[Platform SMTP] Failed to send email:', err.message);
     return false;
   }
 };
@@ -79,7 +86,7 @@ const sendViaCustomSmtp = async (
 };
 
 // ─────────────────────────────────────────────
-// Smart send: Try company SMTP → fallback Brevo API
+// Smart send: Try company SMTP → fallback Platform SMTP
 // ─────────────────────────────────────────────
 const smartSend = async (
   companyId: string | null,
@@ -91,7 +98,7 @@ const smartSend = async (
     const sent = await sendViaCustomSmtp(companyId, to, subject, html);
     if (sent) return true;
   }
-  return sendViaResendApi(to, subject, html);
+  return sendViaPlatformSmtp(to, subject, html);
 };
 
 // ─────────────────────────────────────────────
@@ -215,7 +222,7 @@ const sendRegistrationOTPEmail = async (recipientEmail: string, otpCode: string)
     </div>
   `;
 
-  const sent = await sendViaResendApi(recipientEmail, subject, html);
+  const sent = await sendViaPlatformSmtp(recipientEmail, subject, html);
   if (!sent) throw new Error('Failed to send registration OTP email');
 };
 
