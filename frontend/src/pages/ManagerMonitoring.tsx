@@ -667,7 +667,7 @@ function ManagerMonitoring() {
                               const checkinRec = summary?.liveCheckins?.find(c => (c.employee?._id === emp._id || c.employee?.id === emp._id));
                               const isOnline = checkinRec && !checkinRec.check_out_time;
                               const isOnBreak = checkinRec?.onBreak;
-                              const prodScore = checkinRec?.productivityPercentage ?? null;
+                              const prodScore = checkinRec?.productivityPercentage ?? checkinRec?.productivity_percentage ?? null;
                               const initials = emp.name ? emp.name.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase() : '?';
                               
                               return (
