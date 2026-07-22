@@ -34,7 +34,10 @@ import {
   DialogTitle,
   IconButton,
   Divider,
-  Pagination
+  Pagination,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
 import {
   Visibility as ViewIcon,
@@ -45,7 +48,8 @@ import {
   Groups as GroupsIcon,
   Close as CloseIcon,
   MyLocation as MapIcon,
-  Face as FaceIcon
+  Face as FaceIcon,
+  ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
 import CustomLoader from '../components/CustomLoader';
 
@@ -101,21 +105,10 @@ function ManagerMonitoring() {
       setSummary(res.data);
 
       try {
-        const reportsRes = await axios.get(`${API_URL}/api/reports`, authHeader);
-        const employeeMap = new Map();
-        reportsRes.data.forEach(r => {
-          if (r.employee) employeeMap.set(r.employee._id || r.employee.id, r.employee);
-        });
-        res.data.liveCheckins?.forEach(c => {
-          if (c.employee) employeeMap.set(c.employee._id || c.employee.id, c.employee);
-        });
-        setEmployees(Array.from(employeeMap.values()));
-      } catch (reportsErr) {
-        const employeeMap = new Map();
-        res.data.liveCheckins?.forEach(c => {
-          if (c.employee) employeeMap.set(c.employee._id || c.employee.id, c.employee);
-        });
-        setEmployees(Array.from(employeeMap.values()));
+        const empRes = await axios.get(`${API_URL}/api/users/employees`, authHeader);
+        setEmployees(empRes.data || []);
+      } catch (empErr) {
+        console.error('Failed to load employees list:', empErr.message);
       }
     } catch (err) {
       console.error('Monitoring load error:', err.message);
@@ -290,7 +283,7 @@ function ManagerMonitoring() {
     <Box sx={{ pb: 5 }}>
       {/* Top Section View Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={viewTab} onChange={(e, val) => setViewTab(val)} color="primary">
+        <Tabs value={viewTab} onChange={(e, val) => setViewTab(val)} indicatorColor="primary" textColor="inherit">
           <Tab label="Productivity Leaderboard" sx={{ fontWeight: 700, fontSize: '0.95rem' }} />
           <Tab label="Live status Directory" sx={{ fontWeight: 700, fontSize: '0.95rem' }} />
         </Tabs>
@@ -639,134 +632,135 @@ function ManagerMonitoring() {
                 </Grid>
               </Grid>
 
-              {/* Live Status Table */}
-              <TableContainer component={Paper} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-                <Table>
-                  <TableHead sx={{ bgcolor: 'action.hover' }}>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Employee</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Department</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Live Status</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Productivity</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Check-in Location</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Hours Today</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="center">Action</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {employees.slice((liveDirectoryPage - 1) * rowsPerPage, liveDirectoryPage * rowsPerPage).map((emp) => {
-                      const checkinRec = summary?.liveCheckins?.find(c => (c.employee?._id === emp._id || c.employee?.id === emp._id));
-                      const isOnline = checkinRec && !checkinRec.checkOutTime;
-                      const isOnBreak = checkinRec?.onBreak;
-                      const prodScore = checkinRec?.productivityPercentage ?? null;
-                      const initials = emp.name ? emp.name.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase() : '?';
-                      
-                      return (
-                        <TableRow key={emp._id || emp.id} hover sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
-                          {/* Employee column with avatar */}
-                          <TableCell sx={{ fontWeight: 700 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                              <Avatar sx={{ width: 36, height: 36, fontSize: '0.85rem', fontWeight: 700, bgcolor: isOnline ? 'success.dark' : 'action.selected', color: isOnline ? 'success.contrastText' : 'text.secondary', border: isOnline ? '2px solid' : 'none', borderColor: 'success.main' }}>
-                                {initials}
-                              </Avatar>
-                              <Box>
-                                <Typography variant="body2" sx={{ fontWeight: 700 }}>{emp.name}</Typography>
-                                <Typography variant="caption" color="text.secondary">{emp.email ? emp.email.split('@')[0] + '@...' : ''}</Typography>
-                              </Box>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Chip label={emp.department || 'Operations'} size="small" variant="outlined" sx={{ borderRadius: 1.5, fontSize: '0.75rem' }} />
-                          </TableCell>
-                          {/* Live Status with pulsing dot */}
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Box sx={{
-                                width: 9, height: 9, borderRadius: '50%',
-                                bgcolor: isOnBreak ? 'warning.main' : isOnline ? 'success.main' : 'text.disabled',
-                                ...(isOnline && !isOnBreak && {
-                                  animation: 'live-pulse 2s infinite',
-                                  '@keyframes live-pulse': {
-                                    '0%': { boxShadow: '0 0 0 0 rgba(52,211,153,0.7)' },
-                                    '70%': { boxShadow: '0 0 0 7px rgba(52,211,153,0)' },
-                                    '100%': { boxShadow: '0 0 0 0 rgba(52,211,153,0)' }
-                                  }
-                                })
-                              }} />
-                              <Typography variant="body2" sx={{ fontWeight: 600, color: isOnBreak ? 'warning.main' : isOnline ? 'success.main' : 'text.disabled' }}>
-                                {isOnBreak ? `On Break` : isOnline ? 'Online' : 'Offline'}
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                          {/* Productivity progress bar */}
-                          <TableCell sx={{ minWidth: 130 }}>
-                            {prodScore !== null && isOnline ? (
-                              <Box>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                                  <Typography variant="caption" sx={{ fontWeight: 700, color: prodScore >= 70 ? 'success.main' : prodScore >= 40 ? 'warning.main' : 'error.main' }}>
-                                    {Math.round(prodScore)}%
-                                  </Typography>
-                                </Box>
-                                <LinearProgress
-                                  variant="determinate"
-                                  value={prodScore}
-                                  sx={{ height: 6, borderRadius: 3, bgcolor: 'action.selected', '& .MuiLinearProgress-bar': { bgcolor: prodScore >= 70 ? 'success.main' : prodScore >= 40 ? 'warning.main' : 'error.main', borderRadius: 3 } }}
-                                />
-                              </Box>
-                            ) : (
-                              <Typography variant="caption" color="text.disabled">—</Typography>
-                            )}
-                          </TableCell>
-                          <TableCell sx={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'text.secondary', fontSize: '0.8rem' }}>
-                            {checkinRec?.location?.address || '—'}
-                          </TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>
-                            {calculateTotalHours(checkinRec)} {calculateTotalHours(checkinRec) !== '--' ? 'hrs' : ''}
-                          </TableCell>
-                          <TableCell align="center">
-                            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                              {checkinRec && (
-                                <Tooltip title="View Details">
-                                  <Button
-                                    variant="outlined"
-                                    size="small"
-                                    onClick={() => navigate(`/manager/monitoring/${emp._id || emp.id}`)}
-                                    sx={{ textTransform: 'none', borderRadius: 1.5, fontSize: '0.75rem' }}
-                                  >
-                                    Details
-                                  </Button>
-                                </Tooltip>
-                              )}
-                              <Button
-                                variant="contained"
-                                size="small"
-                                startIcon={<ViewIcon />}
-                                onClick={() => navigate(`/manager/monitoring/${emp._id || emp.id}`)}
-                                sx={{ textTransform: 'none', borderRadius: 1.5 }}
-                              >
-                                Track
-                              </Button>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              {/* Live Status Directory - Grouped by Department */}
+              {(() => {
+                const grouped = employees.reduce((acc, emp) => {
+                  const dept = emp.department || 'Operations';
+                  if (!acc[dept]) acc[dept] = [];
+                  acc[dept].push(emp);
+                  return acc;
+                }, {} as Record<string, typeof employees>);
 
-              {/* Pagination Controls for Live Directory */}
-              {employees.length > rowsPerPage && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-                  <Pagination
-                    count={Math.ceil(employees.length / rowsPerPage)}
-                    page={liveDirectoryPage}
-                    onChange={(e, value) => setLiveDirectoryPage(value)}
-                    color="primary"
-                    shape="rounded"
-                  />
-                </Box>
-              )}
+                return Object.entries(grouped).map(([dept, emps]) => (
+                  <Accordion key={dept} sx={{ mb: 2, borderRadius: 2, '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', boxShadow: 'none', bgcolor: 'background.paper' }} disableGutters>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: 'action.hover', borderRadius: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{dept}</Typography>
+                        <Chip label={`${emps.length} Employee${emps.length !== 1 ? 's' : ''}`} size="small" variant="outlined" sx={{ borderRadius: 1.5 }} />
+                      </Box>
+                    </AccordionSummary>
+                    <AccordionDetails sx={{ p: 0 }}>
+                      <TableContainer>
+                        <Table>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 700 }}>Employee</TableCell>
+                              <TableCell sx={{ fontWeight: 700 }}>Live Status</TableCell>
+                              <TableCell sx={{ fontWeight: 700 }}>Productivity</TableCell>
+                              <TableCell sx={{ fontWeight: 700 }}>Check-in Location</TableCell>
+                              <TableCell sx={{ fontWeight: 700 }}>Hours Today</TableCell>
+                              <TableCell sx={{ fontWeight: 700 }} align="center">Action</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {emps.map((emp) => {
+                              const checkinRec = summary?.liveCheckins?.find(c => (c.employee?._id === emp._id || c.employee?.id === emp._id));
+                              const isOnline = checkinRec && !checkinRec.check_out_time;
+                              const isOnBreak = checkinRec?.onBreak;
+                              const prodScore = checkinRec?.productivityPercentage ?? null;
+                              const initials = emp.name ? emp.name.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase() : '?';
+                              
+                              return (
+                                <TableRow key={emp._id || emp.id} hover sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
+                                  <TableCell sx={{ fontWeight: 700 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                      <Avatar sx={{ width: 36, height: 36, fontSize: '0.85rem', fontWeight: 700, bgcolor: isOnline ? 'success.dark' : 'action.selected', color: isOnline ? 'success.contrastText' : 'text.secondary', border: isOnline ? '2px solid' : 'none', borderColor: 'success.main' }}>
+                                        {initials}
+                                      </Avatar>
+                                      <Box>
+                                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{emp.name}</Typography>
+                                        <Typography variant="caption" color="text.secondary">{emp.email ? emp.email.split('@')[0] + '@...' : ''}</Typography>
+                                      </Box>
+                                    </Box>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      <Box sx={{
+                                        width: 9, height: 9, borderRadius: '50%',
+                                        bgcolor: isOnBreak ? 'warning.main' : isOnline ? 'success.main' : 'text.disabled',
+                                        ...(isOnline && !isOnBreak && {
+                                          animation: 'live-pulse 2s infinite',
+                                          '@keyframes live-pulse': {
+                                            '0%': { boxShadow: '0 0 0 0 rgba(52,211,153,0.7)' },
+                                            '70%': { boxShadow: '0 0 0 7px rgba(52,211,153,0)' },
+                                            '100%': { boxShadow: '0 0 0 0 rgba(52,211,153,0)' }
+                                          }
+                                        })
+                                      }} />
+                                      <Typography variant="body2" sx={{ fontWeight: 600, color: isOnBreak ? 'warning.main' : isOnline ? 'success.main' : 'text.disabled' }}>
+                                        {isOnBreak ? `On Break` : isOnline ? 'Online' : 'Offline'}
+                                      </Typography>
+                                    </Box>
+                                  </TableCell>
+                                  <TableCell sx={{ minWidth: 130 }}>
+                                    {prodScore !== null && isOnline ? (
+                                      <Box>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                                          <Typography variant="caption" sx={{ fontWeight: 700, color: prodScore >= 70 ? 'success.main' : prodScore >= 40 ? 'warning.main' : 'error.main' }}>
+                                            {Math.round(prodScore)}%
+                                          </Typography>
+                                        </Box>
+                                        <LinearProgress
+                                          variant="determinate"
+                                          value={prodScore}
+                                          sx={{ height: 6, borderRadius: 3, bgcolor: 'action.selected', '& .MuiLinearProgress-bar': { bgcolor: prodScore >= 70 ? 'success.main' : prodScore >= 40 ? 'warning.main' : 'error.main', borderRadius: 3 } }}
+                                        />
+                                      </Box>
+                                    ) : (
+                                      <Typography variant="caption" color="text.disabled">—</Typography>
+                                    )}
+                                  </TableCell>
+                                  <TableCell sx={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'text.secondary', fontSize: '0.8rem' }}>
+                                    {checkinRec?.location?.address || '—'}
+                                  </TableCell>
+                                  <TableCell sx={{ fontWeight: 700 }}>
+                                    {calculateTotalHours(checkinRec)} {calculateTotalHours(checkinRec) !== '--' ? 'hrs' : ''}
+                                  </TableCell>
+                                  <TableCell align="center">
+                                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                                      {checkinRec && (
+                                        <Tooltip title="View Details">
+                                          <Button
+                                            variant="outlined"
+                                            size="small"
+                                            onClick={() => navigate(`/manager/monitoring/${emp._id || emp.id}`)}
+                                            sx={{ textTransform: 'none', borderRadius: 1.5, fontSize: '0.75rem' }}
+                                          >
+                                            Details
+                                          </Button>
+                                        </Tooltip>
+                                      )}
+                                      <Button
+                                        variant="contained"
+                                        size="small"
+                                        startIcon={<ViewIcon />}
+                                        onClick={() => navigate(`/manager/monitoring/${emp._id || emp.id}`)}
+                                        sx={{ textTransform: 'none', borderRadius: 1.5 }}
+                                      >
+                                        Track
+                                      </Button>
+                                    </Box>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </AccordionDetails>
+                  </Accordion>
+                ));
+              })()}
             </>
           )}
         </Box>
