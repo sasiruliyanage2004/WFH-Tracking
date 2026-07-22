@@ -641,7 +641,7 @@ function ManagerMonitoring() {
                   return acc;
                 }, {} as Record<string, typeof employees>);
 
-                return Object.entries(grouped).map(([dept, emps]) => (
+                return Object.entries(grouped).map(([dept, emps]: [string, any[]]) => (
                   <Accordion key={dept} sx={{ mb: 2, borderRadius: 2, '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', boxShadow: 'none', bgcolor: 'background.paper' }} disableGutters>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: 'action.hover', borderRadius: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
