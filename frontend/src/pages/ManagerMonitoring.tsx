@@ -33,7 +33,8 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  Divider
+  Divider,
+  Pagination
 } from '@mui/material';
 import {
   Visibility as ViewIcon,
@@ -85,7 +86,9 @@ function ManagerMonitoring() {
   const [userSearch, setUserSearch] = useState('');
   const [leaderboardTab, setLeaderboardTab] = useState('USERS'); // USERS or GROUPS
 
-
+  // --- Leaderboard Pagination ---
+  const [leaderboardPage, setLeaderboardPage] = useState(1);
+  const rowsPerPage = 10;
   const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
   // Fetch Live Directory Summary
@@ -274,6 +277,13 @@ function ManagerMonitoring() {
     ? getUsersLeaderboard().filter(item => item.name.toLowerCase().includes(userSearch.toLowerCase()))
     : getGroupsLeaderboard().filter(item => item.name.toLowerCase().includes(userSearch.toLowerCase()));
 
+  // Reset page when filters change
+  useEffect(() => {
+    setLeaderboardPage(1);
+  }, [userSearch, leaderboardTab, dateRange, department]);
+
+  const paginatedLeaderboard = displayedLeaderboard.slice((leaderboardPage - 1) * rowsPerPage, leaderboardPage * rowsPerPage);
+
   return (
     <>
     <Box sx={{ pb: 5 }}>
@@ -444,7 +454,7 @@ function ManagerMonitoring() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {displayedLeaderboard.map((row: any) => {
+                  {paginatedLeaderboard.map((row: any) => {
                     // Calculate stacked bar segment percentages
                     const totalMins = row.productiveMins + row.unproductiveMins + row.neutralMins;
                     const prodPct = totalMins > 0 ? (row.productiveMins / totalMins) * 100 : 100;
@@ -542,6 +552,19 @@ function ManagerMonitoring() {
                 </TableBody>
               </Table>
             </TableContainer>
+          )}
+
+          {/* Pagination Controls */}
+          {displayedLeaderboard.length > rowsPerPage && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <Pagination
+                count={Math.ceil(displayedLeaderboard.length / rowsPerPage)}
+                page={leaderboardPage}
+                onChange={(e, value) => setLeaderboardPage(value)}
+                color="primary"
+                shape="rounded"
+              />
+            </Box>
           )}
         </Box>
       )}
