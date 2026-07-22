@@ -583,18 +583,25 @@ function EmployeeMonitoring() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {activity.slice((activityPage - 1) * rowsPerPage, activityPage * rowsPerPage).map((act) => (
-                        <TableRow key={act._id}>
-                          <TableCell sx={{ fontWeight: 500 }}>{act.date}</TableCell>
-                          <TableCell>{Math.round(act.activeMinutes * 10) / 10} min</TableCell>
-                          <TableCell>{Math.round(act.idleMinutes * 10) / 10} min</TableCell>
-                          <TableCell>{act.keyboardCount}</TableCell>
-                          <TableCell>{act.mouseCount}</TableCell>
-                          <TableCell sx={{ fontWeight: 700, color: act.productivityPercentage > 80 ? 'success.main' : act.productivityPercentage > 50 ? 'warning.main' : 'error.main' }}>
-                            {act.productivityPercentage}%
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {activity.slice((activityPage - 1) * rowsPerPage, activityPage * rowsPerPage).map((act) => {
+                        const activeMins = act.activeMinutes ?? act.active_minutes ?? 0;
+                        const idleMins = act.idleMinutes ?? act.idle_minutes ?? 0;
+                        const kbdCount = act.keyboardCount ?? act.keyboard_count ?? 0;
+                        const msCount = act.mouseCount ?? act.mouse_count ?? 0;
+                        const prodPct = act.productivityPercentage ?? act.productivity_percentage ?? 100;
+                        return (
+                          <TableRow key={act._id || act.id}>
+                            <TableCell sx={{ fontWeight: 500 }}>{act.date}</TableCell>
+                            <TableCell>{Math.round(activeMins * 10) / 10} min</TableCell>
+                            <TableCell>{Math.round(idleMins * 10) / 10} min</TableCell>
+                            <TableCell>{kbdCount}</TableCell>
+                            <TableCell>{msCount}</TableCell>
+                            <TableCell sx={{ fontWeight: 700, color: prodPct > 80 ? 'success.main' : prodPct > 50 ? 'warning.main' : 'error.main' }}>
+                              {prodPct}%
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </TableContainer>
