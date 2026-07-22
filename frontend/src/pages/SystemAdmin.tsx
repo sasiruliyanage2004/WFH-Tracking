@@ -26,7 +26,8 @@ import {
   TableRow,
   Avatar,
   IconButton,
-  Divider
+  Divider,
+  Pagination
 } from '@mui/material';
 import {
   Business as BusinessIcon,
@@ -52,6 +53,10 @@ function SystemAdmin({ activeTab = 0 }) {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tabValue, setTabValue] = useState(0); 
+  
+  // --- Pagination ---
+  const [companyPage, setCompanyPage] = useState(1);
+  const rowsPerPage = 8;
   
   const [analytics, setAnalytics] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
@@ -551,7 +556,7 @@ function SystemAdmin({ activeTab = 0 }) {
           </Box>
 
           <Grid container spacing={3}>
-            {getFilteredCompanies().map((company) => (
+            {getFilteredCompanies().slice((companyPage - 1) * rowsPerPage, companyPage * rowsPerPage).map((company) => (
               <Grid key={company.id} size={{ xs: 12, md: 6, lg: 4 }}>
                 <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid divider', position: 'relative' }}>
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
@@ -630,6 +635,19 @@ function SystemAdmin({ activeTab = 0 }) {
               </Grid>
             )}
           </Grid>
+
+          {/* Pagination Controls */}
+          {getFilteredCompanies().length > rowsPerPage && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <Pagination
+                count={Math.ceil(getFilteredCompanies().length / rowsPerPage)}
+                page={companyPage}
+                onChange={(e, value) => setCompanyPage(value)}
+                color="primary"
+                shape="rounded"
+              />
+            </Box>
+          )}
         </Box>
       )}
 

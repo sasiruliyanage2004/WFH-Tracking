@@ -35,7 +35,8 @@ import {
   LinearProgress,
   useTheme,
   Snackbar,
-  Alert
+  Alert,
+  Pagination
 } from '@mui/material';
 import { maskEmail } from '../utils/maskEmail';
 import {
@@ -145,6 +146,10 @@ function ManagerDashboard() {
   const [filterEmployee, setFilterEmployee] = useState('');
   const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
+
+  // --- Pagination ---
+  const [attendancePage, setAttendancePage] = useState(1);
+  const rowsPerPage = 8;
 
   // Dialog States
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
@@ -846,7 +851,7 @@ function ManagerDashboard() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {attendanceRecords.map((rec) => {
+                      {attendanceRecords.slice((attendancePage - 1) * rowsPerPage, attendancePage * rowsPerPage).map((rec) => {
                         const initials = getInitials(rec.employee?.name);
                         return (
                           <TableRow 
@@ -944,6 +949,19 @@ function ManagerDashboard() {
                     </TableBody>
                   </Table>
                 </TableContainer>
+              )}
+
+              {/* Pagination Controls */}
+              {attendanceRecords.length > rowsPerPage && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }} className="no-print">
+                  <Pagination
+                    count={Math.ceil(attendanceRecords.length / rowsPerPage)}
+                    page={attendancePage}
+                    onChange={(e, value) => setAttendancePage(value)}
+                    color="primary"
+                    shape="rounded"
+                  />
+                </Box>
               )}
             </CardContent>
           </Card>

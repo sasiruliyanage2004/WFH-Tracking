@@ -24,7 +24,8 @@ import {
   Select,
   MenuItem,
   Grid,
-  Link
+  Link,
+  Pagination
 } from '@mui/material';
 import { 
   AddTask as TaskIcon, 
@@ -46,6 +47,10 @@ function ManagerTasks() {
   const [tasks, setTasks] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // --- Pagination ---
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 8;
 
   // Form states
   const [taskName, setTaskName] = useState('');
@@ -177,7 +182,7 @@ function ManagerTasks() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {tasks.map((task) => (
+              {tasks.slice((page - 1) * rowsPerPage, page * rowsPerPage).map((task) => (
                 <TableRow key={task._id}>
                   <TableCell sx={{ fontWeight: 500 }}>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>{task.taskName}</Typography>
@@ -225,6 +230,19 @@ function ManagerTasks() {
             </TableBody>
           </Table>
         </TableContainer>
+      )}
+
+      {/* Pagination Controls */}
+      {tasks.length > rowsPerPage && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <Pagination
+            count={Math.ceil(tasks.length / rowsPerPage)}
+            page={page}
+            onChange={(e, value) => setPage(value)}
+            color="primary"
+            shape="rounded"
+          />
+        </Box>
       )}
 
       {/* Assign Task Dialog */}

@@ -15,7 +15,8 @@ import {
   Chip,
   Dialog,
   DialogContent,
-  IconButton
+  IconButton,
+  Pagination
 } from '@mui/material';
 import { Close as CloseIcon, Visibility as ViewIcon } from '@mui/icons-material';
 import CustomLoader from '../components/CustomLoader';
@@ -27,6 +28,11 @@ function AttendanceLogs() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+
+  // --- Pagination ---
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 8;
+
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -78,8 +84,8 @@ function AttendanceLogs() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {history.map((rec) => (
-                <TableRow key={rec._id || rec.id}>
+              {history.slice((page - 1) * rowsPerPage, page * rowsPerPage).map((rec) => (
+                <TableRow key={rec.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                   <TableCell sx={{ fontWeight: 500 }}>{rec.date}</TableCell>
                   <TableCell>{new Date(rec.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</TableCell>
                   <TableCell>
@@ -114,6 +120,19 @@ function AttendanceLogs() {
             </TableBody>
           </Table>
         </TableContainer>
+      )}
+
+      {/* Pagination Controls */}
+      {history.length > rowsPerPage && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <Pagination
+            count={Math.ceil(history.length / rowsPerPage)}
+            page={page}
+            onChange={(e, value) => setPage(value)}
+            color="primary"
+            shape="rounded"
+          />
+        </Box>
       )}
 
       {/* Selfie Zoom Modal dialog */}

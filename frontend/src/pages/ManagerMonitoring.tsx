@@ -88,7 +88,8 @@ function ManagerMonitoring() {
 
   // --- Leaderboard Pagination ---
   const [leaderboardPage, setLeaderboardPage] = useState(1);
-  const rowsPerPage = 10;
+  const rowsPerPage = 8;
+  const [liveDirectoryPage, setLiveDirectoryPage] = useState(1);
   const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
   // Fetch Live Directory Summary
@@ -653,7 +654,7 @@ function ManagerMonitoring() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {employees.map((emp) => {
+                    {employees.slice((liveDirectoryPage - 1) * rowsPerPage, liveDirectoryPage * rowsPerPage).map((emp) => {
                       const checkinRec = summary?.liveCheckins?.find(c => (c.employee?._id === emp._id || c.employee?.id === emp._id));
                       const isOnline = checkinRec && !checkinRec.checkOutTime;
                       const isOnBreak = checkinRec?.onBreak;
@@ -753,6 +754,19 @@ function ManagerMonitoring() {
                   </TableBody>
                 </Table>
               </TableContainer>
+
+              {/* Pagination Controls for Live Directory */}
+              {employees.length > rowsPerPage && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                  <Pagination
+                    count={Math.ceil(employees.length / rowsPerPage)}
+                    page={liveDirectoryPage}
+                    onChange={(e, value) => setLiveDirectoryPage(value)}
+                    color="primary"
+                    shape="rounded"
+                  />
+                </Box>
+              )}
             </>
           )}
         </Box>

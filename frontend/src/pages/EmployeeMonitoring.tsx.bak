@@ -1,5 +1,4 @@
 // frontend/src/pages/EmployeeMonitoring.js
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -29,8 +28,7 @@ import {
   Checkbox,
   TextField,
   Alert,
-  Tooltip,
-  Pagination
+  Tooltip
 } from '@mui/material';
 import {
   ArrowBack as BackIcon,
@@ -59,11 +57,6 @@ function EmployeeMonitoring() {
   const [appUsage, setAppUsage] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
-  
-  // --- Pagination ---
-  const [appUsagePage, setAppUsagePage] = useState(1);
-  const [activityPage, setActivityPage] = useState(1);
-  const rowsPerPage = 8;
 
   // Deletion selection states
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -160,10 +153,16 @@ function EmployeeMonitoring() {
   }
   // Get most recent check-in location coords
   const latestCheckin = attendance.length > 0 ? attendance[0] : null;
+  const latitude = latestCheckin?.location?.latitude || 40.7128;
+  const longitude = latestCheckin?.location?.longitude || -74.0060;
+  const mapAddress = latestCheckin?.location?.address || (latestCheckin ? 'No location logged' : 'Employee did not check in on this date');
 
   // Get productivity score for selected date
   const selectedDateActivity = activity.find(act => act.date === selectedDate);
   const prodScore = selectedDateActivity ? selectedDateActivity.productivityPercentage : 100;
+
+  // Embeddable Google Map URL without API Key
+  const googleMapEmbedUrl = `https://maps.google.com/maps?q=${latitude},${longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
 
   // App usage stats calculations
   const totalUsageMins = appUsage.reduce((sum, item) => sum + Number(item.duration_minutes || 0), 0);
@@ -247,6 +246,77 @@ function EmployeeMonitoring() {
       )}
 
       <Grid container spacing={3}>
+        {/* GPS Verification Map and webcam selfie validation */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card sx={{ borderRadius: 3, height: '100%' }}>
+            <CardContent>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <MapIcon color="primary" /> Latest Check-in Location
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Address: {mapAddress}
+              </Typography>
+              
+              {/* Google Map iframe container */}
+              <Box sx={{ width: '100%', height: 320, borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+                <iframe
+                  title="Employee CheckIn GPS Map"
+                  src={googleMapEmbedUrl}
+                  width="100%"
+                  height="100%"
+                  frameBorder="0"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  aria-hidden="false"
+                  tabIndex={0}
+                />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Webcam Verification check-in selfie */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card sx={{ borderRadius: 3, height: '100%' }}>
+            <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
+                  Verification Selfie
+                </Typography>
+                {latestCheckin?.webcamImage ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <Box
+                      component="img"
+                      src={latestCheckin.webcamImage.startsWith('/uploads') ? `${API_URL}${latestCheckin.webcamImage}` : latestCheckin.webcamImage}
+                      alt="check-in selfie verification"
+                      onClick={() => setSelectedImage(latestCheckin.webcamImage.startsWith('/uploads') ? `${API_URL}${latestCheckin.webcamImage}` : latestCheckin.webcamImage)}
+                      sx={{
+                        width: '100%',
+                        maxHeight: 280,
+                        objectFit: 'contain',
+                        borderRadius: 2,
+                        cursor: 'zoom-in',
+                        border: '1px solid',
+                        borderColor: 'divider'
+                      }}
+                    />
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 5 }}>
+                    {latestCheckin ? 'No identity verification selfie captured for this check-in.' : 'Employee did not check in on this date.'}
+                  </Typography>
+                )}
+              </Box>
+              
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Logged Time: {latestCheckin?.checkInTime ? new Date(latestCheckin.checkInTime).toLocaleString() : '--'}
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
         {/* Today's Breaks Card */}
         <Grid size={{ xs: 12 }}>
           <Card sx={{ borderRadius: 3 }}>
@@ -255,16 +325,16 @@ function EmployeeMonitoring() {
                 <TimeIcon color="primary" /> Breaks & Pauses
               </Typography>
               <Divider sx={{ mb: 2 }} />
-              {latestCheckin && Array.isArray(latestCheckin.breakHistory || latestCheckin.breaks) && (latestCheckin.breakHistory || latestCheckin.breaks).length > 0 ? (
+              {latestCheckin?.breaks && latestCheckin.breaks.length > 0 ? (
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  {(latestCheckin.breakHistory || latestCheckin.breaks).map((b: any, i: number) => {
-                    const start = new Date(b?.startTime || b?.start_time);
-                    const end = (b?.endTime || b?.end_time) ? new Date(b.endTime || b.end_time) : new Date();
+                  {latestCheckin.breaks.map((b, i) => {
+                    const start = new Date(b.startTime);
+                    const end = b.endTime ? new Date(b.endTime) : new Date();
                     const diffMins = Math.round((end.getTime() - start.getTime()) / 60000);
                     return (
                       <Chip 
                         key={i} 
-                        label={`${b?.breakType || b?.break_type || b?.type || 'Break'}: ${diffMins}m ${b?.note ? `"${b.note}"` : ''}`} 
+                        label={`${b.breakType}: ${diffMins}m ${b.note ? `"${b.note}"` : ''}`} 
                         variant="outlined"
                         color="secondary"
                       />
@@ -370,7 +440,6 @@ function EmployeeMonitoring() {
                 <Grid container spacing={2}>
                   {screenshots.map((ss) => {
                     const isSelected = selectedIds.includes(ss._id || ss.id);
-                    const ssUrl = ss.screenshot_url || ss.screenshotUrl || '';
                     return (
                       <Grid key={ss._id || ss.id} size={{ xs: 12, sm: 6, md: 4 }}>
                         <Paper
@@ -393,7 +462,7 @@ function EmployeeMonitoring() {
                             if (isSelectMode) {
                               toggleSelect(ss._id || ss.id);
                             } else {
-                              setSelectedImage(ssUrl.startsWith('/uploads') ? `${API_URL}${ssUrl}` : ssUrl);
+                              setSelectedImage(ss.screenshotUrl.startsWith('/uploads') ? `${API_URL}${ss.screenshotUrl}` : ss.screenshotUrl);
                             }
                           }}
                         >
@@ -423,7 +492,7 @@ function EmployeeMonitoring() {
                           )}
                           <Box
                             component="img"
-                            src={ssUrl.startsWith('/uploads') ? `${API_URL}${ssUrl}` : ssUrl}
+                            src={ss.screenshotUrl.startsWith('/uploads') ? `${API_URL}${ss.screenshotUrl}` : ss.screenshotUrl}
                             alt="screen capture log"
                             sx={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 1 }}
                           />
@@ -514,7 +583,7 @@ function EmployeeMonitoring() {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {appUsage.slice((appUsagePage - 1) * rowsPerPage, appUsagePage * rowsPerPage).map((item) => (
+                        {appUsage.map((item) => (
                           <TableRow key={item.id}>
                             <TableCell sx={{ fontWeight: 500 }}>{item.app_name}</TableCell>
                             <TableCell sx={{ color: 'text.secondary', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -537,19 +606,6 @@ function EmployeeMonitoring() {
                       </TableBody>
                     </Table>
                   </TableContainer>
-
-                  {/* App Usage Pagination */}
-                  {appUsage.length > rowsPerPage && (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-                      <Pagination
-                        count={Math.ceil(appUsage.length / rowsPerPage)}
-                        page={appUsagePage}
-                        onChange={(e, value) => setAppUsagePage(value)}
-                        color="primary"
-                        shape="rounded"
-                      />
-                    </Box>
-                  )}
                 </Box>
               )}
             </CardContent>
@@ -583,7 +639,7 @@ function EmployeeMonitoring() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {activity.slice((activityPage - 1) * rowsPerPage, activityPage * rowsPerPage).map((act) => (
+                      {activity.map((act) => (
                         <TableRow key={act._id}>
                           <TableCell sx={{ fontWeight: 500 }}>{act.date}</TableCell>
                           <TableCell>{Math.round(act.activeMinutes * 10) / 10} min</TableCell>
@@ -598,19 +654,6 @@ function EmployeeMonitoring() {
                     </TableBody>
                   </Table>
                 </TableContainer>
-              )}
-
-              {/* Activity Pagination */}
-              {activity.length > rowsPerPage && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-                  <Pagination
-                    count={Math.ceil(activity.length / rowsPerPage)}
-                    page={activityPage}
-                    onChange={(e, value) => setActivityPage(value)}
-                    color="primary"
-                    shape="rounded"
-                  />
-                </Box>
               )}
             </CardContent>
           </Card>
