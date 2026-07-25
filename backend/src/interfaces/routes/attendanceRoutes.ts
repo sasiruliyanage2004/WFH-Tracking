@@ -108,6 +108,58 @@ const closeOrphanedShifts = async (employeeId?: string) => {
   }
 };
 
+// Helper: Auto-start Check-In when laptop turns on / becomes active again without demanding manual check-in
+const ensureTodayCheckin = async (user: any, today: string) => {
+  if (user.role === 'SuperAdmin') return null;
+
+  const { data: existing } = await supabase
+    .from('attendance')
+    .select('*')
+    .eq('employee_id', user.id)
+    .or(`date.eq.${today},check_out_time.is.null`)
+    .order('check_in_time', { ascending: false })
+    .limit(1);
+
+  if (existing && existing.length > 0) {
+    return existing[0];
+  }
+
+  const now = new Date();
+  const { data: newAtt, error } = await supabase
+    .from('attendance')
+    .insert([{
+      employee_id: user.id,
+      date: today,
+      check_in_time: now.toISOString(),
+      status: 'Present',
+      company_id: user.companyId,
+      is_auto_check_in: true,
+      last_heartbeat: now.toISOString()
+    }])
+    .select('*')
+    .single();
+
+  if (error || !newAtt) {
+    const { data: retry } = await supabase
+      .from('attendance')
+      .select('*')
+      .eq('employee_id', user.id)
+      .eq('date', today)
+      .order('check_in_time', { ascending: false })
+      .limit(1);
+    return retry && retry.length > 0 ? retry[0] : null;
+  }
+
+  const { data: managers } = await supabase.from('users').select('id').eq('role', 'Manager');
+  if (managers) {
+    for (let mgr of managers) {
+      await sendNotification(mgr.id, `${user.name} automatically checked in (Laptop active).`, 'checkin');
+    }
+  }
+
+  return newAtt;
+};
+
 // 2. ATTENDANCE ROUTES
 
 // Mobile Verification Store (In-Memory)
@@ -231,21 +283,17 @@ router.post('/checkin', authenticate, async (req: Request, res: Response) => {
 router.post('/heartbeat', authenticate, async (req: Request, res: Response) => {
   try {
     await closeOrphanedShifts(req.user!.id);
-    const { data: att } = await supabase
-      .from('attendance')
-      .select('id')
-      .eq('employee_id', req.user!.id)
-      .is('check_out_time', null)
-      .maybeSingle();
+    const today = new Date().toISOString().split('T')[0];
+    let att = await ensureTodayCheckin(req.user!, today);
 
-    if (att) {
+    if (att && !att.check_out_time) {
       await supabase
         .from('attendance')
         .update({ last_heartbeat: new Date() })
         .eq('id', att.id);
       res.json({ success: true, active: true });
     } else {
-      res.json({ success: true, autoCheckedOut: true });
+      res.json({ success: true, active: false, autoCheckedOut: false });
     }
   } catch (err: any) {
     res.status(500).json({ success: false });
@@ -518,16 +566,7 @@ router.get('/status', authenticate, async (req: Request, res: Response) => {
   await closeOrphanedShifts(req.user!.id);
   const today = new Date().toISOString().split('T')[0];
   try {
-    const { data: atts } = await supabase
-      .from('attendance')
-      .select('*')
-      .eq('employee_id', req.user!.id)
-      .or(`date.eq.${today},check_out_time.is.null`)
-      .order('check_in_time', { ascending: false })
-      .limit(1);
-
-    const att = atts && atts.length > 0 ? atts[0] : null;
-
+    const att = await ensureTodayCheckin(req.user!, today);
     res.json({ attendance: formatAttendance(att) });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
