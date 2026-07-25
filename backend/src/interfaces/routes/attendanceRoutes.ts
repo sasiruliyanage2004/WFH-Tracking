@@ -31,51 +31,77 @@ const formatAttendance = (data) => {
   };
 };
 
-// Helper: Auto-close orphaned shifts
-const closeOrphanedShifts = async (employeeId: string) => {
+// Helper: Auto-close or rollover orphaned shifts
+const processOrphanedShift = async (shift: any, today: string) => {
+  const isCrossedMidnight = shift.date < today;
+  const lastHbMs = shift.last_heartbeat ? new Date(shift.last_heartbeat).getTime() : 0;
+  const isLaptopShutDown = Date.now() - lastHbMs > 5 * 60 * 1000;
+
+  if (isCrossedMidnight || (shift.last_heartbeat && isLaptopShutDown)) {
+    let checkoutDate: Date;
+
+    if (isCrossedMidnight) {
+      // Strictly cap checkout time to the end of the shift's original day (23:59:59)
+      const endOfDay = new Date(shift.date + 'T23:59:59.000Z');
+      if (shift.last_heartbeat && new Date(shift.last_heartbeat) < endOfDay) {
+        checkoutDate = new Date(shift.last_heartbeat);
+      } else {
+        checkoutDate = endOfDay;
+      }
+    } else if (shift.last_heartbeat && isLaptopShutDown) {
+      // Check out exactly at last heartbeat for today's abandoned shift
+      checkoutDate = new Date(shift.last_heartbeat);
+    } else {
+      checkoutDate = new Date(shift.check_in_time);
+    }
+
+    const checkIn = new Date(shift.check_in_time);
+    const sessionMs = Math.max(0, checkoutDate.getTime() - checkIn.getTime());
+    const sessionHours = sessionMs / (1000 * 60 * 60);
+    const totalHours = (shift.duration_hours || 0) + sessionHours;
+    const hours = Math.round(totalHours * 100) / 100;
+
+    await supabase
+      .from('attendance')
+      .update({
+        check_out_time: checkoutDate.toISOString(),
+        duration_hours: hours,
+        status: 'Completed'
+      })
+      .eq('id', shift.id);
+
+    // If shift crossed midnight and laptop is currently active (not shut down), start today's shift afresh
+    if (isCrossedMidnight && !isLaptopShutDown) {
+      await supabase
+        .from('attendance')
+        .insert([{
+          employee_id: shift.employee_id,
+          date: today,
+          check_in_time: today + 'T00:00:00.000Z',
+          status: 'Present',
+          company_id: shift.company_id,
+          is_auto_check_in: true,
+          last_heartbeat: new Date().toISOString()
+        }]);
+    }
+  }
+};
+
+const closeOrphanedShifts = async (employeeId?: string) => {
   const today = new Date().toISOString().split('T')[0];
   try {
-    const { data: activeShifts } = await supabase
+    let query = supabase
       .from('attendance')
       .select('*')
-      .eq('employee_id', employeeId)
       .is('check_out_time', null);
-
+    if (employeeId) {
+      query = query.eq('employee_id', employeeId);
+    }
+    const { data: activeShifts } = await query;
     if (!activeShifts || activeShifts.length === 0) return;
 
     for (const shift of activeShifts) {
-      const isCrossedMidnight = shift.date < today;
-      const lastHbMs = shift.last_heartbeat ? new Date(shift.last_heartbeat).getTime() : 0;
-      const isLaptopShutDown = Date.now() - lastHbMs > 5 * 60 * 1000;
-
-      if (isCrossedMidnight || (shift.last_heartbeat && isLaptopShutDown)) {
-        let checkoutDate: Date;
-
-        if (shift.last_heartbeat && isLaptopShutDown) {
-          // Check out exactly at last heartbeat
-          checkoutDate = new Date(shift.last_heartbeat);
-        } else if (isCrossedMidnight) {
-          // Crossed midnight but heartbeat was still active? Cap at end of old day
-          checkoutDate = new Date(shift.date + 'T23:59:59.000Z');
-        } else {
-          checkoutDate = new Date(shift.check_in_time);
-        }
-
-        const checkIn = new Date(shift.check_in_time);
-        const sessionMs = checkoutDate.getTime() - checkIn.getTime();
-        const sessionHours = Math.max(0, sessionMs / (1000 * 60 * 60));
-        const totalHours = (shift.duration_hours || 0) + sessionHours;
-        const hours = Math.round(totalHours * 100) / 100;
-
-        await supabase
-          .from('attendance')
-          .update({
-            check_out_time: checkoutDate.toISOString(),
-            duration_hours: hours,
-            status: 'Completed'
-          })
-          .eq('id', shift.id);
-      }
+      await processOrphanedShift(shift, today);
     }
   } catch (err) {
     console.error('Error closing orphaned shifts:', err);
@@ -87,7 +113,7 @@ const closeOrphanedShifts = async (employeeId: string) => {
 // Mobile Verification Store (In-Memory)
 const mobileVerificationStore = new Map();
 
-// Cleanup old tokens every minute
+// Cleanup old tokens and check for orphaned shifts every minute
 setInterval(() => {
   const now = Date.now();
   for (const [key, value] of mobileVerificationStore.entries()) {
@@ -95,6 +121,7 @@ setInterval(() => {
       mobileVerificationStore.delete(key);
     }
   }
+  closeOrphanedShifts().catch(e => console.error(e));
 }, 60 * 1000);
 
 router.post('/mobile-location', async (req: Request, res: Response) => {
@@ -203,6 +230,7 @@ router.post('/checkin', authenticate, async (req: Request, res: Response) => {
 // --- Hearbeat Endpoint ---
 router.post('/heartbeat', authenticate, async (req: Request, res: Response) => {
   try {
+    await closeOrphanedShifts(req.user!.id);
     const { data: att } = await supabase
       .from('attendance')
       .select('id')
@@ -229,6 +257,7 @@ router.post('/checkout', authenticate, async (req: Request, res: Response) => {
   const checkOutTime = offlineTimestamp ? new Date(offlineTimestamp) : new Date();
   const today = checkOutTime.toISOString().split('T')[0];
   try {
+    await closeOrphanedShifts(req.user!.id);
     const { data: atts, error: fetchErr } = await supabase
       .from('attendance')
       .select('*')
@@ -315,6 +344,7 @@ router.post('/break/start', authenticate, async (req: Request, res: Response) =>
   const { breakType, note } = req.body;
   const today = new Date().toISOString().split('T')[0];
   try {
+    await closeOrphanedShifts(req.user!.id);
     const { data: atts, error: fetchErr } = await supabase
       .from('attendance')
       .select('*')
@@ -374,6 +404,7 @@ router.post('/break/start', authenticate, async (req: Request, res: Response) =>
 router.post('/break/end', authenticate, async (req: Request, res: Response) => {
   const today = new Date().toISOString().split('T')[0];
   try {
+    await closeOrphanedShifts(req.user!.id);
     const { data: atts, error: fetchErr } = await supabase
       .from('attendance')
       .select('*')
@@ -430,6 +461,7 @@ router.post('/break/retroactive', authenticate, async (req: Request, res: Respon
   const { breakType, durationMinutes } = req.body;
   const today = new Date().toISOString().split('T')[0];
   try {
+    await closeOrphanedShifts(req.user!.id);
     const { data: atts, error: fetchErr } = await supabase
       .from('attendance')
       .select('*')
@@ -504,6 +536,7 @@ router.get('/status', authenticate, async (req: Request, res: Response) => {
 
 router.get('/history', authenticate, async (req: Request, res: Response) => {
   try {
+    await closeOrphanedShifts(req.user!.id);
     const { data: history } = await supabase
       .from('attendance')
       .select('*')
