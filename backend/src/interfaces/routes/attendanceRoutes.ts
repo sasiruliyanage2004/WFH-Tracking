@@ -116,7 +116,7 @@ const ensureTodayCheckin = async (user: any, today: string) => {
     .from('attendance')
     .select('*')
     .eq('employee_id', user.id)
-    .or(`date.eq.${today},check_out_time.is.null`)
+    .is('check_out_time', null)
     .order('check_in_time', { ascending: false })
     .limit(1);
 
