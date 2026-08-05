@@ -1066,26 +1066,60 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode, appTheme = 'dark
         anchorEl={anchorElProfile}
         open={Boolean(anchorElProfile)}
         onClose={() => setAnchorElProfile(null)}
-        // @ts-ignore
-        // @ts-ignore
-        PaperProps={{ sx: { width: 200, mt: 1.5 } }}
+        PaperProps={{ 
+          sx: { 
+            width: 260, 
+            mt: 1.5,
+            borderRadius: 3,
+            background: isDarkMode 
+              ? 'rgba(21, 27, 31, 0.85)' 
+              : 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.05)',
+            boxShadow: isDarkMode ? '0 12px 30px rgba(0,0,0,0.5)' : '0 12px 30px rgba(0,0,0,0.08)',
+            backgroundImage: 'none'
+          } 
+        }}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <Box sx={{ px: 2, py: 1.5 }}>
-          <Typography variant="subtitle2" noWrap sx={{ fontWeight: 600 }}>{user?.name}</Typography>
-          <Typography variant="body2" color="text.secondary" noWrap>{user?.email}</Typography>
-          <Typography variant="caption" color="primary.main" sx={{ display: 'block', mt: 0.5, fontWeight: 700 }}>
-            {user?.role?.toUpperCase()}
+        <Box sx={{ px: 2.5, py: 2 }}>
+          <Typography variant="subtitle1" noWrap sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em', fontSize: '1.05rem' }}>
+            {user?.name}
           </Typography>
+          <Typography variant="body2" color="text.secondary" noWrap sx={{ mt: 0.2, fontWeight: 500 }}>
+            {user?.email}
+          </Typography>
+          <Box sx={{ 
+            display: 'inline-block', 
+            mt: 1.5, 
+            px: 1.2, 
+            py: 0.5, 
+            borderRadius: 1.5, 
+            background: isDarkMode ? 'rgba(0, 225, 171, 0.15)' : 'rgba(0, 225, 171, 0.1)', 
+            color: isDarkMode ? '#00e1ab' : '#00b386'
+          }}>
+            <Typography variant="caption" sx={{ fontWeight: 800, letterSpacing: '0.05em' }}>
+              {user?.role?.toUpperCase()}
+            </Typography>
+          </Box>
         </Box>
-        <Divider />
-        <MenuItem onClick={() => { setAnchorElProfile(null); navigate('/profile'); }}>
-          Profile Settings
-        </MenuItem>
-        <MenuItem onClick={() => { setAnchorElProfile(null); dispatch(logout()); }} sx={{ color: 'error.main' }}>
-          Logout
-        </MenuItem>
+        <Divider sx={{ mx: 2, opacity: 0.5 }} />
+        <Box sx={{ p: 1 }}>
+          <MenuItem 
+            onClick={() => { setAnchorElProfile(null); navigate('/profile'); }} 
+            sx={{ borderRadius: 2, mb: 0.5, py: 1.2, px: 2, fontWeight: 600, color: 'text.primary', transition: 'all 0.2s', '&:hover': { background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' } }}
+          >
+            Profile Settings
+          </MenuItem>
+          <MenuItem 
+            onClick={() => { setAnchorElProfile(null); dispatch(logout()); }} 
+            sx={{ borderRadius: 2, py: 1.2, px: 2, color: '#ff4b4b', fontWeight: 700, transition: 'all 0.2s', '&:hover': { background: 'rgba(255, 75, 75, 0.12)' } }}
+          >
+            Logout
+          </MenuItem>
+        </Box>
       </Menu>
 
       {/* Navigation Drawers for Mobile & Desktop */}
