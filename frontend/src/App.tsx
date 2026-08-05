@@ -113,7 +113,7 @@ function App() {
 
   // Multi-theme system: 'light' | 'dark' | 'cyberpunk' | 'ocean' | 'matrix' | 'amber'
   const [appTheme, setAppTheme] = useState(() => {
-    return localStorage.getItem('wfh_app_theme') || 'dark';
+    return localStorage.getItem('wfh_app_theme') || 'light';
   });
 
   // Keep isDarkMode as a boolean alias for backward compat
@@ -131,6 +131,20 @@ function App() {
       if (saved) setAppTheme(saved);
     };
     window.addEventListener('wfh_theme_changed', handleThemeChange);
+
+    // Disable heavy glassmorphism/blur on Desktop Agent for performance
+    const isDesktop = !!(window as any).api;
+    if (isDesktop) {
+      const style = document.createElement('style');
+      style.innerHTML = `
+        * {
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
     return () => window.removeEventListener('wfh_theme_changed', handleThemeChange);
   }, []);
 
