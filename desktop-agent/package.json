@@ -1,6 +1,6 @@
 {
   "name": "wfh-desktop-agent",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "Work From Home tracking desktop agent",
   "author": "Sasiru Liyanage",
   "homepage": "https://github.com/sasiruliyanage2004/WFH-Tracking",
@@ -43,6 +43,17 @@
       ],
       "icon": "win-icon.ico",
       "artifactName": "WFH-Agent.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "win-icon.ico",
+      "uninstallerIcon": "win-icon.ico",
+      "installerHeader": "build/installerHeader.bmp",
+      "installerHeaderIcon": "win-icon.ico",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/installerSidebar.bmp"
     },
     "mac": {
       "target": [
