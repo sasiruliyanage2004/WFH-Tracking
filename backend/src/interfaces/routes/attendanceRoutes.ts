@@ -324,7 +324,7 @@ router.post('/checkout', authenticate, async (req: Request, res: Response) => {
     }
 
     const checkIn = new Date(att.check_in_time);
-    const sessionMs = checkOutTime - checkIn;
+    const sessionMs = Math.max(0, checkOutTime.getTime() - checkIn.getTime());
     const sessionHours = sessionMs / (1000 * 60 * 60);
     const totalHours = (att.duration_hours || 0) + sessionHours;
     const hours = Math.round(totalHours * 100) / 100;
