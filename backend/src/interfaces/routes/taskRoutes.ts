@@ -142,7 +142,7 @@ router.put('/:id', authenticate, async (req: Request, res: Response) => {
       }
     }
 
-    const updates = {
+    const updates: any = {
       task_name: taskName !== undefined ? taskName : task.task_name,
       description: description !== undefined ? description : task.description,
       progress: progress !== undefined ? progress : task.progress,
@@ -151,12 +151,26 @@ router.put('/:id', authenticate, async (req: Request, res: Response) => {
       due_date: dueDate !== undefined ? dueDate : task.due_date
     };
 
-    if (updates.progress === 100) {
-      updates.status = 'Completed';
-    } else if (updates.status === 'Completed') {
-      updates.progress = 100;
-    } else if (updates.status === 'Pending') {
-      updates.progress = 0;
+    if (status !== undefined) {
+      if (updates.status === 'Completed') {
+        updates.progress = 100;
+      } else if (updates.status === 'Pending') {
+        updates.progress = 0;
+      } else if (updates.status === 'Blocked' && updates.progress === 100) {
+        updates.progress = 99; // Cap at 99 so it doesn't auto-complete again
+      } else if (updates.status === 'In Progress' && updates.progress === 100) {
+        updates.progress = 99;
+      } else if (updates.status === 'In Progress' && updates.progress === 0) {
+        updates.progress = 1;
+      }
+    } else if (progress !== undefined) {
+      if (updates.progress === 100) {
+        updates.status = 'Completed';
+      } else if (updates.progress === 0) {
+        updates.status = 'Pending';
+      } else if (updates.status === 'Pending' || updates.status === 'Completed') {
+        updates.status = 'In Progress';
+      }
     }
 
     const { data: updatedTask, error: updateErr } = await supabase

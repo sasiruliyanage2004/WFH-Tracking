@@ -50,9 +50,15 @@ export const formatScreenshot = (ss: any): any => {
 export const formatWorkReport = (r: any): any => {
   if (!r) return null;
   if (Array.isArray(r)) return r.map(formatWorkReport);
-  return {
-    ...toMongo(r)
-  };
+  const mapped = { ...toMongo(r) };
+  if (mapped.tasks_completed) { mapped.tasksCompleted = mapped.tasks_completed; delete mapped.tasks_completed; }
+  if (mapped.tasks_in_progress) { mapped.tasksInProgress = mapped.tasks_in_progress; delete mapped.tasks_in_progress; }
+  if (mapped.challenges_faced) { mapped.challengesFaced = mapped.challenges_faced; delete mapped.challenges_faced; }
+  if (mapped.tomorrow_plan) { mapped.tomorrowPlan = mapped.tomorrow_plan; delete mapped.tomorrow_plan; }
+  if (mapped.total_hours_worked !== undefined) { mapped.totalHoursWorked = mapped.total_hours_worked; delete mapped.total_hours_worked; }
+  if (mapped.approval_status) { mapped.approvalStatus = mapped.approval_status; delete mapped.approval_status; }
+  if (mapped.manager_feedback) { mapped.managerFeedback = mapped.manager_feedback; delete mapped.manager_feedback; }
+  return mapped;
 };
 
 export const formatNotification = (n: any): any => {
