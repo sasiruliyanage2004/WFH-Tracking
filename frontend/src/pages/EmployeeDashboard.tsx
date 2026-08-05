@@ -152,8 +152,10 @@ function EmployeeDashboard() {
 
   // Get status, tasks, and reports on load
   const fetchData = async () => {
-    const isFirstLoad = isInitialLoad.current;
-    isInitialLoad.current = false;
+    const isFirstLoad = !sessionStorage.getItem('hasAutoCheckedIn');
+    if (isFirstLoad) {
+      sessionStorage.setItem('hasAutoCheckedIn', 'true');
+    }
 
     try {
       setLoading(true);
