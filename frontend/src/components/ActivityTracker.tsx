@@ -67,6 +67,13 @@ function ActivityTracker() {
           }
         );
 
+        // Also send attendance heartbeat so browser users don't get auto-checked out
+        await axios.post(
+          `${API_URL}/api/attendance/heartbeat`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        ).catch(() => {});
+
         // Reset local telemetry metrics after sync
         activeSeconds.current = 0;
         idleSeconds.current = 0;
