@@ -300,8 +300,8 @@ function App() {
             WebkitBackdropFilter: 'none',
             border: `1px solid ${t.border}`,
             boxShadow: isDarkMode
-              ? `0 8px 32px rgba(0,0,0,0.4), 0 0 0 0 ${t.accentGlow}`
-              : '0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)',
+              ? '0 20px 40px -10px rgba(0,0,0,0.4), 0 8px 16px -4px rgba(0,0,0,0.2)'
+              : '0 20px 40px -10px rgba(0,0,0,0.05), 0 8px 16px -4px rgba(0,0,0,0.02)',
             transition: 'transform 0.25s cubic-bezier(0.4,0,0.2,1), box-shadow 0.25s cubic-bezier(0.4,0,0.2,1)',
           },
         },
@@ -330,6 +330,7 @@ function App() {
             fontWeight: 600,
             letterSpacing: '0.01em',
             transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
+            '&:active': { transform: 'scale(0.96)' },
           },
           // @ts-ignore
           containedPrimary: {
@@ -454,7 +455,12 @@ function App() {
             borderRadius: 8,
             fontWeight: 600,
             fontSize: '0.75rem',
-            backdropFilter: 'blur(8px)',
+            backdropFilter: 'blur(12px)',
+            background: isDarkMode ? 'rgba(7,11,20,0.85)' : 'rgba(255,255,255,0.85)',
+            color: isDarkMode ? '#f8fafc' : '#0f172a',
+            border: `1px solid ${t.border}`,
+            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+            padding: '8px 12px',
           },
         },
       },
