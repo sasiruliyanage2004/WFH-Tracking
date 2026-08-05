@@ -15,7 +15,9 @@ import {
   Paper,
   Tabs,
   Tab,
-  List
+  List,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import {
   Send as SendIcon,
@@ -41,6 +43,8 @@ function WorkReports() {
   const [challengesText, setChallengesText] = useState('');
   const [tomorrowText, setTomorrowText] = useState('');
   const [workedHours, setWorkedHours] = useState(8);
+
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -81,9 +85,11 @@ function WorkReports() {
       setChallengesText('');
       setTomorrowText('');
       setWorkedHours(8);
+      setSnackbar({ open: true, message: 'Report submitted successfully!', severity: 'success' });
       setActiveTab(1); // shift to history tab
-    } catch (err) {
-      console.error(err.message);
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || err.message;
+      setSnackbar({ open: true, message: errorMsg, severity: 'error' });
     }
   };
 
@@ -274,6 +280,22 @@ function WorkReports() {
           )}
         </Box>
       )}
+
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={6000} 
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          // @ts-ignore
+          severity={snackbar.severity} 
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
