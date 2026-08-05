@@ -133,7 +133,6 @@ const ensureTodayCheckin = async (user: any, today: string) => {
       check_in_time: now.toISOString(),
       status: 'Present',
       company_id: user.companyId,
-      is_auto_check_in: true,
       last_heartbeat: now.toISOString()
     }])
     .select('*')
@@ -237,7 +236,8 @@ router.post('/checkin', authenticate, async (req: Request, res: Response) => {
         .update({
           check_in_time: checkInDate,
           check_out_time: null,
-          status: 'Present'
+          status: 'Present',
+          last_heartbeat: new Date().toISOString()
         })
         .eq('id', existing.id)
         .select('*')
