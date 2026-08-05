@@ -42,7 +42,7 @@ jobs:
 
       - name: Build Electron App
         working-directory: desktop-agent
-        run: npx electron-builder --win
+        run: npm run build
 
       - name: Upload Artifacts to Release
         uses: softprops/action-gh-release@v1
