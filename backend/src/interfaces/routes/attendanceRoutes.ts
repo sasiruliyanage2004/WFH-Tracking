@@ -110,8 +110,6 @@ const closeOrphanedShifts = async (employeeId?: string) => {
 
 // Helper: Auto-start Check-In when laptop turns on / becomes active again without demanding manual check-in
 const ensureTodayCheckin = async (user: any, today: string) => {
-  if (user.role === 'SuperAdmin') return null;
-
   const { data: existing } = await supabase
     .from('attendance')
     .select('*')
@@ -122,6 +120,17 @@ const ensureTodayCheckin = async (user: any, today: string) => {
 
   if (existing && existing.length > 0) {
     return existing[0];
+  }
+
+  if (user.role === 'SuperAdmin') {
+    const { data: retry } = await supabase
+      .from('attendance')
+      .select('*')
+      .eq('employee_id', user.id)
+      .eq('date', today)
+      .order('check_in_time', { ascending: false })
+      .limit(1);
+    return retry && retry.length > 0 ? retry[0] : null;
   }
 
   const now = new Date();
