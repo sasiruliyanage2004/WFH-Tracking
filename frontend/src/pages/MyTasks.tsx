@@ -82,7 +82,7 @@ function MyTasks() {
   };
 
   const handleLocalProgressChange = (taskId, newProgress) => {
-    setTasks((prev) => prev.map((t) => (t._id === taskId ? { ...t, progress: newProgress } : t)));
+    setTasks((prev) => prev.map((t) => ((t.id || t._id) === taskId ? { ...t, progress: newProgress } : t)));
   };
 
   const handleTaskProgressChange = async (taskId, newProgress) => {
@@ -96,7 +96,7 @@ function MyTasks() {
         { progress: newProgress, status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setTasks((prev) => prev.map((t) => (t._id === taskId ? res.data : t)));
+      setTasks((prev) => prev.map((t) => ((t.id || t._id) === taskId ? res.data : t)));
     } catch (err) {
       console.error(err.message);
     }
@@ -113,7 +113,7 @@ function MyTasks() {
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setTasks((prev) => prev.map((t) => (t._id === taskId ? res.data : t)));
+      setTasks((prev) => prev.map((t) => ((t.id || t._id) === taskId ? res.data : t)));
     } catch (err) {
       console.error(err.message);
     }
@@ -150,11 +150,11 @@ function MyTasks() {
       ) : (
         <Grid container spacing={3}>
           {tasks.map((task) => (
-            <Grid key={task._id} size={{ xs: 12, sm: 6 }}>
+            <Grid key={task.id || task._id} size={{ xs: 12, sm: 6 }}>
               <Card sx={{ borderRadius: 3, boxShadow: '0px 4px 20px rgba(0,0,0,0.05)', border: '1px solid', borderColor: 'divider' }}>
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, alignItems: 'center' }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{task.taskName}</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{task.taskName || task.task_name}</Typography>
                     <Chip
                       label={task.priority}
                       color={task.priority === 'High' ? 'error' : task.priority === 'Medium' ? 'warning' : 'default'}
@@ -174,8 +174,8 @@ function MyTasks() {
                     <Slider
                       size="small"
                       value={task.progress}
-                      onChange={(e, val) => handleLocalProgressChange(task._id, val)}
-                      onChangeCommitted={(e, val) => handleTaskProgressChange(task._id, val)}
+                      onChange={(e, val) => handleLocalProgressChange(task.id || task._id, val)}
+                      onChangeCommitted={(e, val) => handleTaskProgressChange(task.id || task._id, val)}
                       disabled={task.status === 'Completed'}
                       valueLabelDisplay="auto"
                     />
@@ -187,7 +187,7 @@ function MyTasks() {
                       <Select
                         value={task.status}
                         label="Status"
-                        onChange={(e) => handleTaskStatusChange(task._id, e.target.value)}
+                        onChange={(e) => handleTaskStatusChange(task.id || task._id, e.target.value)}
                       >
                         <MenuItem value="Pending">Pending</MenuItem>
                         <MenuItem value="In Progress">In Progress</MenuItem>

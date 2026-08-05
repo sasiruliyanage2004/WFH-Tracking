@@ -1223,7 +1223,7 @@ function EmployeeDashboard() {
               )}
 
               {/* Integration of screenshot tracking element */}
-              <ScreenshotCapturer isCheckedIn={isCheckedIn} />
+              <ScreenshotCapturer isCheckedIn={isCheckedIn} productivity={productivity} />
             </CardContent>
           </Card>
         </Grid>

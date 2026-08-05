@@ -7,12 +7,11 @@ import { CameraAlt as CameraIcon, Monitor as MonitorIcon } from '@mui/icons-mate
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-function ScreenshotCapturer({ isCheckedIn }) {
+function ScreenshotCapturer({ isCheckedIn, productivity = 100 }) {
   const { token, isAuthenticated, user, onBreak } = useSelector((state: any) => state.auth);
   const [stream, setStream] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [isCapturing, setIsCapturing] = useState(false);
-  const [productivity, setProductivity] = useState(100);
   const [screenshotRules, setScreenshotRules] = useState({
     threshold: 70,
     highProdInterval: 20,
@@ -42,16 +41,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
     localStorage.setItem('privacy_blur_enabled', String(val));
   };
 
-  const fetchProductivity = useCallback(async () => {
-    try {
-      const res = await axios.get(`${API_URL}/api/monitoring/my-activity`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setProductivity(res.data.productivityPercentage);
-    } catch (err) {
-      console.warn('Could not fetch productivity score.');
-    }
-  }, [token]);
+
 
   const fetchScreenshotRules = useCallback(async () => {
     try {
@@ -65,16 +55,20 @@ function ScreenshotCapturer({ isCheckedIn }) {
   }, [token]);
 
   useEffect(() => {
+    let interval;
     if (isAuthenticated && token && isCheckedIn && !onBreak) {
-      fetchProductivity();
       fetchScreenshotRules();
-      const interval = setInterval(() => {
-        fetchProductivity();
-        fetchScreenshotRules();
-      }, 60000); // refresh every minute
-      return () => clearInterval(interval);
+      
+      interval = setInterval(() => {
+        // Poll for rules less frequently to save DB calls, or keep it every 5 min.
+        // Actually, employee dashboard fetches productivity every 15s.
+        // So we don't need to poll productivity here.
+      }, 5 * 60 * 1000);
     }
-  }, [isAuthenticated, token, isCheckedIn, onBreak, fetchProductivity, fetchScreenshotRules]);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isAuthenticated, token, isCheckedIn, onBreak, fetchScreenshotRules]);
 
   // Request display media for capturing screenshots
   const startScreenCapture = async () => {
@@ -277,8 +271,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
             { headers: { Authorization: `Bearer ${token}` } }
           );
           console.log('Screenshot uploaded successfully.');
-          // Refresh local productivity state after logging a new screenshot
-          fetchProductivity();
+          // The dashboard already polls productivity every 15s.
         } catch (postErr) {
           console.warn('Screenshot upload failed. Checking for offline caching wrapper...', postErr.message);
           if (window.api && window.api.cacheOfflineScreenshot) {
@@ -292,7 +285,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
     } catch (err) {
       console.error('Failed to capture and upload screenshot:', err.message);
     }
-  }, [onBreak, privacyBlurEnabled, isCapturing, stream, token, user, fetchProductivity]);
+  }, [onBreak, privacyBlurEnabled, isCapturing, stream, token, user]);
 
   useEffect(() => {
     captureAndUploadRef.current = captureAndUpload;
@@ -353,7 +346,7 @@ function ScreenshotCapturer({ isCheckedIn }) {
       clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, token, isCheckedIn, onBreak]);
+  }, [isAuthenticated, token, isCheckedIn, onBreak, productivity]);
 
   if (!isAuthenticated) return null;
 
