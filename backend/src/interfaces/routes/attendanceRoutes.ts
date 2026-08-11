@@ -133,6 +133,34 @@ const ensureTodayCheckin = async (user: any, today: string) => {
     return retry && retry.length > 0 ? retry[0] : null;
   }
 
+  // 2. See if there is a closed shift for today
+  const { data: closedShift } = await supabase
+    .from('attendance')
+    .select('*')
+    .eq('employee_id', user.id)
+    .eq('date', today)
+    .order('check_in_time', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (closedShift) {
+    // RE-OPEN the existing closed shift for today
+    const { data: updated, error: updateErr } = await supabase
+      .from('attendance')
+      .update({
+        check_in_time: new Date().toISOString(), // Restart the clock from now
+        check_out_time: null,
+        status: 'Present',
+        last_heartbeat: new Date().toISOString()
+      })
+      .eq('id', closedShift.id)
+      .select('*')
+      .single();
+    
+    if (updated) return updated;
+  }
+
+  // 3. Insert a fresh shift if no shift exists at all
   const now = new Date();
   const { data: newAtt, error } = await supabase
     .from('attendance')
