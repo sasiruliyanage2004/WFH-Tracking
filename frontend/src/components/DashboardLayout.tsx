@@ -1066,6 +1066,7 @@ function DashboardLayout({ children, isDarkMode, setIsDarkMode, appTheme = 'dark
         anchorEl={anchorElProfile}
         open={Boolean(anchorElProfile)}
         onClose={() => setAnchorElProfile(null)}
+        // @ts-ignore
         PaperProps={{ 
           sx: { 
             width: 260, 
