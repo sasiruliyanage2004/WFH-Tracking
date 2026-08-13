@@ -383,13 +383,26 @@ function startIdleDetection() {
   }, 5000); // Check every 5 seconds
 }
 
-app.whenReady().then(() => {
-  // Auto Start on OS Boot
-  app.setLoginItemSettings({
-    openAtLogin: true,
-    openAsHidden: true,
-    args: ['--hidden']
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Someone tried to run a second instance, we should focus our window.
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
   });
+
+  app.whenReady().then(() => {
+    // Auto Start on OS Boot
+    app.setLoginItemSettings({
+      openAtLogin: true,
+      openAsHidden: true,
+      args: ['--hidden']
+    });
 
   const isHiddenStartup = process.argv.includes('--hidden');
 
@@ -465,9 +478,10 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    app.quit();
+    // We don't quit on window close, it runs in the tray!
   }
 });
+} // Close the gotTheLock else block
 
 let isCheckingOut = false;
 app.on('before-quit', (event) => {
