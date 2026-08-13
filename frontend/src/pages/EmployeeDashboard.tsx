@@ -68,186 +68,72 @@ import CheckoutSuccessModal from '../components/CheckoutSuccessModal';
 import { maskEmail } from '../utils/maskEmail';
 import SkeletonCard from '../components/SkeletonCard';
 import AnimatedCounter from '../components/AnimatedCounter';
-import { QRCodeSVG } from 'qrcode.react';
+import WebcamDialog from '../components/dashboard/WebcamDialog';
+import MobileVerifyDialog from '../components/dashboard/MobileVerifyDialog';
+import CreateTaskDialog from '../components/dashboard/CreateTaskDialog';
+import OtherBreakDialog from '../components/dashboard/OtherBreakDialog';
+import SmartIdleBreakDialog from '../components/dashboard/SmartIdleBreakDialog';
+import StatCards from '../components/dashboard/StatCards';
+import { useEmployeeDashboard } from '../hooks/useEmployeeDashboard';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function EmployeeDashboard() {
-  const { token, user } = useSelector((state: any) => state.auth);
-  const dispatch = useDispatch();
+  const {
+    user, token, dispatch,
+    attendance, setAttendance,
+    successSnackbar, setSuccessSnackbar,
+    autoCheckinSnackbar, setAutoCheckinSnackbar,
+    loading, setLoading,
+    gpsData, setGpsData,
+    gpsLoading, setGpsLoading,
+    gpsError, setGpsError,
+    liveHours, setLiveHours,
+    breakTimeStr, setBreakTimeStr,
+    productivity, setProductivity,
+    mobileVerifyOpen, setMobileVerifyOpen,
+    mobileVerifyToken, setMobileVerifyToken,
+    otherBreakOpen, setOtherBreakOpen,
+    otherBreakNote, setOtherBreakNote,
+    breakAnchorEl, setBreakAnchorEl,
+    breakSearch, setBreakSearch,
+    idleDialogOpen, setIdleDialogOpen,
+    idleMins, setIdleMins,
+    webcamOpen, setWebcamOpen,
+    webcamStream, setWebcamStream,
+    currentTime, setCurrentTime,
+    capturedPhoto, setCapturedPhoto,
+    webcamError, setWebcamError,
+    videoRef,
+    activeTab, setActiveTab,
+    tasks, setTasks,
+    taskName, setTaskName,
+    taskDesc, setTaskDesc,
+    taskPriority, setTaskPriority,
+    taskDialogOpen, setTaskDialogOpen,
+    showCheckoutSuccess, setShowCheckoutSuccess,
+    checkoutData, setCheckoutData,
+    selectedTask, setSelectedTask,
+    taskDetailsOpen, setTaskDetailsOpen,
+    proofLinks, setProofLinks,
+    proofFiles, setProofFiles,
+    submissionComment, setSubmissionComment,
+    newCommentText, setNewCommentText,
+    isSubmittingProof, setIsSubmittingProof,
+    isSubmittingComment, setIsSubmittingComment,
+    reports, setReports,
+    completedText, setCompletedText,
+    progressText, setProgressText,
+    challengesText, setChallengesText,
+    tomorrowText, setTomorrowText,
+    workedHoursInput, setWorkedHoursInput,
+    fetchData,
+    mobileVerifyInterval
+  } = useEmployeeDashboard();
 
-  // States
-  const [attendance, setAttendance] = useState(null);
-  const [successSnackbar, setSuccessSnackbar] = useState(false);
-  const [autoCheckinSnackbar, setAutoCheckinSnackbar] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [gpsData, setGpsData] = useState({ latitude: null, longitude: null, address: '' });
-  const [gpsLoading, setGpsLoading] = useState(false);
-  const [gpsError, setGpsError] = useState('');
-  const [liveHours, setLiveHours] = useState('00:00:00');
-  const [breakTimeStr, setBreakTimeStr] = useState('00:00');
-  const [productivity, setProductivity] = useState(100);
 
-  // Mobile Verification States
-  const [mobileVerifyOpen, setMobileVerifyOpen] = useState(false);
-  const [mobileVerifyToken, setMobileVerifyToken] = useState('');
-  const mobileVerifyInterval = useRef(null);
-  const isInitialLoad = useRef(true);
 
-  // Other Break Dialog
-  const [otherBreakOpen, setOtherBreakOpen] = useState(false);
-  const [otherBreakNote, setOtherBreakNote] = useState('');
-  const [breakAnchorEl, setBreakAnchorEl] = useState(null);
-  const [breakSearch, setBreakSearch] = useState('');
 
-  // Idle Break Dialog States
-  const [idleDialogOpen, setIdleDialogOpen] = useState(false);
-  const [idleMins, setIdleMins] = useState(0);
-
-  // Webcam States
-  const [webcamOpen, setWebcamOpen] = useState(false);
-  const [webcamStream, setWebcamStream] = useState(null);
-
-  const [currentTime, setCurrentTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-  const [capturedPhoto, setCapturedPhoto] = useState('');
-  const [webcamError, setWebcamError] = useState('');
-  const videoRef = useRef(null);
-
-  // Tabs (Tasks vs Reports)
-  const [activeTab, setActiveTab] = useState(0);
-
-  // Tasks States
-  const [tasks, setTasks] = useState([]);
-  const [taskName, setTaskName] = useState('');
-  const [taskDesc, setTaskDesc] = useState('');
-  const [taskPriority, setTaskPriority] = useState('Medium');
-  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
-  const [showCheckoutSuccess, setShowCheckoutSuccess] = useState(false);
-  const [checkoutData, setCheckoutData] = useState<any>(null);
-
-  // Proof of Work & Comments States
-  const [selectedTask, setSelectedTask] = useState(null);
-  const [taskDetailsOpen, setTaskDetailsOpen] = useState(false);
-  const [proofLinks, setProofLinks] = useState(['']);
-  const [proofFiles, setProofFiles] = useState([]);
-  const [submissionComment, setSubmissionComment] = useState('');
-  const [newCommentText, setNewCommentText] = useState('');
-  const [isSubmittingProof, setIsSubmittingProof] = useState(false);
-  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-
-  // Report States
-  const [reports, setReports] = useState([]);
-  const [completedText, setCompletedText] = useState('');
-  const [progressText, setProgressText] = useState('');
-  const [challengesText, setChallengesText] = useState('');
-  const [tomorrowText, setTomorrowText] = useState('');
-  const [workedHoursInput, setWorkedHoursInput] = useState(8);
-
-  // Get status, tasks, and reports on load
-  const fetchData = async () => {
-    const isFirstLoad = !sessionStorage.getItem('hasAutoCheckedIn');
-    if (isFirstLoad) {
-      sessionStorage.setItem('hasAutoCheckedIn', 'true');
-    }
-
-    try {
-      setLoading(true);
-      const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-
-      // Sync offline actions if online
-      if (navigator.onLine) {
-        const offlineActionStr = localStorage.getItem('offlineAction');
-        if (offlineActionStr) {
-          try {
-            const action = JSON.parse(offlineActionStr);
-            if (action.type === 'checkin') {
-              await axios.post(`${API_URL}/api/attendance/checkin`, { offlineTimestamp: action.timestamp, latitude: 0, longitude: 0, address: 'Offline Check-in', webcamImage: '' }, authHeader);
-            } else if (action.type === 'checkout') {
-              await axios.post(`${API_URL}/api/attendance/checkout`, { offlineTimestamp: action.timestamp }, authHeader);
-            }
-            localStorage.removeItem('offlineAction');
-          } catch (e: any) {
-             console.error('Failed to sync offline action:', e.message);
-          }
-        }
-      }
-      
-      const attendanceRes = await axios.get(`${API_URL}/api/attendance/status`, authHeader);
-      const att = attendanceRes.data.attendance;
-      
-      const shouldAutoCheckin = isFirstLoad && (!att || att.checkOutTime !== null);
-
-      if (shouldAutoCheckin) {
-        try {
-          const checkInRes = await axios.post(
-            `${API_URL}/api/attendance/checkin`,
-            { latitude: 0, longitude: 0, address: 'Auto Check-in on Startup', webcamImage: '' },
-            authHeader
-          );
-          setAttendance(checkInRes.data.attendance);
-          if (window.api && window.api.showNotification) {
-            window.api.showNotification('WorkforceOS', 'Welcome! You have been automatically checked in. Have a great day! 🚀');
-          } else {
-            setAutoCheckinSnackbar(true);
-          }
-        } catch (err: any) {
-          console.error('Auto checkin failed:', err.message);
-          setAttendance(att);
-        }
-      } else {
-        setAttendance(att);
-        if (att && att.onBreak) {
-          dispatch(setBreakStart(att.currentBreakType));
-        } else {
-          dispatch(setBreakEnd());
-        }
-      }
-
-      const tasksRes = await axios.get(`${API_URL}/api/tasks?myTasksOnly=true`, authHeader);
-      setTasks(tasksRes.data);
-
-      const reportsRes = await axios.get(`${API_URL}/api/reports?myReportsOnly=true`, authHeader);
-      setReports(reportsRes.data);
-
-      // Fetch productivity score
-      try {
-        const prodRes = await axios.get(`${API_URL}/api/monitoring/my-activity`, authHeader);
-        setProductivity(prodRes.data.productivityPercentage ?? prodRes.data.productivity_percentage ?? 100);
-      } catch (err) {
-        console.warn('Could not fetch productivity score on load.');
-      }
-    } catch (err) {
-      console.error('Fetch dashboard data error:', err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-
-    // Poll for live productivity updates every 15 seconds
-    const productivityInterval = setInterval(async () => {
-      try {
-        if (!token) return;
-        const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-        const prodRes = await axios.get(`${API_URL}/api/monitoring/my-activity`, authHeader);
-        setProductivity(prodRes.data.productivityPercentage ?? prodRes.data.productivity_percentage ?? 100);
-      } catch (err) {
-        // Silent fail for polling
-      }
-    }, 15000);
-
-    return () => clearInterval(productivityInterval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
 
   useEffect(() => {
     if (localStorage.getItem('register_success') === 'true') {
@@ -1232,249 +1118,34 @@ function EmployeeDashboard() {
 
         {/* Right Column: Dynamic metrics widgets matching Image 3 */}
         <Grid size={{ xs: 12, md: 5 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, height: { xs: 'auto', md: '100%' } }}>
-
-            {/* 1. Shift Progress Card */}
-            <Card 
-              sx={{ 
-                borderRadius: 4, 
-                p: 3, 
-                flex: '1 1 auto', 
-                minHeight: 140, 
-                display: 'flex', 
-                flexDirection: 'column', 
-                justifyContent: 'space-between',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
-                }
-              }}
-            >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
-                    Shift Progress
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: attendance ? 'primary.main' : 'text.primary', fontFamily: 'monospace' }}>
-                    {attendance ? liveHours : '00:00:00'}
-                  </Typography>
-                </Box>
-                <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: attendance ? 'rgba(79, 142, 247, 0.15)' : 'action.selected', color: attendance ? 'primary.main' : 'text.secondary', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <AccessTimeIcon sx={{ fontSize: 24 }} />
-                </Box>
-              </Box>
-              <Box sx={{ mt: 2 }}>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={shiftProgressPercent} 
-                  sx={{ height: 6, borderRadius: 3, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { borderRadius: 3 } }}
-                />
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1.5, alignItems: 'center' }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                    {attendance ? `Completed ${shiftProgressPercent}% of 8 hrs target` : 'Not Checked-In'}
-                  </Typography>
-                </Box>
-                
-                {/* Break History Section */}
-                <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, bgcolor: 'background.default', border: '1px solid', borderColor: 'divider' }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', display: 'block', mb: 1, fontSize: '0.65rem' }}>
-                    Today's Breaks
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    {attendance && Array.isArray(attendance.breakHistory) && attendance.breakHistory.length > 0 ? (
-                      attendance.breakHistory.map((brk: any, i: number) => {
-                        const start = new Date(brk?.startTime || brk?.start_time);
-                        const end = (brk?.endTime || brk?.end_time) ? new Date(brk.endTime || brk.end_time) : new Date();
-                        const diffMins = Math.round((end.getTime() - start.getTime()) / 60000);
-                        return (
-                          <Chip 
-                            key={i} 
-                            label={`${brk?.breakType || brk?.break_type || brk?.type || 'Break'} Break (${diffMins}m)`} 
-                            size="small" 
-                            icon={<AccessTimeIcon sx={{ fontSize: '0.8rem !important' }} />}
-                            sx={{ 
-                              fontSize: '0.7rem', 
-                              height: 24, 
-                              bgcolor: 'rgba(245, 158, 11, 0.1)', 
-                              color: '#fbbf24',
-                              fontWeight: 600,
-                              border: '1px solid rgba(245, 158, 11, 0.25)',
-                              '& .MuiChip-icon': { color: 'inherit' }
-                            }} 
-                          />
-                        );
-                      })
-                    ) : (
-                      <Typography variant="caption" color="text.disabled" sx={{ fontStyle: 'italic', fontWeight: 500 }}>
-                        No breaks recorded today.
-                      </Typography>
-                    )}
-                  </Box>
-                </Box>
-              </Box>
-            </Card>
-
-            {/* 2. Productivity Level Card */}
-            <Card 
-              sx={{ 
-                borderRadius: 4, 
-                p: 3, 
-                flex: '1 1 auto', 
-                minHeight: 140, 
-                display: 'flex', 
-                flexDirection: 'column', 
-                justifyContent: 'space-between',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
-                }
-              }}
-            >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
-                    Productivity Level
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: productivity >= 70 ? 'success.main' : 'warning.main' }}>
-                    <AnimatedCounter value={productivity} suffix="%" />
-                  </Typography>
-                </Box>
-                <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: productivity >= 70 ? 'rgba(52, 211, 153, 0.15)' : 'rgba(251, 191, 36, 0.15)', color: productivity >= 70 ? 'success.main' : 'warning.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <TrendingUpIcon sx={{ fontSize: 24 }} />
-                </Box>
-              </Box>
-              <Box sx={{ mt: 2 }}>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={productivity} 
-                  color={productivity >= 70 ? 'success' : 'warning'}
-                  sx={{ height: 6, borderRadius: 3, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { borderRadius: 3 } }}
-                />
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontWeight: 600 }}>
-                  {productivity >= 70 ? '🛡️ Privacy Auto-Delete Enabled' : '⚠️ Full Telemetry Audit Mode'}
-                </Typography>
-              </Box>
-            </Card>
-
-            {/* 3. Tasks Completed Card */}
-            <Card 
-              sx={{ 
-                borderRadius: 4, 
-                p: 3, 
-                flex: '1 1 auto', 
-                minHeight: 140, 
-                display: 'flex', 
-                flexDirection: 'column', 
-                justifyContent: 'space-between',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
-                }
-              }}
-            >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
-                    Tasks Completed
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: '#a78bfa', display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
-                    <AnimatedCounter value={completedTasksCount} />
-                    <Typography component="span" variant="h5" color="text.secondary" sx={{ fontWeight: 600 }}>
-                      / {totalTasksCount}
-                    </Typography>
-                  </Typography>
-                </Box>
-                <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: 'rgba(167, 139, 250, 0.15)', color: 'secondary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <CheckIcon sx={{ fontSize: 24 }} />
-                </Box>
-              </Box>
-              <Box sx={{ mt: 2 }}>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={taskProgressPercent} 
-                  sx={{ height: 6, borderRadius: 3, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { bgcolor: '#a78bfa', borderRadius: 3 } }}
-                />
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontWeight: 600 }}>
-                  {totalTasksCount > 0 ? `${taskProgressPercent}% of assigned tasks completed` : 'No tasks assigned'}
-                </Typography>
-              </Box>
-            </Card>
-
-          </Box>
+          <StatCards
+            attendance={attendance}
+            liveHours={liveHours}
+            shiftProgressPercent={shiftProgressPercent}
+            productivity={productivity}
+            completedTasksCount={completedTasksCount}
+            totalTasksCount={totalTasksCount}
+            taskProgressPercent={taskProgressPercent}
+          />
         </Grid>
 
       </Grid>
 
       {/* Web Cam Dialog */}
-      <Dialog open={webcamOpen} onClose={() => setWebcamOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Capture Verification Selfie</DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 2 }}>
-            <Box
-              sx={{
-                width: 320,
-                height: 240,
-                bgcolor: 'black',
-                borderRadius: 4,
-                overflow: 'hidden',
-                position: 'relative',
-                boxShadow: 3
-              }}
-            >
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            </Box>
-            {webcamError && (
-              <Alert severity="error" sx={{ mt: 2, width: '100%' }}>{webcamError}</Alert>
-            )}
-            <Typography variant="caption" sx={{ mt: 2, color: 'text.secondary' }}>
-              Ensure your face is clearly visible. This photo will be logged with your check-in.
-            </Typography>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setWebcamOpen(false)} sx={{ fontWeight: 600 }}>Cancel</Button>
-          <Button onClick={captureSelfie} variant="contained" color="primary" sx={{ px: 4 }}>Capture & Use Photo</Button>
-        </DialogActions>
-      </Dialog>
+      <WebcamDialog
+        open={webcamOpen}
+        onClose={() => setWebcamOpen(false)}
+        videoRef={videoRef}
+        error={webcamError}
+        onCapture={captureSelfie}
+      />
 
       {/* Mobile Verification Dialog */}
-      <Dialog open={mobileVerifyOpen} onClose={handleCloseMobileVerify} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, textAlign: 'center' }}>Mobile GPS Verification</DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 2 }}>
-            <Typography variant="body2" sx={{ mb: 3, textAlign: 'center', color: 'text.secondary' }}>
-              Scan this QR code with your smartphone camera to securely verify your exact GPS location.
-            </Typography>
-            
-            <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 2, mb: 3 }}>
-              {mobileVerifyToken && (
-                <QRCodeSVG 
-                  value={`${window.location.protocol === 'file:' ? 'https://wfh-tracking-k5ap.vercel.app' : window.location.origin}/#/mobile-verify?token=${mobileVerifyToken}`} 
-                  size={200} 
-                  level="H"
-                />
-              )}
-            </Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: 'primary.main' }}>
-              <CircularProgress size={20} color="inherit" />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>Waiting for mobile scan...</Typography>
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ p: 2, justifyContent: 'center' }}>
-          <Button onClick={handleCloseMobileVerify} sx={{ fontWeight: 600 }}>Cancel</Button>
-        </DialogActions>
-      </Dialog>
+      <MobileVerifyDialog
+        open={mobileVerifyOpen}
+        onClose={handleCloseMobileVerify}
+        token={mobileVerifyToken}
+      />
 
       <Snackbar open={successSnackbar} autoHideDuration={4000} onClose={() => setSuccessSnackbar(false)}>
         <Alert severity="success" sx={{ width: '100%' }}>
@@ -1483,160 +1154,34 @@ function EmployeeDashboard() {
       </Snackbar>
 
       {/* Dialog for New Task Creation */}
-      <Dialog open={taskDialogOpen} onClose={() => setTaskDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Create New Task</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-          <TextField
-            label="Task Name"
-            fullWidth
-            value={taskName}
-            onChange={(e) => setTaskName(e.target.value)}
-            required
-            autoFocus
-          />
-          <TextField
-            label="Description"
-            multiline
-            rows={3}
-            fullWidth
-            value={taskDesc}
-            onChange={(e) => setTaskDesc(e.target.value)}
-          />
-          <FormControl fullWidth>
-            <InputLabel>Priority</InputLabel>
-            <Select
-              value={taskPriority}
-              label="Priority"
-              onChange={(e) => setTaskPriority(e.target.value)}
-            >
-              <MenuItem value="Low">Low</MenuItem>
-              <MenuItem value="Medium">Medium</MenuItem>
-              <MenuItem value="High">High</MenuItem>
-            </Select>
-          </FormControl>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setTaskDialogOpen(false)} color="inherit">Cancel</Button>
-          <Button onClick={handleCreateTask} variant="contained" color="success">Create</Button>
-        </DialogActions>
-      </Dialog>
+      <CreateTaskDialog
+        open={taskDialogOpen}
+        onClose={() => setTaskDialogOpen(false)}
+        taskName={taskName}
+        setTaskName={setTaskName}
+        taskDesc={taskDesc}
+        setTaskDesc={setTaskDesc}
+        taskPriority={taskPriority}
+        setTaskPriority={setTaskPriority}
+        onCreateTask={handleCreateTask}
+      />
 
       {/* Other Break Dialog */}
-      <Dialog open={otherBreakOpen} onClose={() => { setOtherBreakOpen(false); setOtherBreakNote(''); }} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>📝 Other Break</DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Please add a note describing the reason for this break.
-          </Typography>
-          <TextField
-            label="Reason / Note"
-            placeholder="e.g. Doctor's appointment, personal errand..."
-            fullWidth
-            multiline
-            rows={3}
-            value={otherBreakNote}
-            onChange={(e) => setOtherBreakNote(e.target.value)}
-            autoFocus
-            // @ts-ignore
-            // @ts-ignore
-            inputProps={{ maxLength: 200 }}
-            helperText={`${otherBreakNote.length}/200`}
-          />
-        </DialogContent>
-        <DialogActions sx={{ p: 2, gap: 1 }}>
-          <Button onClick={() => { setOtherBreakOpen(false); setOtherBreakNote(''); }} color="inherit">Cancel</Button>
-          <Button
-            onClick={handleStartOtherBreak}
-            variant="contained"
-            color="secondary"
-            disabled={!otherBreakNote.trim()}
-          >
-            Start Break
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <OtherBreakDialog
+        open={otherBreakOpen}
+        onClose={() => { setOtherBreakOpen(false); setOtherBreakNote(''); }}
+        note={otherBreakNote}
+        setNote={setOtherBreakNote}
+        onStartBreak={handleStartOtherBreak}
+      />
 
       {/* Smart Idle Break Dialog */}
-      <Dialog 
-        open={idleDialogOpen} 
-        onClose={() => setIdleDialogOpen(false)} 
-        maxWidth="xs" 
-        fullWidth
-        // @ts-ignore
-        disableEscapeKeyDown
-      >
-        <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
-          ⏰ Inactivity Alert
-        </DialogTitle>
-        <DialogContent sx={{ pt: 1 }}>
-          <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
-            You returned after being away.
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Our system detected no activity for approximately <strong>{idleMins} minutes</strong>. How would you like to log this offline period?
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            <Button 
-              variant="outlined" 
-              color="primary" 
-              onClick={() => handleRetroactiveBreak('Tea / Coffee Break')}
-              sx={{ justifyContent: 'flex-start', py: 1.2, px: 2, borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-              startIcon={<span>🍵</span>}
-            >
-              Log as Tea / Coffee Break
-            </Button>
-            <Button 
-              variant="outlined" 
-              color="primary" 
-              onClick={() => handleRetroactiveBreak('Lunch')}
-              sx={{ justifyContent: 'flex-start', py: 1.2, px: 2, borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-              startIcon={<span>🍔</span>}
-            >
-              Log as Lunch Break
-            </Button>
-            <Button 
-              variant="outlined" 
-              color="primary" 
-              onClick={() => handleRetroactiveBreak('Washroom')}
-              sx={{ justifyContent: 'flex-start', py: 1.2, px: 2, borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-              startIcon={<span>🚽</span>}
-            >
-              Log as Washroom Break
-            </Button>
-            <Button 
-              variant="outlined" 
-              color="primary" 
-              onClick={() => handleRetroactiveBreak('Offline Meeting / Call')}
-              sx={{ justifyContent: 'flex-start', py: 1.2, px: 2, borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-              startIcon={<span>🤝</span>}
-            >
-              Log as Offline Meeting / Call
-            </Button>
-            <Button 
-              variant="outlined" 
-              color="primary" 
-              onClick={() => handleRetroactiveBreak('Other')}
-              sx={{ justifyContent: 'flex-start', py: 1.2, px: 2, borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-              startIcon={<span>📝</span>}
-            >
-              Log as Other Break
-            </Button>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ p: 2.5, justifyContent: 'space-between' }}>
-          <Typography variant="caption" color="text.secondary">
-            Select an option to update shift log.
-          </Typography>
-          <Button 
-            onClick={() => setIdleDialogOpen(false)} 
-            color="error" 
-            variant="contained"
-            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-          >
-            Ignore (On-Clock)
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <SmartIdleBreakDialog
+        open={idleDialogOpen}
+        onClose={() => setIdleDialogOpen(false)}
+        idleMins={idleMins}
+        onRetroactiveBreak={handleRetroactiveBreak}
+      />
 
       {/* Dialog for Task Details & Proof Submission / Comments */}
       <Dialog
